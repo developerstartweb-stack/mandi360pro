@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useState } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import Dashboard from "@/components/Dashboard";
+import DashboardModule from "@/components/DashboardModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Settings, BarChart3, FileText } from "lucide-react";
 
-function MainContent({ activeTab, currentFY }: { activeTab: string; currentFY: string }) {
+function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; currentFY: string; onFYChange: (fy: string) => void }) {
   const [showLotForm, setShowLotForm] = useState(false);
   const [showAccountForm, setShowAccountForm] = useState(false);
 
@@ -49,7 +49,7 @@ function MainContent({ activeTab, currentFY }: { activeTab: string; currentFY: s
 
   switch (activeTab) {
     case "dashboard":
-      return <Dashboard currentFY={currentFY} />;
+      return <DashboardModule currentFY={currentFY} onFYChange={onFYChange} />;
     
     case "lots":
       return (
@@ -295,7 +295,7 @@ function MainContent({ activeTab, currentFY }: { activeTab: string; currentFY: s
       );
     
     default:
-      return <Dashboard currentFY={currentFY} />;
+      return <DashboardModule currentFY={currentFY} onFYChange={onFYChange} />;
   }
 }
 
@@ -336,7 +336,7 @@ function App() {
             />
             
             <main className="flex-1 overflow-auto">
-              <MainContent activeTab={activeTab} currentFY={currentFY} />
+              <MainContent activeTab={activeTab} currentFY={currentFY} onFYChange={setCurrentFY} />
             </main>
           </div>
         </div>
