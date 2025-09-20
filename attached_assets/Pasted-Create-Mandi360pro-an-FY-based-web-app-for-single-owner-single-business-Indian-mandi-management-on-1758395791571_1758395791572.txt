@@ -1,0 +1,11 @@
+Create Mandi360pro, an FY-based web app for single-owner/single-business Indian mandi management, on Replit. Generate a React frontend with Tailwind CSS and Shadcn UI, and integrate Replit Database or Supabase backend for relational data. Single-owner control: Basic auth (email/password), row-level security (RLS) for owner-only CRUD. FY system: FY key in all data (auto-set "2025-26" for 2025-09-21), FY selector dropdown (options "2024-25", "2025-26", default "2025-26"), FY-prefixed IDs (e.g., "LOT-FY2526-001"), FY-filtered queries, and manual year rollover prompt to archive data. Trash system: Move deleted data to Trash_[TableName] with DeletedAt timestamp, Restore/Delete Permanently options, auto-delete after 30 days via Replit scheduler or Supabase cron. Include Add/Edit/Delete/Save/Print in all modules.
+
+ID Logic:
+- AccountID = Type + Initials + Seq (e.g., "B-SV-001" where Type="B" for Buyer, Initials="SV" from "Suraj Varma", Seq="001").
+- LotID = Product + TotalQuantity + Farmer/Agent Items Quantity + Seq (e.g., "Onion-25-10-001" where Product="Onion", TotalQuantity="25", Farmer/Agent Items Quantity="10", Seq="001").
+
+Theme: Clean, professional, modern with mandi vibe—light green (#90EE90) buttons/accents (hover #7ED321), white (#FFFFFF) background with subtle earthy gradient (#F0FFF0 to #FFFFFF), dark green (#2F4F4F) text (headers 24px, body 14px Roboto), red (#FF4444) for errors, Flaticon crop icons tinted #90EE90. Responsive: Desktop (200px sidebar, grid content), mobile (hamburger menu, full-screen forms). Multi-window open support: Use localStorage for session persistence, no shared state conflicts. Keyboard shortcuts: Ctrl+N (New), Ctrl+S (Save), Ctrl+E (Edit), Ctrl+D (Delete), Ctrl+P (Print), Ctrl+R (Reminder). Custom fields modal (Name, Type text/number/%/date/boolean, Value, Calculation fixed/%/sum, stored as JSON in CustomFields). Print generates PDF with FY data and CompanyProfile logo.
+
+Database: Replit Database (key-value for prototype, e.g., 'lots' key for JSON array) or Supabase free tier (relational tables with FY, CustomFields JSON). Triggers for auto-calcs. Export/import CSV/JSON in Settings.
+
+
