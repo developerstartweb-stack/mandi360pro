@@ -12,9 +12,17 @@ import {
   type UpdateProductExpenses,
   type PlaceMaster,
   type InsertPlaceMaster,
-  type UpdatePlaceMaster
+  type UpdatePlaceMaster,
+  users,
+  accountMaster,
+  productMaster,
+  productExpenses,
+  placeMaster
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { eq, and, like, ilike } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -358,4 +366,251 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  private connection = postgres(process.env.DATABASE_URL!);
+  private db = drizzle(this.connection);
+
+  // User operations
+  async getUser(id: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.id, id));
+    return result[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const result = await this.db.select().from(users).where(eq(users.username, username));
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const result = await this.db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  // Account Master operations
+  async getAccountMasters(financialYear: string, searchTerm?: string): Promise<AccountMaster[]> {
+    let query = this.db.select().from(accountMaster).where(eq(accountMaster.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = this.db.select().from(accountMaster).where(
+        and(
+          eq(accountMaster.financialYear, financialYear),
+          like(accountMaster.name, `%${searchTerm}%`)
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getAccountMaster(id: string): Promise<AccountMaster | undefined> {
+    const result = await this.db.select().from(accountMaster).where(eq(accountMaster.id, id));
+    return result[0];
+  }
+
+  async createAccountMaster(account: InsertAccountMaster): Promise<AccountMaster> {
+    const accountId = await this.generateAccountId();
+    const accountData = {
+      ...account,
+      accountId,
+      financialYear: account.financialYear || '2025-26'
+    };
+    const result = await this.db.insert(accountMaster).values(accountData).returning();
+    return result[0];
+  }
+
+  async updateAccountMaster(id: string, account: UpdateAccountMaster): Promise<AccountMaster> {
+    const result = await this.db.update(accountMaster)
+      .set({ ...account, updatedAt: new Date() })
+      .where(eq(accountMaster.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Account not found');
+    }
+    return result[0];
+  }
+
+  async deleteAccountMaster(id: string): Promise<boolean> {
+    const result = await this.db.delete(accountMaster).where(eq(accountMaster.id, id));
+    return result.length > 0;
+  }
+
+  async generateAccountId(): Promise<string> {
+    const currentYear = new Date().getFullYear().toString().slice(-2);
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    
+    // Get count of accounts for current month
+    const accounts = await this.db.select().from(accountMaster)
+      .where(like(accountMaster.accountId, `B-SV${currentYear}${currentMonth}%`));
+    
+    const nextNumber = String(accounts.length + 1).padStart(2, '0');
+    return `B-SV${currentYear}${currentMonth}${nextNumber}`;
+  }
+
+  // Product Master operations
+  async getProductMasters(financialYear: string, searchTerm?: string): Promise<ProductMaster[]> {
+    let query = this.db.select().from(productMaster).where(eq(productMaster.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = this.db.select().from(productMaster).where(
+        and(
+          eq(productMaster.financialYear, financialYear),
+          like(productMaster.name, `%${searchTerm}%`)
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getProductMaster(id: string): Promise<ProductMaster | undefined> {
+    const result = await this.db.select().from(productMaster).where(eq(productMaster.id, id));
+    return result[0];
+  }
+
+  async createProductMaster(product: InsertProductMaster): Promise<ProductMaster> {
+    const productId = await this.generateProductId(product.name);
+    const productData = {
+      ...product,
+      productId,
+      financialYear: product.financialYear || '2025-26'
+    };
+    const result = await this.db.insert(productMaster).values(productData).returning();
+    return result[0];
+  }
+
+  async updateProductMaster(id: string, product: UpdateProductMaster): Promise<ProductMaster> {
+    const result = await this.db.update(productMaster)
+      .set({ ...product, updatedAt: new Date() })
+      .where(eq(productMaster.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Product not found');
+    }
+    return result[0];
+  }
+
+  async deleteProductMaster(id: string): Promise<boolean> {
+    const result = await this.db.delete(productMaster).where(eq(productMaster.id, id));
+    return result.length > 0;
+  }
+
+  async generateProductId(name: string): Promise<string> {
+    const baseName = name.split(' ')[0].toLowerCase();
+    const capitalizedName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+    
+    // Get count of products with similar names
+    const products = await this.db.select().from(productMaster)
+      .where(like(productMaster.productId, `${capitalizedName}-%`));
+    
+    const nextNumber = String(products.length + 1).padStart(2, '0');
+    return `${capitalizedName}-${nextNumber}`;
+  }
+
+  // Product Expenses operations
+  async getProductExpenses(financialYear: string, productId?: string): Promise<ProductExpenses[]> {
+    let query = this.db.select().from(productExpenses).where(eq(productExpenses.financialYear, financialYear));
+    
+    if (productId) {
+      query = this.db.select().from(productExpenses).where(
+        and(
+          eq(productExpenses.financialYear, financialYear),
+          eq(productExpenses.productId, productId)
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getProductExpense(id: string): Promise<ProductExpenses | undefined> {
+    const result = await this.db.select().from(productExpenses).where(eq(productExpenses.id, id));
+    return result[0];
+  }
+
+  async createProductExpense(expense: InsertProductExpenses): Promise<ProductExpenses> {
+    const expenseData = {
+      ...expense,
+      financialYear: expense.financialYear || '2025-26'
+    };
+    const result = await this.db.insert(productExpenses).values(expenseData).returning();
+    return result[0];
+  }
+
+  async updateProductExpense(id: string, expense: UpdateProductExpenses): Promise<ProductExpenses> {
+    const result = await this.db.update(productExpenses)
+      .set({ ...expense, updatedAt: new Date() })
+      .where(eq(productExpenses.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Expense not found');
+    }
+    return result[0];
+  }
+
+  async deleteProductExpense(id: string): Promise<boolean> {
+    const result = await this.db.delete(productExpenses).where(eq(productExpenses.id, id));
+    return result.length > 0;
+  }
+
+  // Place Master operations
+  async getPlaceMasters(financialYear: string, searchTerm?: string): Promise<PlaceMaster[]> {
+    let query = this.db.select().from(placeMaster).where(eq(placeMaster.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = this.db.select().from(placeMaster).where(
+        and(
+          eq(placeMaster.financialYear, financialYear),
+          like(placeMaster.name, `%${searchTerm}%`)
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getPlaceMaster(id: string): Promise<PlaceMaster | undefined> {
+    const result = await this.db.select().from(placeMaster).where(eq(placeMaster.id, id));
+    return result[0];
+  }
+
+  async createPlaceMaster(place: InsertPlaceMaster): Promise<PlaceMaster> {
+    const placeId = await this.generatePlaceId();
+    const placeData = {
+      ...place,
+      placeId,
+      financialYear: place.financialYear || '2025-26'
+    };
+    const result = await this.db.insert(placeMaster).values(placeData).returning();
+    return result[0];
+  }
+
+  async updatePlaceMaster(id: string, place: UpdatePlaceMaster): Promise<PlaceMaster> {
+    const result = await this.db.update(placeMaster)
+      .set({ ...place, updatedAt: new Date() })
+      .where(eq(placeMaster.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Place not found');
+    }
+    return result[0];
+  }
+
+  async deletePlaceMaster(id: string): Promise<boolean> {
+    const result = await this.db.delete(placeMaster).where(eq(placeMaster.id, id));
+    return result.length > 0;
+  }
+
+  async generatePlaceId(): Promise<string> {
+    // Get count of places
+    const places = await this.db.select().from(placeMaster);
+    const nextNumber = String(places.length + 1).padStart(2, '0');
+    return `PLC-${nextNumber}`;
+  }
+}
+
+export const storage = new DatabaseStorage();
