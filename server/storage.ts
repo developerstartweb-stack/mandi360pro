@@ -13,11 +13,31 @@ import {
   type PlaceMaster,
   type InsertPlaceMaster,
   type UpdatePlaceMaster,
+  type LotEntry,
+  type InsertLotEntry,
+  type UpdateLotEntry,
+  type LotEntrySubFields,
+  type InsertLotEntrySubFields,
+  type UpdateLotEntrySubFields,
+  type GodownAwak,
+  type InsertGodownAwak,
+  type UpdateGodownAwak,
+  type Damage,
+  type InsertDamage,
+  type UpdateDamage,
+  type WeightSlip,
+  type InsertWeightSlip,
+  type UpdateWeightSlip,
   users,
   accountMaster,
   productMaster,
   productExpenses,
-  placeMaster
+  placeMaster,
+  lotEntry,
+  lotEntrySubFields,
+  godownAwak,
+  damage,
+  weightSlip
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -62,6 +82,44 @@ export interface IStorage {
   updatePlaceMaster(id: string, place: UpdatePlaceMaster): Promise<PlaceMaster>;
   deletePlaceMaster(id: string): Promise<boolean>;
   generatePlaceId(): Promise<string>;
+  
+  // Inventory operations - Lot Entry
+  getLotEntries(financialYear: string, searchTerm?: string): Promise<LotEntry[]>;
+  getLotEntry(id: string): Promise<LotEntry | undefined>;
+  createLotEntry(lot: InsertLotEntry): Promise<LotEntry>;
+  updateLotEntry(id: string, lot: UpdateLotEntry): Promise<LotEntry>;
+  deleteLotEntry(id: string): Promise<boolean>;
+  generateLotId(productName: string, quantity: number): Promise<string>;
+  
+  // Lot Entry Sub-Fields
+  getLotEntrySubFields(lotId: string): Promise<LotEntrySubFields[]>;
+  createLotEntrySubField(subField: InsertLotEntrySubFields): Promise<LotEntrySubFields>;
+  updateLotEntrySubField(id: string, subField: UpdateLotEntrySubFields): Promise<LotEntrySubFields>;
+  deleteLotEntrySubField(id: string): Promise<boolean>;
+  
+  // Godown Awak operations
+  getGodownAwaks(financialYear: string, searchTerm?: string): Promise<GodownAwak[]>;
+  getGodownAwak(id: string): Promise<GodownAwak | undefined>;
+  createGodownAwak(awak: InsertGodownAwak): Promise<GodownAwak>;
+  updateGodownAwak(id: string, awak: UpdateGodownAwak): Promise<GodownAwak>;
+  deleteGodownAwak(id: string): Promise<boolean>;
+  generateGodownAwakId(): Promise<string>;
+  
+  // Damage operations
+  getDamages(financialYear: string, searchTerm?: string): Promise<Damage[]>;
+  getDamage(id: string): Promise<Damage | undefined>;
+  createDamage(damage: InsertDamage): Promise<Damage>;
+  updateDamage(id: string, damage: UpdateDamage): Promise<Damage>;
+  deleteDamage(id: string): Promise<boolean>;
+  generateDamageId(): Promise<string>;
+  
+  // Weight Slip operations
+  getWeightSlips(financialYear: string, searchTerm?: string): Promise<WeightSlip[]>;
+  getWeightSlip(id: string): Promise<WeightSlip | undefined>;
+  createWeightSlip(slip: InsertWeightSlip): Promise<WeightSlip>;
+  updateWeightSlip(id: string, slip: UpdateWeightSlip): Promise<WeightSlip>;
+  deleteWeightSlip(id: string): Promise<boolean>;
+  generateWeightSlipId(): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
