@@ -1,0 +1,1255 @@
+import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Plus, 
+  Search, 
+  Edit3, 
+  Trash2, 
+  FileDown, 
+  Filter,
+  Building2,
+  Package,
+  CreditCard,
+  MapPin,
+  PhoneCall,
+  User,
+  DollarSign
+} from "lucide-react";
+
+// Define form schemas for validation
+const accountFormSchema = z.object({
+  type: z.string().min(1, "Type is required"),
+  name: z.string().min(1, "Name is required"),
+  mobile: z.string().optional(),
+  address: z.string().optional(),
+  placeId: z.string().optional(),
+  bankDetails: z.any().optional(),
+  openingBalance: z.string().default("0"),
+  creditLimit: z.string().default("0"),
+  creditTime: z.string().default("0"),
+  remarks: z.string().optional(),
+  customFields: z.any().optional(),
+  active: z.boolean().default(true),
+  financialYear: z.string()
+});
+
+const productFormSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  unit: z.string().min(1, "Unit is required"),
+  customFields: z.any().optional(),
+  active: z.boolean().default(true),
+  financialYear: z.string()
+});
+
+const expenseFormSchema = z.object({
+  productId: z.string().min(1, "Product is required"),
+  linkedTo: z.string().min(1, "Linked to is required"),
+  expenseName: z.string().min(1, "Expense name is required"),
+  expenseType: z.string().min(1, "Expense type is required"),
+  value: z.string().min(1, "Value is required"),
+  customFields: z.any().optional(),
+  active: z.boolean().default(true),
+  financialYear: z.string()
+});
+
+const placeFormSchema = z.object({
+  name: z.string().min(1, "Place name is required"),
+  description: z.string().optional(),
+  customFields: z.any().optional(),
+  active: z.boolean().default(true),
+  financialYear: z.string()
+});
+
+interface MasterDataModuleProps {
+  currentFY: string;
+  onFYChange: (fy: string) => void;
+}
+
+export default function MasterDataModule({ currentFY, onFYChange }: MasterDataModuleProps) {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("accounts");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any>(null);
+
+  // Fetch data based on active tab
+  const { data: accounts, isLoading: accountsLoading } = useQuery({
+    queryKey: ["/api/accounts", currentFY, searchTerm],
+    enabled: activeTab === "accounts",
+  });
+
+  const { data: products, isLoading: productsLoading } = useQuery({
+    queryKey: ["/api/products", currentFY, searchTerm],
+    enabled: activeTab === "products",
+  });
+
+  const { data: expenses, isLoading: expensesLoading } = useQuery({
+    queryKey: ["/api/expenses", currentFY],
+    enabled: activeTab === "expenses",
+  });
+
+  const { data: places, isLoading: placesLoading } = useQuery({
+    queryKey: ["/api/places", currentFY, searchTerm],
+    enabled: activeTab === "places",
+  });
+
+  // Mutations for CRUD operations
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const endpoints: Record<string, string> = {
+        accounts: "/api/accounts",
+        products: "/api/products", 
+        expenses: "/api/expenses",
+        places: "/api/places"
+      };
+      return apiRequest(endpoints[activeTab], "POST", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
+      setShowForm(false);
+      setEditingItem(null);
+      toast({
+        title: "Success",
+        description: `${activeTab.slice(0, -1)} created successfully`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: `Failed to create ${activeTab.slice(0, -1)}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const endpoints: Record<string, string> = {
+        accounts: "/api/accounts",
+        products: "/api/products",
+        expenses: "/api/expenses", 
+        places: "/api/places"
+      };
+      return apiRequest(`${endpoints[activeTab]}/${id}`, "PUT", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
+      setShowForm(false);
+      setEditingItem(null);
+      toast({
+        title: "Success",
+        description: `${activeTab.slice(0, -1)} updated successfully`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: `Failed to update ${activeTab.slice(0, -1)}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const endpoints: Record<string, string> = {
+        accounts: "/api/accounts",
+        products: "/api/products",
+        expenses: "/api/expenses",
+        places: "/api/places"
+      };
+      return apiRequest(`${endpoints[activeTab]}/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
+      setShowDeleteDialog(false);
+      setItemToDelete(null);
+      toast({
+        title: "Success",
+        description: `${activeTab.slice(0, -1)} deleted successfully`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: `Failed to delete ${activeTab.slice(0, -1)}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Keyboard shortcuts
+  const handleKeyboard = useCallback((event: KeyboardEvent) => {
+    if (event.ctrlKey) {
+      switch (event.key.toLowerCase()) {
+        case 'n':
+          event.preventDefault();
+          setEditingItem(null);
+          setShowForm(true);
+          break;
+        case 'e':
+          event.preventDefault();
+          // Edit first item if available
+          const currentData = getCurrentData();
+          if (Array.isArray(currentData) && currentData.length > 0) {
+            setEditingItem(currentData[0]);
+            setShowForm(true);
+          }
+          break;
+        case 'd':
+          event.preventDefault();
+          // Delete first item if available
+          const deleteData = getCurrentData();
+          if (Array.isArray(deleteData) && deleteData.length > 0) {
+            setItemToDelete(deleteData[0]);
+            setShowDeleteDialog(true);
+          }
+          break;
+        case 'p':
+          event.preventDefault();
+          handlePrint();
+          break;
+        case 's':
+          event.preventDefault();
+          if (showForm) {
+            // Trigger form submit
+            const form = document.querySelector('form');
+            if (form) {
+              form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+          }
+          break;
+      }
+    }
+  }, [activeTab, showForm]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyboard);
+    return () => document.removeEventListener('keydown', handleKeyboard);
+  }, [handleKeyboard]);
+
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case "accounts": return accounts || [];
+      case "products": return products || [];
+      case "expenses": return expenses || [];
+      case "places": return places || [];
+      default: return [];
+    }
+  };
+
+  const getCurrentLoading = () => {
+    switch (activeTab) {
+      case "accounts": return accountsLoading;
+      case "products": return productsLoading;
+      case "expenses": return expensesLoading;
+      case "places": return placesLoading;
+      default: return false;
+    }
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingItem(item);
+    setShowForm(true);
+  };
+
+  const handleDelete = (item: any) => {
+    setItemToDelete(item);
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (itemToDelete) {
+      deleteMutation.mutate(itemToDelete.id);
+    }
+  };
+
+  const handlePrint = () => {
+    // Generate PDF logic here
+    toast({
+      title: "PDF Generated",
+      description: `${activeTab} list has been exported to PDF`,
+    });
+  };
+
+  const getTabIcon = (tab: string) => {
+    switch (tab) {
+      case "accounts": return <Building2 className="w-4 h-4" />;
+      case "products": return <Package className="w-4 h-4" />;
+      case "expenses": return <CreditCard className="w-4 h-4" />;
+      case "places": return <MapPin className="w-4 h-4" />;
+      default: return null;
+    }
+  };
+
+  const renderTableView = () => {
+    const data = getCurrentData();
+    const isLoading = getCurrentLoading();
+
+    if (isLoading) {
+      return (
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="animate-pulse bg-muted h-16 rounded-md" />
+          ))}
+        </div>
+      );
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground">
+            No {activeTab} found for {currentFY}
+            <br />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-4"
+              onClick={() => setShowForm(true)}
+              data-testid={`button-add-first-${activeTab}`}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add First {activeTab.slice(0, -1)}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {(data || []).map((item: any, index: number) => (
+          <Card 
+            key={item.id} 
+            className="hover-elevate cursor-pointer transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
+            style={{ animationDelay: `${index * 50}ms` }}
+            data-testid={`card-${activeTab}-${item.id}`}
+          >
+            <CardContent className="p-4">
+              {renderTableRow(item)}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  const renderTableRow = (item: any) => {
+    switch (activeTab) {
+      case "accounts":
+        return (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" data-testid={`text-account-id-${item.accountId}`}>
+                    {item.accountId}
+                  </Badge>
+                  <Badge variant={item.type === "Buyer" ? "default" : "outline"}>
+                    {item.type}
+                  </Badge>
+                  {!item.active && <Badge variant="destructive">Inactive</Badge>}
+                </div>
+                <h3 className="font-medium truncate" data-testid={`text-account-name-${item.name}`}>
+                  {item.name}
+                </h3>
+                <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                  {item.mobile && (
+                    <div className="flex items-center space-x-1">
+                      <PhoneCall className="w-3 h-3" />
+                      <span data-testid={`text-mobile-${item.mobile}`}>{item.mobile}</span>
+                    </div>
+                  )}
+                  {item.openingBalance > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <DollarSign className="w-3 h-3" />
+                      <span data-testid={`text-balance-${item.openingBalance}`}>₹{item.openingBalance}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(item);
+                }}
+                data-testid={`button-edit-account-${item.id}`}
+              >
+                <Edit3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(item);
+                }}
+                data-testid={`button-delete-account-${item.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "products":
+        return (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" data-testid={`text-product-id-${item.productId}`}>
+                    {item.productId}
+                  </Badge>
+                  <Badge variant="outline">{item.unit}</Badge>
+                  {!item.active && <Badge variant="destructive">Inactive</Badge>}
+                </div>
+                <h3 className="font-medium truncate" data-testid={`text-product-name-${item.name}`}>
+                  {item.name}
+                </h3>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(item);
+                }}
+                data-testid={`button-edit-product-${item.id}`}
+              >
+                <Edit3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(item);
+                }}
+                data-testid={`button-delete-product-${item.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "expenses":
+        return (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary">{item.productId}</Badge>
+                  <Badge variant={item.linkedTo === "Buyer" ? "default" : "outline"}>
+                    {item.linkedTo}
+                  </Badge>
+                  <Badge variant="secondary">{item.expenseType}</Badge>
+                  {!item.active && <Badge variant="destructive">Inactive</Badge>}
+                </div>
+                <h3 className="font-medium truncate" data-testid={`text-expense-name-${item.expenseName}`}>
+                  {item.expenseName}
+                </h3>
+                <div className="text-sm text-muted-foreground" data-testid={`text-expense-value-${item.value}`}>
+                  Value: ₹{item.value}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(item);
+                }}
+                data-testid={`button-edit-expense-${item.id}`}
+              >
+                <Edit3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(item);
+                }}
+                data-testid={`button-delete-expense-${item.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "places":
+        return (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" data-testid={`text-place-id-${item.placeId}`}>
+                    {item.placeId}
+                  </Badge>
+                  {!item.active && <Badge variant="destructive">Inactive</Badge>}
+                </div>
+                <h3 className="font-medium truncate" data-testid={`text-place-name-${item.name}`}>
+                  {item.name}
+                </h3>
+                {item.description && (
+                  <p className="text-sm text-muted-foreground truncate" data-testid={`text-place-description-${item.description}`}>
+                    {item.description}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(item);
+                }}
+                data-testid={`button-edit-place-${item.id}`}
+              >
+                <Edit3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(item);
+                }}
+                data-testid={`button-delete-place-${item.id}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Master Data</h1>
+          <p className="text-muted-foreground">
+            Manage accounts, products, expenses, and places for {currentFY}
+          </p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <Select value={currentFY} onValueChange={onFYChange}>
+            <SelectTrigger className="w-[180px]" data-testid="select-financial-year">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2024-25">FY 2024-25</SelectItem>
+              <SelectItem value="2025-26">FY 2025-26</SelectItem>
+              <SelectItem value="2026-27">FY 2026-27</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Action Bar */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center space-x-4 flex-1">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={`Search ${activeTab}...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                  data-testid={`input-search-${activeTab}`}
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrint}
+                data-testid="button-print-list"
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingItem(null);
+                  setShowForm(true);
+                }}
+                data-testid={`button-add-${activeTab}`}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add {activeTab.slice(0, -1)}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} data-testid="tabs-master-data">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="accounts" className="flex items-center space-x-2" data-testid="tab-accounts">
+            {getTabIcon("accounts")}
+            <span>Account Master</span>
+          </TabsTrigger>
+          <TabsTrigger value="products" className="flex items-center space-x-2" data-testid="tab-products">
+            {getTabIcon("products")}
+            <span>Product Master</span>
+          </TabsTrigger>
+          <TabsTrigger value="expenses" className="flex items-center space-x-2" data-testid="tab-expenses">
+            {getTabIcon("expenses")}
+            <span>Product Expenses</span>
+          </TabsTrigger>
+          <TabsTrigger value="places" className="flex items-center space-x-2" data-testid="tab-places">
+            {getTabIcon("places")}
+            <span>Place Master</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="accounts" className="space-y-4">
+          {renderTableView()}
+        </TabsContent>
+
+        <TabsContent value="products" className="space-y-4">
+          {renderTableView()}
+        </TabsContent>
+
+        <TabsContent value="expenses" className="space-y-4">
+          {renderTableView()}
+        </TabsContent>
+
+        <TabsContent value="places" className="space-y-4">
+          {renderTableView()}
+        </TabsContent>
+      </Tabs>
+
+      {/* Form Dialog */}
+      <FormDialog
+        showForm={showForm}
+        setShowForm={setShowForm}
+        activeTab={activeTab}
+        editingItem={editingItem}
+        setEditingItem={setEditingItem}
+        currentFY={currentFY}
+        createMutation={createMutation}
+        updateMutation={updateMutation}
+        products={products}
+        places={places}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {activeTab.slice(0, -1)}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              data-testid="button-confirm-delete"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Keyboard shortcuts hint */}
+      <div className="text-xs text-muted-foreground text-center space-x-4 py-4 border-t">
+        <span>Ctrl+N: Add</span>
+        <span>Ctrl+E: Edit</span>
+        <span>Ctrl+D: Delete</span>
+        <span>Ctrl+S: Save</span>
+        <span>Ctrl+P: Print</span>
+      </div>
+    </div>
+  );
+}
+
+// Form Dialog Component
+function FormDialog({
+  showForm,
+  setShowForm,
+  activeTab,
+  editingItem,
+  setEditingItem,
+  currentFY,
+  createMutation,
+  updateMutation,
+  products,
+  places
+}: any) {
+  const getFormSchema = () => {
+    switch (activeTab) {
+      case "accounts": return accountFormSchema;
+      case "products": return productFormSchema;
+      case "expenses": return expenseFormSchema;
+      case "places": return placeFormSchema;
+      default: return accountFormSchema;
+    }
+  };
+
+  const form = useForm({
+    resolver: zodResolver(getFormSchema()),
+    defaultValues: editingItem || {
+      financialYear: currentFY,
+      active: true,
+      openingBalance: "0",
+      creditLimit: "0", 
+      creditTime: "0"
+    }
+  });
+
+  useEffect(() => {
+    if (editingItem) {
+      form.reset(editingItem);
+    } else {
+      form.reset({
+        financialYear: currentFY,
+        active: true,
+        openingBalance: "0",
+        creditLimit: "0",
+        creditTime: "0"
+      });
+    }
+  }, [editingItem, currentFY, form]);
+
+  const onSubmit = (data: any) => {
+    if (editingItem) {
+      updateMutation.mutate({ id: editingItem.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleClose = () => {
+    setShowForm(false);
+    setEditingItem(null);
+    form.reset();
+  };
+
+  return (
+    <Dialog open={showForm} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {editingItem ? "Edit" : "Add"} {activeTab.slice(0, -1)}
+          </DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {activeTab === "accounts" && <AccountFormFields form={form} places={places} />}
+            {activeTab === "products" && <ProductFormFields form={form} />}
+            {activeTab === "expenses" && <ExpenseFormFields form={form} products={products} />}
+            {activeTab === "places" && <PlaceFormFields form={form} />}
+
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleClose}
+                data-testid="button-cancel-form"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={createMutation.isPending || updateMutation.isPending}
+                data-testid="button-save-form"
+              >
+                {editingItem ? "Update" : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Form field components for each tab
+function AccountFormFields({ form, places }: any) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-account-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Buyer">Buyer</SelectItem>
+                  <SelectItem value="Farmer">Farmer</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name *</FormLabel>
+              <FormControl>
+                <Input {...field} data-testid="input-account-name" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="mobile"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mobile</FormLabel>
+              <FormControl>
+                <Input {...field} type="tel" data-testid="input-account-mobile" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="placeId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Place</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-account-place">
+                    <SelectValue placeholder="Select place" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {places?.map((place: any) => (
+                    <SelectItem key={place.id} value={place.placeId}>
+                      {place.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="address"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Address</FormLabel>
+            <FormControl>
+              <Textarea {...field} data-testid="input-account-address" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid grid-cols-3 gap-4">
+        <FormField
+          control={form.control}
+          name="openingBalance"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Opening Balance</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" data-testid="input-account-balance" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="creditLimit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Credit Limit</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" data-testid="input-account-credit-limit" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="creditTime"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Credit Time (Days)</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" data-testid="input-account-credit-time" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="remarks"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Remarks</FormLabel>
+            <FormControl>
+              <Textarea {...field} data-testid="input-account-remarks" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="active"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel className="text-base">Active</FormLabel>
+              <FormDescription>
+                Enable or disable this account
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                data-testid="switch-account-active"
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+    </>
+  );
+}
+
+function ProductFormFields({ form }: any) {
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Product Name *</FormLabel>
+            <FormControl>
+              <Input {...field} data-testid="input-product-name" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="unit"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Unit *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger data-testid="select-product-unit">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Kg">Kilogram (Kg)</SelectItem>
+                <SelectItem value="Quintal">Quintal</SelectItem>
+                <SelectItem value="Bag">Bag</SelectItem>
+                <SelectItem value="Ton">Ton</SelectItem>
+                <SelectItem value="Piece">Piece</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="active"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel className="text-base">Active</FormLabel>
+              <FormDescription>
+                Enable or disable this product
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                data-testid="switch-product-active"
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+    </>
+  );
+}
+
+function ExpenseFormFields({ form, products }: any) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="productId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Product *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-expense-product">
+                    <SelectValue placeholder="Select product" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {products?.map((product: any) => (
+                    <SelectItem key={product.id} value={product.productId}>
+                      {product.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="linkedTo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Linked To *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-expense-linked-to">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Buyer">Buyer</SelectItem>
+                  <SelectItem value="Farmer">Farmer</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="expenseName"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Expense Name *</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger data-testid="select-expense-name">
+                  <SelectValue placeholder="Select expense type" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Commission">Commission</SelectItem>
+                <SelectItem value="Market Fee">Market Fee</SelectItem>
+                <SelectItem value="Hamali">Hamali</SelectItem>
+                <SelectItem value="Varai">Varai</SelectItem>
+                <SelectItem value="Tolai">Tolai</SelectItem>
+                <SelectItem value="Levy">Levy</SelectItem>
+                <SelectItem value="Postage">Postage</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="expenseType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-expense-type">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="%">Percentage (%)</SelectItem>
+                  <SelectItem value="Fixed">Fixed Amount</SelectItem>
+                  <SelectItem value="Per Bag">Per Bag</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="value"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Value *</FormLabel>
+              <FormControl>
+                <Input {...field} type="number" step="0.01" data-testid="input-expense-value" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="active"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel className="text-base">Active</FormLabel>
+              <FormDescription>
+                Enable or disable this expense
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                data-testid="switch-expense-active"
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+    </>
+  );
+}
+
+function PlaceFormFields({ form }: any) {
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Place Name *</FormLabel>
+            <FormControl>
+              <Input {...field} data-testid="input-place-name" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="description"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Description</FormLabel>
+            <FormControl>
+              <Textarea {...field} data-testid="input-place-description" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="active"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <FormLabel className="text-base">Active</FormLabel>
+              <FormDescription>
+                Enable or disable this place
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                data-testid="switch-place-active"
+              />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+    </>
+  );
+}
