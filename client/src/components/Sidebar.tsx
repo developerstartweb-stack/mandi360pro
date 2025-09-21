@@ -8,7 +8,8 @@ import {
   Settings,
   Wheat,
   TrendingUp,
-  Building
+  Building,
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ const menuItems = [
   { id: "lots", label: "Lots", icon: Wheat, badge: "12" },
   { id: "accounts", label: "Accounts", icon: Users },
   { id: "products", label: "Products", icon: Package },
+  { id: "master-data", label: "Master Data", icon: Database },
   { id: "transactions", label: "Transactions", icon: ShoppingCart },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "analytics", label: "Analytics", icon: TrendingUp },
