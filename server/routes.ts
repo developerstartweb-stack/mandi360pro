@@ -27,7 +27,13 @@ import {
   insertCustomerPaymentReceiptSchema,
   updateCustomerPaymentReceiptSchema,
   insertOtherPaymentReceiptSchema,
-  updateOtherPaymentReceiptSchema
+  updateOtherPaymentReceiptSchema,
+  insertDhadaBookSchema,
+  updateDhadaBookSchema,
+  insertFarmerInvoiceSchema,
+  updateFarmerInvoiceSchema,
+  insertManualInvoiceSchema,
+  updateManualInvoiceSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -721,6 +727,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete other payment receipt" });
+    }
+  });
+
+  // Farmer Invoice Module - Dhada Book Routes
+  app.get("/api/farmerinvoice/dhada-book", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const books = await storage.getDhadaBooks(fy as string, search as string);
+      res.json(books);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch dhada books" });
+    }
+  });
+
+  app.get("/api/farmerinvoice/dhada-book/:id", async (req, res) => {
+    try {
+      const book = await storage.getDhadaBook(req.params.id);
+      if (!book) {
+        return res.status(404).json({ error: "Dhada book not found" });
+      }
+      res.json(book);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch dhada book" });
+    }
+  });
+
+  app.post("/api/farmerinvoice/dhada-book", async (req, res) => {
+    try {
+      const validatedData = insertDhadaBookSchema.parse(req.body);
+      const book = await storage.createDhadaBook(validatedData);
+      res.status(201).json(book);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid dhada book data" });
+    }
+  });
+
+  app.put("/api/farmerinvoice/dhada-book/:id", async (req, res) => {
+    try {
+      const validatedData = updateDhadaBookSchema.parse(req.body);
+      const book = await storage.updateDhadaBook(req.params.id, validatedData);
+      res.json(book);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update dhada book" });
+    }
+  });
+
+  app.delete("/api/farmerinvoice/dhada-book/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteDhadaBook(req.params.id);
+      if (success) {
+        res.json({ message: "Dhada book deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Dhada book not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete dhada book" });
+    }
+  });
+
+  // Farmer Invoice Module - Farmer Invoice Routes
+  app.get("/api/farmerinvoice/farmer-invoice", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const invoices = await storage.getFarmerInvoices(fy as string, search as string);
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch farmer invoices" });
+    }
+  });
+
+  app.get("/api/farmerinvoice/farmer-invoice/:id", async (req, res) => {
+    try {
+      const invoice = await storage.getFarmerInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Farmer invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch farmer invoice" });
+    }
+  });
+
+  app.post("/api/farmerinvoice/farmer-invoice", async (req, res) => {
+    try {
+      const validatedData = insertFarmerInvoiceSchema.parse(req.body);
+      const invoice = await storage.createFarmerInvoice(validatedData);
+      res.status(201).json(invoice);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid farmer invoice data" });
+    }
+  });
+
+  app.put("/api/farmerinvoice/farmer-invoice/:id", async (req, res) => {
+    try {
+      const validatedData = updateFarmerInvoiceSchema.parse(req.body);
+      const invoice = await storage.updateFarmerInvoice(req.params.id, validatedData);
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update farmer invoice" });
+    }
+  });
+
+  app.delete("/api/farmerinvoice/farmer-invoice/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteFarmerInvoice(req.params.id);
+      if (success) {
+        res.json({ message: "Farmer invoice deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Farmer invoice not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete farmer invoice" });
+    }
+  });
+
+  // Farmer Invoice Module - Manual Invoice Routes
+  app.get("/api/farmerinvoice/manual-invoice", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const invoices = await storage.getManualInvoices(fy as string, search as string);
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch manual invoices" });
+    }
+  });
+
+  app.get("/api/farmerinvoice/manual-invoice/:id", async (req, res) => {
+    try {
+      const invoice = await storage.getManualInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Manual invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch manual invoice" });
+    }
+  });
+
+  app.post("/api/farmerinvoice/manual-invoice", async (req, res) => {
+    try {
+      const validatedData = insertManualInvoiceSchema.parse(req.body);
+      const invoice = await storage.createManualInvoice(validatedData);
+      res.status(201).json(invoice);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid manual invoice data" });
+    }
+  });
+
+  app.put("/api/farmerinvoice/manual-invoice/:id", async (req, res) => {
+    try {
+      const validatedData = updateManualInvoiceSchema.parse(req.body);
+      const invoice = await storage.updateManualInvoice(req.params.id, validatedData);
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update manual invoice" });
+    }
+  });
+
+  app.delete("/api/farmerinvoice/manual-invoice/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteManualInvoice(req.params.id);
+      if (success) {
+        res.json({ message: "Manual invoice deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Manual invoice not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete manual invoice" });
     }
   });
 
