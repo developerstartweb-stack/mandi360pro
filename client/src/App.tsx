@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import DashboardModule from "@/components/DashboardModule";
 import MasterDataModule from "@/components/MasterDataModule";
+import InventoryModule from "@/components/InventoryModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -165,6 +166,13 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
     case "product-expenses":
     case "place-master":
       return <MasterDataModule currentFY={currentFY} onFYChange={onFYChange} />;
+    
+    case "inventory":
+    case "lot-entry":
+    case "godown-awak":
+    case "damage":
+    case "weight-slip":
+      return <InventoryModule currentFY={currentFY} onFYChange={onFYChange} />;
     
     case "transactions":
       return (

@@ -11,7 +11,10 @@ import {
   Users,
   Package,
   DollarSign,
-  MapPin
+  MapPin,
+  Plus,
+  AlertTriangle,
+  Scale
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +39,18 @@ const menuItems = [
       { id: "product-master", label: "Product Master", icon: Package },
       { id: "product-expenses", label: "Product Expenses", icon: DollarSign },
       { id: "place-master", label: "Place Master", icon: MapPin }
+    ]
+  },
+  {
+    id: "inventory",
+    label: "Inventory",
+    icon: Package,
+    hasDropdown: true,
+    subItems: [
+      { id: "lot-entry", label: "Lot Entry", icon: Plus },
+      { id: "godown-awak", label: "Godown Awak", icon: Building },
+      { id: "damage", label: "Damage", icon: AlertTriangle },
+      { id: "weight-slip", label: "Weight Slip", icon: Scale }
     ]
   },
   { id: "reports", label: "Reports", icon: BarChart3 },
@@ -105,11 +120,11 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
                           <ChevronDown className="h-4 w-4" />
                         )
                       )}
-                      {'badge' in item && item.badge && (
+                      {'badge' in item && item.badge ? (
                         <Badge variant="secondary" className="text-xs">
-                          {item.badge}
+                          {(item as any).badge}
                         </Badge>
-                      )}
+                      ) : null}
                     </>
                   )}
                 </Button>
