@@ -219,14 +219,21 @@ export const weightSlip = pgTable("weight_slip", {
 });
 
 // Schema validations for Lot Entry
-export const insertLotEntrySchema = createInsertSchema(lotEntry).omit({
+export const insertLotEntrySchema = createInsertSchema(lotEntry, {
+  arrivingDate: z.coerce.date(), // Handle date coercion from JSON strings
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const updateLotEntrySchema = insertLotEntrySchema.partial().omit({
+export const updateLotEntrySchema = createInsertSchema(lotEntry, {
+  arrivingDate: z.coerce.date(), // Handle date coercion from JSON strings
+}).partial().omit({
+  id: true,
   lotId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
 });
 
 export type InsertLotEntry = z.infer<typeof insertLotEntrySchema>;
