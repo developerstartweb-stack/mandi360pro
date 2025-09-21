@@ -33,7 +33,15 @@ import {
   insertFarmerInvoiceSchema,
   updateFarmerInvoiceSchema,
   insertManualInvoiceSchema,
-  updateManualInvoiceSchema
+  updateManualInvoiceSchema,
+  insertRojmelSchema,
+  updateRojmelSchema,
+  insertIncomeExpenseReceiptSchema,
+  updateIncomeExpenseReceiptSchema,
+  insertBankDepositReceiptSchema,
+  updateBankDepositReceiptSchema,
+  insertBalanceSheetSchema,
+  updateBalanceSheetSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -895,6 +903,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete manual invoice" });
+    }
+  });
+
+  // Accounting Module - Rojmel Routes
+  app.get("/api/accounting/rojmels", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const rojmels = await storage.getRojmels(fy as string, search as string);
+      res.json(rojmels);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rojmels" });
+    }
+  });
+
+  app.get("/api/accounting/rojmels/:id", async (req, res) => {
+    try {
+      const rojmel = await storage.getRojmel(req.params.id);
+      if (!rojmel) {
+        return res.status(404).json({ error: "Rojmel not found" });
+      }
+      res.json(rojmel);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rojmel" });
+    }
+  });
+
+  app.post("/api/accounting/rojmels", async (req, res) => {
+    try {
+      const validatedData = insertRojmelSchema.parse(req.body);
+      const rojmel = await storage.createRojmel(validatedData);
+      res.status(201).json(rojmel);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid rojmel data" });
+    }
+  });
+
+  app.put("/api/accounting/rojmels/:id", async (req, res) => {
+    try {
+      const validatedData = updateRojmelSchema.parse(req.body);
+      const rojmel = await storage.updateRojmel(req.params.id, validatedData);
+      res.json(rojmel);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update rojmel" });
+    }
+  });
+
+  app.delete("/api/accounting/rojmels/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRojmel(req.params.id);
+      if (success) {
+        res.json({ message: "Rojmel deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Rojmel not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete rojmel" });
+    }
+  });
+
+  // Accounting Module - Income/Expense Receipt Routes
+  app.get("/api/accounting/income-expense-receipts", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const receipts = await storage.getIncomeExpenseReceipts(fy as string, search as string);
+      res.json(receipts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch income/expense receipts" });
+    }
+  });
+
+  app.get("/api/accounting/income-expense-receipts/:id", async (req, res) => {
+    try {
+      const receipt = await storage.getIncomeExpenseReceipt(req.params.id);
+      if (!receipt) {
+        return res.status(404).json({ error: "Income/Expense receipt not found" });
+      }
+      res.json(receipt);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch income/expense receipt" });
+    }
+  });
+
+  app.post("/api/accounting/income-expense-receipts", async (req, res) => {
+    try {
+      const validatedData = insertIncomeExpenseReceiptSchema.parse(req.body);
+      const receipt = await storage.createIncomeExpenseReceipt(validatedData);
+      res.status(201).json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid income/expense receipt data" });
+    }
+  });
+
+  app.put("/api/accounting/income-expense-receipts/:id", async (req, res) => {
+    try {
+      const validatedData = updateIncomeExpenseReceiptSchema.parse(req.body);
+      const receipt = await storage.updateIncomeExpenseReceipt(req.params.id, validatedData);
+      res.json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update income/expense receipt" });
+    }
+  });
+
+  app.delete("/api/accounting/income-expense-receipts/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteIncomeExpenseReceipt(req.params.id);
+      if (success) {
+        res.json({ message: "Income/Expense receipt deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Income/Expense receipt not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete income/expense receipt" });
+    }
+  });
+
+  // Accounting Module - Bank Deposit Receipt Routes
+  app.get("/api/accounting/bank-deposit-receipts", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const receipts = await storage.getBankDepositReceipts(fy as string, search as string);
+      res.json(receipts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch bank deposit receipts" });
+    }
+  });
+
+  app.get("/api/accounting/bank-deposit-receipts/:id", async (req, res) => {
+    try {
+      const receipt = await storage.getBankDepositReceipt(req.params.id);
+      if (!receipt) {
+        return res.status(404).json({ error: "Bank deposit receipt not found" });
+      }
+      res.json(receipt);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch bank deposit receipt" });
+    }
+  });
+
+  app.post("/api/accounting/bank-deposit-receipts", async (req, res) => {
+    try {
+      const validatedData = insertBankDepositReceiptSchema.parse(req.body);
+      const receipt = await storage.createBankDepositReceipt(validatedData);
+      res.status(201).json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid bank deposit receipt data" });
+    }
+  });
+
+  app.put("/api/accounting/bank-deposit-receipts/:id", async (req, res) => {
+    try {
+      const validatedData = updateBankDepositReceiptSchema.parse(req.body);
+      const receipt = await storage.updateBankDepositReceipt(req.params.id, validatedData);
+      res.json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update bank deposit receipt" });
+    }
+  });
+
+  app.delete("/api/accounting/bank-deposit-receipts/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteBankDepositReceipt(req.params.id);
+      if (success) {
+        res.json({ message: "Bank deposit receipt deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Bank deposit receipt not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete bank deposit receipt" });
+    }
+  });
+
+  // Accounting Module - Balance Sheet Routes
+  app.get("/api/accounting/balance-sheets", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const sheets = await storage.getBalanceSheets(fy as string, search as string);
+      res.json(sheets);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch balance sheets" });
+    }
+  });
+
+  app.get("/api/accounting/balance-sheets/:id", async (req, res) => {
+    try {
+      const sheet = await storage.getBalanceSheet(req.params.id);
+      if (!sheet) {
+        return res.status(404).json({ error: "Balance sheet not found" });
+      }
+      res.json(sheet);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch balance sheet" });
+    }
+  });
+
+  app.post("/api/accounting/balance-sheets", async (req, res) => {
+    try {
+      const validatedData = insertBalanceSheetSchema.parse(req.body);
+      const sheet = await storage.createBalanceSheet(validatedData);
+      res.status(201).json(sheet);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid balance sheet data" });
+    }
+  });
+
+  app.put("/api/accounting/balance-sheets/:id", async (req, res) => {
+    try {
+      const validatedData = updateBalanceSheetSchema.parse(req.body);
+      const sheet = await storage.updateBalanceSheet(req.params.id, validatedData);
+      res.json(sheet);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update balance sheet" });
+    }
+  });
+
+  app.delete("/api/accounting/balance-sheets/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteBalanceSheet(req.params.id);
+      if (success) {
+        res.json({ message: "Balance sheet deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Balance sheet not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete balance sheet" });
     }
   });
 
