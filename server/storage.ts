@@ -20,8 +20,7 @@ import {
   placeMaster
 } from "@shared/schema";
 import { randomUUID } from "crypto";
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { db } from "./db";
 import { eq, and, like, ilike } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
@@ -368,31 +367,29 @@ export class MemStorage implements IStorage {
 
 // Database Storage Implementation
 export class DatabaseStorage implements IStorage {
-  private connection = postgres(process.env.DATABASE_URL!);
-  private db = drizzle(this.connection);
 
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.id, id));
+    const result = await db.select().from(users).where(eq(users.id, id));
     return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.username, username));
+    const result = await db.select().from(users).where(eq(users.username, username));
     return result[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await this.db.insert(users).values(insertUser).returning();
+    const result = await db.insert(users).values(insertUser).returning();
     return result[0];
   }
 
   // Account Master operations
   async getAccountMasters(financialYear: string, searchTerm?: string): Promise<AccountMaster[]> {
-    let query = this.db.select().from(accountMaster).where(eq(accountMaster.financialYear, financialYear));
+    let query = db.select().from(accountMaster).where(eq(accountMaster.financialYear, financialYear));
     
     if (searchTerm) {
-      query = this.db.select().from(accountMaster).where(
+      query = db.select().from(accountMaster).where(
         and(
           eq(accountMaster.financialYear, financialYear),
           like(accountMaster.name, `%${searchTerm}%`)
@@ -404,7 +401,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAccountMaster(id: string): Promise<AccountMaster | undefined> {
-    const result = await this.db.select().from(accountMaster).where(eq(accountMaster.id, id));
+    const result = await db.select().from(accountMaster).where(eq(accountMaster.id, id));
     return result[0];
   }
 
@@ -415,12 +412,12 @@ export class DatabaseStorage implements IStorage {
       accountId,
       financialYear: account.financialYear || '2025-26'
     };
-    const result = await this.db.insert(accountMaster).values(accountData).returning();
+    const result = await db.insert(accountMaster).values(accountData).returning();
     return result[0];
   }
 
   async updateAccountMaster(id: string, account: UpdateAccountMaster): Promise<AccountMaster> {
-    const result = await this.db.update(accountMaster)
+    const result = await db.update(accountMaster)
       .set({ ...account, updatedAt: new Date() })
       .where(eq(accountMaster.id, id))
       .returning();
@@ -432,7 +429,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAccountMaster(id: string): Promise<boolean> {
-    const result = await this.db.delete(accountMaster).where(eq(accountMaster.id, id));
+    const result = await db.delete(accountMaster).where(eq(accountMaster.id, id));
     return result.length > 0;
   }
 
@@ -441,7 +438,7 @@ export class DatabaseStorage implements IStorage {
     const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     
     // Get count of accounts for current month
-    const accounts = await this.db.select().from(accountMaster)
+    const accounts = await db.select().from(accountMaster)
       .where(like(accountMaster.accountId, `B-SV${currentYear}${currentMonth}%`));
     
     const nextNumber = String(accounts.length + 1).padStart(2, '0');
@@ -450,10 +447,10 @@ export class DatabaseStorage implements IStorage {
 
   // Product Master operations
   async getProductMasters(financialYear: string, searchTerm?: string): Promise<ProductMaster[]> {
-    let query = this.db.select().from(productMaster).where(eq(productMaster.financialYear, financialYear));
+    let query = db.select().from(productMaster).where(eq(productMaster.financialYear, financialYear));
     
     if (searchTerm) {
-      query = this.db.select().from(productMaster).where(
+      query = db.select().from(productMaster).where(
         and(
           eq(productMaster.financialYear, financialYear),
           like(productMaster.name, `%${searchTerm}%`)
@@ -465,7 +462,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProductMaster(id: string): Promise<ProductMaster | undefined> {
-    const result = await this.db.select().from(productMaster).where(eq(productMaster.id, id));
+    const result = await db.select().from(productMaster).where(eq(productMaster.id, id));
     return result[0];
   }
 
@@ -476,12 +473,12 @@ export class DatabaseStorage implements IStorage {
       productId,
       financialYear: product.financialYear || '2025-26'
     };
-    const result = await this.db.insert(productMaster).values(productData).returning();
+    const result = await db.insert(productMaster).values(productData).returning();
     return result[0];
   }
 
   async updateProductMaster(id: string, product: UpdateProductMaster): Promise<ProductMaster> {
-    const result = await this.db.update(productMaster)
+    const result = await db.update(productMaster)
       .set({ ...product, updatedAt: new Date() })
       .where(eq(productMaster.id, id))
       .returning();
@@ -493,7 +490,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProductMaster(id: string): Promise<boolean> {
-    const result = await this.db.delete(productMaster).where(eq(productMaster.id, id));
+    const result = await db.delete(productMaster).where(eq(productMaster.id, id));
     return result.length > 0;
   }
 
@@ -502,7 +499,7 @@ export class DatabaseStorage implements IStorage {
     const capitalizedName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
     
     // Get count of products with similar names
-    const products = await this.db.select().from(productMaster)
+    const products = await db.select().from(productMaster)
       .where(like(productMaster.productId, `${capitalizedName}-%`));
     
     const nextNumber = String(products.length + 1).padStart(2, '0');
@@ -511,10 +508,10 @@ export class DatabaseStorage implements IStorage {
 
   // Product Expenses operations
   async getProductExpenses(financialYear: string, productId?: string): Promise<ProductExpenses[]> {
-    let query = this.db.select().from(productExpenses).where(eq(productExpenses.financialYear, financialYear));
+    let query = db.select().from(productExpenses).where(eq(productExpenses.financialYear, financialYear));
     
     if (productId) {
-      query = this.db.select().from(productExpenses).where(
+      query = db.select().from(productExpenses).where(
         and(
           eq(productExpenses.financialYear, financialYear),
           eq(productExpenses.productId, productId)
@@ -526,7 +523,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProductExpense(id: string): Promise<ProductExpenses | undefined> {
-    const result = await this.db.select().from(productExpenses).where(eq(productExpenses.id, id));
+    const result = await db.select().from(productExpenses).where(eq(productExpenses.id, id));
     return result[0];
   }
 
@@ -535,12 +532,12 @@ export class DatabaseStorage implements IStorage {
       ...expense,
       financialYear: expense.financialYear || '2025-26'
     };
-    const result = await this.db.insert(productExpenses).values(expenseData).returning();
+    const result = await db.insert(productExpenses).values(expenseData).returning();
     return result[0];
   }
 
   async updateProductExpense(id: string, expense: UpdateProductExpenses): Promise<ProductExpenses> {
-    const result = await this.db.update(productExpenses)
+    const result = await db.update(productExpenses)
       .set({ ...expense, updatedAt: new Date() })
       .where(eq(productExpenses.id, id))
       .returning();
@@ -552,16 +549,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProductExpense(id: string): Promise<boolean> {
-    const result = await this.db.delete(productExpenses).where(eq(productExpenses.id, id));
+    const result = await db.delete(productExpenses).where(eq(productExpenses.id, id));
     return result.length > 0;
   }
 
   // Place Master operations
   async getPlaceMasters(financialYear: string, searchTerm?: string): Promise<PlaceMaster[]> {
-    let query = this.db.select().from(placeMaster).where(eq(placeMaster.financialYear, financialYear));
+    let query = db.select().from(placeMaster).where(eq(placeMaster.financialYear, financialYear));
     
     if (searchTerm) {
-      query = this.db.select().from(placeMaster).where(
+      query = db.select().from(placeMaster).where(
         and(
           eq(placeMaster.financialYear, financialYear),
           like(placeMaster.name, `%${searchTerm}%`)
@@ -573,7 +570,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPlaceMaster(id: string): Promise<PlaceMaster | undefined> {
-    const result = await this.db.select().from(placeMaster).where(eq(placeMaster.id, id));
+    const result = await db.select().from(placeMaster).where(eq(placeMaster.id, id));
     return result[0];
   }
 
@@ -584,12 +581,12 @@ export class DatabaseStorage implements IStorage {
       placeId,
       financialYear: place.financialYear || '2025-26'
     };
-    const result = await this.db.insert(placeMaster).values(placeData).returning();
+    const result = await db.insert(placeMaster).values(placeData).returning();
     return result[0];
   }
 
   async updatePlaceMaster(id: string, place: UpdatePlaceMaster): Promise<PlaceMaster> {
-    const result = await this.db.update(placeMaster)
+    const result = await db.update(placeMaster)
       .set({ ...place, updatedAt: new Date() })
       .where(eq(placeMaster.id, id))
       .returning();
@@ -601,16 +598,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deletePlaceMaster(id: string): Promise<boolean> {
-    const result = await this.db.delete(placeMaster).where(eq(placeMaster.id, id));
+    const result = await db.delete(placeMaster).where(eq(placeMaster.id, id));
     return result.length > 0;
   }
 
   async generatePlaceId(): Promise<string> {
     // Get count of places
-    const places = await this.db.select().from(placeMaster);
+    const places = await db.select().from(placeMaster);
     const nextNumber = String(places.length + 1).padStart(2, '0');
     return `PLC-${nextNumber}`;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
