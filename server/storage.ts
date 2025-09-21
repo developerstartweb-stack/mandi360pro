@@ -28,6 +28,18 @@ import {
   type WeightSlip,
   type InsertWeightSlip,
   type UpdateWeightSlip,
+  type CustomerBilling,
+  type InsertCustomerBilling,
+  type UpdateCustomerBilling,
+  type KhataBilling,
+  type InsertKhataBilling,
+  type UpdateKhataBilling,
+  type CustomerPaymentReceipt,
+  type InsertCustomerPaymentReceipt,
+  type UpdateCustomerPaymentReceipt,
+  type OtherPaymentReceipt,
+  type InsertOtherPaymentReceipt,
+  type UpdateOtherPaymentReceipt,
   users,
   accountMaster,
   productMaster,
@@ -37,11 +49,15 @@ import {
   lotEntrySubFields,
   godownAwak,
   damage,
-  weightSlip
+  weightSlip,
+  customerBilling,
+  khataBilling,
+  customerPaymentReceipt,
+  otherPaymentReceipt
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, like, ilike } from "drizzle-orm";
+import { eq, and, like, ilike, or } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -120,6 +136,38 @@ export interface IStorage {
   updateWeightSlip(id: string, slip: UpdateWeightSlip): Promise<WeightSlip>;
   deleteWeightSlip(id: string): Promise<boolean>;
   generateWeightSlipId(): Promise<string>;
+  
+  // Bill Desk operations - Customer Billing
+  getCustomerBillings(financialYear: string, searchTerm?: string): Promise<CustomerBilling[]>;
+  getCustomerBilling(id: string): Promise<CustomerBilling | undefined>;
+  createCustomerBilling(billing: InsertCustomerBilling): Promise<CustomerBilling>;
+  updateCustomerBilling(id: string, billing: UpdateCustomerBilling): Promise<CustomerBilling>;
+  deleteCustomerBilling(id: string): Promise<boolean>;
+  generateCustomerBillNo(financialYear: string): Promise<string>;
+  
+  // Bill Desk operations - Khata Billing
+  getKhataBillings(financialYear: string, searchTerm?: string): Promise<KhataBilling[]>;
+  getKhataBilling(id: string): Promise<KhataBilling | undefined>;
+  createKhataBilling(billing: InsertKhataBilling): Promise<KhataBilling>;
+  updateKhataBilling(id: string, billing: UpdateKhataBilling): Promise<KhataBilling>;
+  deleteKhataBilling(id: string): Promise<boolean>;
+  generateKhataBillNo(financialYear: string): Promise<string>;
+  
+  // Bill Desk operations - Customer Payment Receipt
+  getCustomerPaymentReceipts(financialYear: string, searchTerm?: string): Promise<CustomerPaymentReceipt[]>;
+  getCustomerPaymentReceipt(id: string): Promise<CustomerPaymentReceipt | undefined>;
+  createCustomerPaymentReceipt(receipt: InsertCustomerPaymentReceipt): Promise<CustomerPaymentReceipt>;
+  updateCustomerPaymentReceipt(id: string, receipt: UpdateCustomerPaymentReceipt): Promise<CustomerPaymentReceipt>;
+  deleteCustomerPaymentReceipt(id: string): Promise<boolean>;
+  generateCustomerReceiptNo(financialYear: string): Promise<string>;
+  
+  // Bill Desk operations - Other Payment Receipt
+  getOtherPaymentReceipts(financialYear: string, searchTerm?: string): Promise<OtherPaymentReceipt[]>;
+  getOtherPaymentReceipt(id: string): Promise<OtherPaymentReceipt | undefined>;
+  createOtherPaymentReceipt(receipt: InsertOtherPaymentReceipt): Promise<OtherPaymentReceipt>;
+  updateOtherPaymentReceipt(id: string, receipt: UpdateOtherPaymentReceipt): Promise<OtherPaymentReceipt>;
+  deleteOtherPaymentReceipt(id: string): Promise<boolean>;
+  generateOtherReceiptNo(financialYear: string): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -133,6 +181,10 @@ export class MemStorage implements IStorage {
   private godownAwaks: Map<string, GodownAwak>;
   private damages: Map<string, Damage>;
   private weightSlips: Map<string, WeightSlip>;
+  private customerBillings: Map<string, CustomerBilling>;
+  private khataBillings: Map<string, KhataBilling>;
+  private customerPaymentReceipts: Map<string, CustomerPaymentReceipt>;
+  private otherPaymentReceipts: Map<string, OtherPaymentReceipt>;
 
   constructor() {
     this.users = new Map();
@@ -145,6 +197,10 @@ export class MemStorage implements IStorage {
     this.godownAwaks = new Map();
     this.damages = new Map();
     this.weightSlips = new Map();
+    this.customerBillings = new Map();
+    this.khataBillings = new Map();
+    this.customerPaymentReceipts = new Map();
+    this.otherPaymentReceipts = new Map();
   }
 
   // User operations
@@ -777,6 +833,318 @@ export class MemStorage implements IStorage {
     const nextNumber = String(slips.length + 1).padStart(3, '0');
     return `WS-${nextNumber}`;
   }
+
+  // Bill Desk operations - Customer Billing
+  async getCustomerBillings(financialYear: string, searchTerm?: string): Promise<CustomerBilling[]> {
+    const bills = Array.from(this.customerBillings.values()).filter(bill => 
+      bill.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return bills.filter(bill =>
+        bill.customerName.toLowerCase().includes(searchLower) ||
+        bill.billNo.toLowerCase().includes(searchLower) ||
+        bill.accountId.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return bills;
+  }
+
+  async getCustomerBilling(id: string): Promise<CustomerBilling | undefined> {
+    return this.customerBillings.get(id);
+  }
+
+  async createCustomerBilling(billing: InsertCustomerBilling): Promise<CustomerBilling> {
+    const billNo = await this.generateCustomerBillNo(billing.financialYear || '2025-26');
+    const id = randomUUID();
+    const now = new Date();
+    
+    const billData: CustomerBilling = {
+      ...billing,
+      id,
+      billNo,
+      billItems: billing.billItems || [],
+      paymentDetails: billing.paymentDetails || {},
+      customFields: billing.customFields || {},
+      commission: billing.commission || '0',
+      marketFee: billing.marketFee || '0',
+      hamali: billing.hamali || '0',
+      discountWeight: billing.discountWeight || '0',
+      discountAmount: billing.discountAmount || '0',
+      previousBalance: billing.previousBalance || '0',
+      paidAmount: billing.paidAmount || '0',
+      paymentMode: billing.paymentMode || 'cash',
+      financialYear: billing.financialYear || '2025-26',
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.customerBillings.set(id, billData);
+    return billData;
+  }
+
+  async updateCustomerBilling(id: string, billing: UpdateCustomerBilling): Promise<CustomerBilling> {
+    const existing = this.customerBillings.get(id);
+    if (!existing) {
+      throw new Error('Customer billing not found');
+    }
+
+    const updated: CustomerBilling = {
+      ...existing,
+      ...billing,
+      id: existing.id,
+      billNo: existing.billNo,
+      updatedAt: new Date(),
+    };
+
+    this.customerBillings.set(id, updated);
+    return updated;
+  }
+
+  async deleteCustomerBilling(id: string): Promise<boolean> {
+    return this.customerBillings.delete(id);
+  }
+
+  async generateCustomerBillNo(financialYear: string): Promise<string> {
+    const bills = Array.from(this.customerBillings.values()).filter(bill => 
+      bill.financialYear === financialYear
+    );
+    const nextNumber = String(bills.length + 1).padStart(4, '0');
+    return `cash-sv-${nextNumber}`;
+  }
+
+  // Bill Desk operations - Khata Billing
+  async getKhataBillings(financialYear: string, searchTerm?: string): Promise<KhataBilling[]> {
+    const bills = Array.from(this.khataBillings.values()).filter(bill => 
+      bill.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return bills.filter(bill =>
+        bill.customerName.toLowerCase().includes(searchLower) ||
+        bill.billNo.toLowerCase().includes(searchLower) ||
+        bill.accountId.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return bills;
+  }
+
+  async getKhataBilling(id: string): Promise<KhataBilling | undefined> {
+    return this.khataBillings.get(id);
+  }
+
+  async createKhataBilling(billing: InsertKhataBilling): Promise<KhataBilling> {
+    const billNo = await this.generateKhataBillNo(billing.financialYear || '2025-26');
+    const id = randomUUID();
+    const now = new Date();
+    
+    const billData: KhataBilling = {
+      ...billing,
+      id,
+      billNo,
+      billItems: billing.billItems || [],
+      paymentDetails: billing.paymentDetails || {},
+      customFields: billing.customFields || {},
+      commission: billing.commission || '0',
+      marketFee: billing.marketFee || '0',
+      hamali: billing.hamali || '0',
+      discountWeight: billing.discountWeight || '0',
+      discountAmount: billing.discountAmount || '0',
+      previousBalance: billing.previousBalance || '0',
+      paidAmount: billing.paidAmount || '0',
+      creditLimit: billing.creditLimit || '0',
+      paymentMode: billing.paymentMode || 'cash',
+      financialYear: billing.financialYear || '2025-26',
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.khataBillings.set(id, billData);
+    return billData;
+  }
+
+  async updateKhataBilling(id: string, billing: UpdateKhataBilling): Promise<KhataBilling> {
+    const existing = this.khataBillings.get(id);
+    if (!existing) {
+      throw new Error('Khata billing not found');
+    }
+
+    const updated: KhataBilling = {
+      ...existing,
+      ...billing,
+      id: existing.id,
+      billNo: existing.billNo,
+      updatedAt: new Date(),
+    };
+
+    this.khataBillings.set(id, updated);
+    return updated;
+  }
+
+  async deleteKhataBilling(id: string): Promise<boolean> {
+    return this.khataBillings.delete(id);
+  }
+
+  async generateKhataBillNo(financialYear: string): Promise<string> {
+    const bills = Array.from(this.khataBillings.values()).filter(bill => 
+      bill.financialYear === financialYear
+    );
+    const nextNumber = String(bills.length + 1).padStart(4, '0');
+    return `khata-sv-${nextNumber}`;
+  }
+
+  // Bill Desk operations - Customer Payment Receipt
+  async getCustomerPaymentReceipts(financialYear: string, searchTerm?: string): Promise<CustomerPaymentReceipt[]> {
+    const receipts = Array.from(this.customerPaymentReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return receipts.filter(receipt =>
+        receipt.customerName.toLowerCase().includes(searchLower) ||
+        receipt.receiptNo.toLowerCase().includes(searchLower) ||
+        receipt.accountId.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return receipts;
+  }
+
+  async getCustomerPaymentReceipt(id: string): Promise<CustomerPaymentReceipt | undefined> {
+    return this.customerPaymentReceipts.get(id);
+  }
+
+  async createCustomerPaymentReceipt(receipt: InsertCustomerPaymentReceipt): Promise<CustomerPaymentReceipt> {
+    const receiptNo = await this.generateCustomerReceiptNo(receipt.financialYear || '2025-26');
+    const id = randomUUID();
+    const now = new Date();
+    
+    const receiptData: CustomerPaymentReceipt = {
+      ...receipt,
+      id,
+      receiptNo,
+      paymentDetails: receipt.paymentDetails || {},
+      customFields: receipt.customFields || {},
+      billAmount: receipt.billAmount || '0',
+      discount: receipt.discount || '0',
+      financialYear: receipt.financialYear || '2025-26',
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.customerPaymentReceipts.set(id, receiptData);
+    return receiptData;
+  }
+
+  async updateCustomerPaymentReceipt(id: string, receipt: UpdateCustomerPaymentReceipt): Promise<CustomerPaymentReceipt> {
+    const existing = this.customerPaymentReceipts.get(id);
+    if (!existing) {
+      throw new Error('Customer payment receipt not found');
+    }
+
+    const updated: CustomerPaymentReceipt = {
+      ...existing,
+      ...receipt,
+      id: existing.id,
+      receiptNo: existing.receiptNo,
+      updatedAt: new Date(),
+    };
+
+    this.customerPaymentReceipts.set(id, updated);
+    return updated;
+  }
+
+  async deleteCustomerPaymentReceipt(id: string): Promise<boolean> {
+    return this.customerPaymentReceipts.delete(id);
+  }
+
+  async generateCustomerReceiptNo(financialYear: string): Promise<string> {
+    const receipts = Array.from(this.customerPaymentReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    const nextNumber = String(receipts.length + 1).padStart(3, '0');
+    return `Rec-sv-${nextNumber}`;
+  }
+
+  // Bill Desk operations - Other Payment Receipt
+  async getOtherPaymentReceipts(financialYear: string, searchTerm?: string): Promise<OtherPaymentReceipt[]> {
+    const receipts = Array.from(this.otherPaymentReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return receipts.filter(receipt =>
+        receipt.partyName.toLowerCase().includes(searchLower) ||
+        receipt.receiptNo.toLowerCase().includes(searchLower) ||
+        receipt.accountId.toLowerCase().includes(searchLower) ||
+        receipt.partyType.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return receipts;
+  }
+
+  async getOtherPaymentReceipt(id: string): Promise<OtherPaymentReceipt | undefined> {
+    return this.otherPaymentReceipts.get(id);
+  }
+
+  async createOtherPaymentReceipt(receipt: InsertOtherPaymentReceipt): Promise<OtherPaymentReceipt> {
+    const receiptNo = await this.generateOtherReceiptNo(receipt.financialYear || '2025-26');
+    const id = randomUUID();
+    const now = new Date();
+    
+    const receiptData: OtherPaymentReceipt = {
+      ...receipt,
+      id,
+      receiptNo,
+      paymentDetails: receipt.paymentDetails || {},
+      customFields: receipt.customFields || {},
+      invoiceAmount: receipt.invoiceAmount || '0',
+      discount: receipt.discount || '0',
+      financialYear: receipt.financialYear || '2025-26',
+      createdAt: now,
+      updatedAt: now,
+    };
+    
+    this.otherPaymentReceipts.set(id, receiptData);
+    return receiptData;
+  }
+
+  async updateOtherPaymentReceipt(id: string, receipt: UpdateOtherPaymentReceipt): Promise<OtherPaymentReceipt> {
+    const existing = this.otherPaymentReceipts.get(id);
+    if (!existing) {
+      throw new Error('Other payment receipt not found');
+    }
+
+    const updated: OtherPaymentReceipt = {
+      ...existing,
+      ...receipt,
+      id: existing.id,
+      receiptNo: existing.receiptNo,
+      updatedAt: new Date(),
+    };
+
+    this.otherPaymentReceipts.set(id, updated);
+    return updated;
+  }
+
+  async deleteOtherPaymentReceipt(id: string): Promise<boolean> {
+    return this.otherPaymentReceipts.delete(id);
+  }
+
+  async generateOtherReceiptNo(financialYear: string): Promise<string> {
+    const receipts = Array.from(this.otherPaymentReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    const nextNumber = String(receipts.length + 1).padStart(3, '0');
+    return `Rec-sv-${nextNumber}`;
+  }
 }
 
 // Database Storage Implementation
@@ -1319,6 +1687,247 @@ export class DatabaseStorage implements IStorage {
     const slips = await db.select().from(weightSlip);
     const nextNumber = String(slips.length + 1).padStart(3, '0');
     return `WS-${nextNumber}`;
+  }
+
+  // Bill Desk operations - Customer Billing
+  async getCustomerBillings(financialYear: string, searchTerm?: string): Promise<CustomerBilling[]> {
+    let query = db.select().from(customerBilling).where(eq(customerBilling.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(customerBilling).where(
+        and(
+          eq(customerBilling.financialYear, financialYear),
+          or(
+            ilike(customerBilling.customerName, `%${searchTerm}%`),
+            ilike(customerBilling.billNo, `%${searchTerm}%`),
+            ilike(customerBilling.accountId, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getCustomerBilling(id: string): Promise<CustomerBilling | undefined> {
+    const result = await db.select().from(customerBilling).where(eq(customerBilling.id, id));
+    return result[0];
+  }
+
+  async createCustomerBilling(billing: InsertCustomerBilling): Promise<CustomerBilling> {
+    const billNo = await this.generateCustomerBillNo(billing.financialYear || '2025-26');
+    
+    const billData = {
+      ...billing,
+      billNo,
+      financialYear: billing.financialYear || '2025-26'
+    };
+    const result = await db.insert(customerBilling).values(billData).returning();
+    return result[0];
+  }
+
+  async updateCustomerBilling(id: string, billing: UpdateCustomerBilling): Promise<CustomerBilling> {
+    const result = await db.update(customerBilling)
+      .set({ ...billing, updatedAt: new Date() })
+      .where(eq(customerBilling.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Customer billing not found');
+    }
+    return result[0];
+  }
+
+  async deleteCustomerBilling(id: string): Promise<boolean> {
+    const result = await db.delete(customerBilling).where(eq(customerBilling.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateCustomerBillNo(financialYear: string): Promise<string> {
+    const bills = await db.select().from(customerBilling).where(eq(customerBilling.financialYear, financialYear));
+    const nextNumber = String(bills.length + 1).padStart(4, '0');
+    return `cash-sv-${nextNumber}`;
+  }
+
+  // Bill Desk operations - Khata Billing
+  async getKhataBillings(financialYear: string, searchTerm?: string): Promise<KhataBilling[]> {
+    let query = db.select().from(khataBilling).where(eq(khataBilling.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(khataBilling).where(
+        and(
+          eq(khataBilling.financialYear, financialYear),
+          or(
+            ilike(khataBilling.customerName, `%${searchTerm}%`),
+            ilike(khataBilling.billNo, `%${searchTerm}%`),
+            ilike(khataBilling.accountId, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getKhataBilling(id: string): Promise<KhataBilling | undefined> {
+    const result = await db.select().from(khataBilling).where(eq(khataBilling.id, id));
+    return result[0];
+  }
+
+  async createKhataBilling(billing: InsertKhataBilling): Promise<KhataBilling> {
+    const billNo = await this.generateKhataBillNo(billing.financialYear || '2025-26');
+    
+    const billData = {
+      ...billing,
+      billNo,
+      financialYear: billing.financialYear || '2025-26'
+    };
+    const result = await db.insert(khataBilling).values(billData).returning();
+    return result[0];
+  }
+
+  async updateKhataBilling(id: string, billing: UpdateKhataBilling): Promise<KhataBilling> {
+    const result = await db.update(khataBilling)
+      .set({ ...billing, updatedAt: new Date() })
+      .where(eq(khataBilling.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Khata billing not found');
+    }
+    return result[0];
+  }
+
+  async deleteKhataBilling(id: string): Promise<boolean> {
+    const result = await db.delete(khataBilling).where(eq(khataBilling.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateKhataBillNo(financialYear: string): Promise<string> {
+    const bills = await db.select().from(khataBilling).where(eq(khataBilling.financialYear, financialYear));
+    const nextNumber = String(bills.length + 1).padStart(4, '0');
+    return `khata-sv-${nextNumber}`;
+  }
+
+  // Bill Desk operations - Customer Payment Receipt
+  async getCustomerPaymentReceipts(financialYear: string, searchTerm?: string): Promise<CustomerPaymentReceipt[]> {
+    let query = db.select().from(customerPaymentReceipt).where(eq(customerPaymentReceipt.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(customerPaymentReceipt).where(
+        and(
+          eq(customerPaymentReceipt.financialYear, financialYear),
+          or(
+            ilike(customerPaymentReceipt.customerName, `%${searchTerm}%`),
+            ilike(customerPaymentReceipt.receiptNo, `%${searchTerm}%`),
+            ilike(customerPaymentReceipt.accountId, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getCustomerPaymentReceipt(id: string): Promise<CustomerPaymentReceipt | undefined> {
+    const result = await db.select().from(customerPaymentReceipt).where(eq(customerPaymentReceipt.id, id));
+    return result[0];
+  }
+
+  async createCustomerPaymentReceipt(receipt: InsertCustomerPaymentReceipt): Promise<CustomerPaymentReceipt> {
+    const receiptNo = await this.generateCustomerReceiptNo(receipt.financialYear || '2025-26');
+    
+    const receiptData = {
+      ...receipt,
+      receiptNo,
+      financialYear: receipt.financialYear || '2025-26'
+    };
+    const result = await db.insert(customerPaymentReceipt).values(receiptData).returning();
+    return result[0];
+  }
+
+  async updateCustomerPaymentReceipt(id: string, receipt: UpdateCustomerPaymentReceipt): Promise<CustomerPaymentReceipt> {
+    const result = await db.update(customerPaymentReceipt)
+      .set({ ...receipt, updatedAt: new Date() })
+      .where(eq(customerPaymentReceipt.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Customer payment receipt not found');
+    }
+    return result[0];
+  }
+
+  async deleteCustomerPaymentReceipt(id: string): Promise<boolean> {
+    const result = await db.delete(customerPaymentReceipt).where(eq(customerPaymentReceipt.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateCustomerReceiptNo(financialYear: string): Promise<string> {
+    const receipts = await db.select().from(customerPaymentReceipt).where(eq(customerPaymentReceipt.financialYear, financialYear));
+    const nextNumber = String(receipts.length + 1).padStart(3, '0');
+    return `Rec-sv-${nextNumber}`;
+  }
+
+  // Bill Desk operations - Other Payment Receipt
+  async getOtherPaymentReceipts(financialYear: string, searchTerm?: string): Promise<OtherPaymentReceipt[]> {
+    let query = db.select().from(otherPaymentReceipt).where(eq(otherPaymentReceipt.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(otherPaymentReceipt).where(
+        and(
+          eq(otherPaymentReceipt.financialYear, financialYear),
+          or(
+            ilike(otherPaymentReceipt.partyName, `%${searchTerm}%`),
+            ilike(otherPaymentReceipt.receiptNo, `%${searchTerm}%`),
+            ilike(otherPaymentReceipt.accountId, `%${searchTerm}%`),
+            ilike(otherPaymentReceipt.partyType, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getOtherPaymentReceipt(id: string): Promise<OtherPaymentReceipt | undefined> {
+    const result = await db.select().from(otherPaymentReceipt).where(eq(otherPaymentReceipt.id, id));
+    return result[0];
+  }
+
+  async createOtherPaymentReceipt(receipt: InsertOtherPaymentReceipt): Promise<OtherPaymentReceipt> {
+    const receiptNo = await this.generateOtherReceiptNo(receipt.financialYear || '2025-26');
+    
+    const receiptData = {
+      ...receipt,
+      receiptNo,
+      financialYear: receipt.financialYear || '2025-26'
+    };
+    const result = await db.insert(otherPaymentReceipt).values(receiptData).returning();
+    return result[0];
+  }
+
+  async updateOtherPaymentReceipt(id: string, receipt: UpdateOtherPaymentReceipt): Promise<OtherPaymentReceipt> {
+    const result = await db.update(otherPaymentReceipt)
+      .set({ ...receipt, updatedAt: new Date() })
+      .where(eq(otherPaymentReceipt.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Other payment receipt not found');
+    }
+    return result[0];
+  }
+
+  async deleteOtherPaymentReceipt(id: string): Promise<boolean> {
+    const result = await db.delete(otherPaymentReceipt).where(eq(otherPaymentReceipt.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateOtherReceiptNo(financialYear: string): Promise<string> {
+    const receipts = await db.select().from(otherPaymentReceipt).where(eq(otherPaymentReceipt.financialYear, financialYear));
+    const nextNumber = String(receipts.length + 1).padStart(3, '0');
+    return `Rec-sv-${nextNumber}`;
   }
 }
 
