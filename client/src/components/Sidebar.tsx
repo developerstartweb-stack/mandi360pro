@@ -6,7 +6,6 @@ import {
   FileText, 
   BarChart3, 
   Settings,
-  Wheat,
   TrendingUp,
   Building,
   Database
@@ -24,7 +23,6 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: Home },
-  { id: "lots", label: "Lots", icon: Wheat, badge: "12" },
   { id: "accounts", label: "Accounts", icon: Users },
   { id: "products", label: "Products", icon: Package },
   { id: "master-data", label: "Master Data", icon: Database },
