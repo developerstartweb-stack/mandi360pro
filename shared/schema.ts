@@ -546,3 +546,179 @@ export const updateOtherPaymentReceiptSchema = createInsertSchema(otherPaymentRe
 export type InsertOtherPaymentReceipt = z.infer<typeof insertOtherPaymentReceiptSchema>;
 export type UpdateOtherPaymentReceipt = z.infer<typeof updateOtherPaymentReceiptSchema>;
 export type OtherPaymentReceipt = typeof otherPaymentReceipt.$inferSelect;
+
+// Farmer Invoice Module Tables
+
+// Dhada Book Table
+export const dhadaBook = pgTable("dhada_book", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  dhadaId: varchar("dhada_id", { length: 50 }).notNull(), // Auto: "DHD-001" (unique per FY)
+  linkedLotId: varchar("linked_lot_id", { length: 50 }).notNull(), // Reference to Lot Entry
+  lotDetails: json("lot_details").notNull().default({}), // JSON auto from LotEntry
+  farmerName: varchar("farmer_name", { length: 100 }).notNull(), // Auto from linked lot
+  farmerAgentId: varchar("farmer_agent_id", { length: 50 }).notNull(), // Reference to Account Master
+  quality: text("quality"), // Auto from lot entry
+  sellingRecord: json("selling_record").notNull().default([]), // [{buyerName, quality, quantity, weight, rate, total}]
+  totalQuantity: decimal("total_quantity", { precision: 12, scale: 2 }).default('0'),
+  totalWeight: decimal("total_weight", { precision: 12, scale: 2 }).default('0'),
+  totalValue: decimal("total_value", { precision: 12, scale: 2 }).default('0'),
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxDhadaBookFyDhadaId: uniqueIndex("ux_dhada_book_fy_dhadaid").on(table.financialYear, table.dhadaId),
+}));
+
+// Farmer Invoice Table
+export const farmerInvoice = pgTable("farmer_invoice", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNo: varchar("invoice_no", { length: 50 }).notNull(), // Auto: "FI-001" (unique per FY)
+  invoiceDate: timestamp("invoice_date").notNull(),
+  farmerName: varchar("farmer_name", { length: 100 }).notNull(), // From dropdown/searchable
+  farmerAgentId: varchar("farmer_agent_id", { length: 50 }).notNull(), // Reference to Account Master
+  lotId: varchar("lot_id", { length: 50 }).notNull(), // Reference to Lot Entry
+  
+  // Lot details (auto-populated from inventory)
+  arrivingDate: timestamp("arriving_date"),
+  productId: varchar("product_id", { length: 50 }),
+  productName: varchar("product_name", { length: 100 }),
+  transportName: varchar("transport_name", { length: 100 }),
+  placeId: varchar("place_id", { length: 50 }),
+  placeName: varchar("place_name", { length: 100 }),
+  vehicleNumber: varchar("vehicle_number", { length: 50 }),
+  
+  // Invoice calculations
+  quality: text("quality"), // Auto from lot
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).default('0'), // Auto from lot
+  weight: decimal("weight", { precision: 12, scale: 2 }).default('0'), // Auto from lot
+  rate: decimal("rate", { precision: 12, scale: 2 }).default('0'), // Auto/editable
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).default('0'), // Auto: quantity * rate
+  
+  // Expenses (auto-calculated from lot/expenses)
+  expenses: decimal("expenses", { precision: 12, scale: 2 }).default('0'),
+  lessExpenses: decimal("less_expenses", { precision: 12, scale: 2 }).default('0'),
+  netPayable: decimal("net_payable", { precision: 12, scale: 2 }).default('0'), // Auto: totalAmount - lessExpenses
+  
+  // Additional fields
+  notes: text("notes"),
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxFarmerInvoiceFyInvoiceNo: uniqueIndex("ux_farmer_invoice_fy_invoiceno").on(table.financialYear, table.invoiceNo),
+}));
+
+// Manual Invoice Table
+export const manualInvoice = pgTable("manual_invoice", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNo: varchar("invoice_no", { length: 50 }).notNull(), // Auto: "MI-001" (unique per FY)
+  invoiceDate: timestamp("invoice_date").notNull(),
+  farmerName: varchar("farmer_name", { length: 100 }).notNull(), // From dropdown/searchable
+  farmerAgentId: varchar("farmer_agent_id", { length: 50 }).notNull(), // Reference to Account Master
+  lotId: varchar("lot_id", { length: 50 }).notNull(), // Reference to Lot Entry
+  
+  // Lot details (auto-populated from inventory)
+  arrivingDate: timestamp("arriving_date"),
+  productId: varchar("product_id", { length: 50 }),
+  productName: varchar("product_name", { length: 100 }),
+  transportName: varchar("transport_name", { length: 100 }),
+  placeId: varchar("place_id", { length: 50 }),
+  placeName: varchar("place_name", { length: 100 }),
+  vehicleNumber: varchar("vehicle_number", { length: 50 }),
+  
+  // Manual invoice calculations (editable)
+  quality: text("quality"), // Auto from lot
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).default('0'), // Auto/editable
+  weight: decimal("weight", { precision: 12, scale: 2 }).default('0'), // Auto/editable
+  rate: decimal("rate", { precision: 12, scale: 2 }).default('0'), // Auto/editable
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).default('0'), // Auto: quantity * rate
+  
+  // Detailed expenses (all auto and editable)
+  freight: decimal("freight", { precision: 12, scale: 2 }).default('0'),
+  advance: decimal("advance", { precision: 12, scale: 2 }).default('0'),
+  hamali: decimal("hamali", { precision: 12, scale: 2 }).default('0'),
+  varai: decimal("varai", { precision: 12, scale: 2 }).default('0'),
+  tolai: decimal("tolai", { precision: 12, scale: 2 }).default('0'),
+  postage: decimal("postage", { precision: 12, scale: 2 }).default('0'),
+  levy: decimal("levy", { precision: 12, scale: 2 }).default('0'),
+  otherExpenses: decimal("other_expenses", { precision: 12, scale: 2 }).default('0'),
+  
+  // Calculations
+  totalExpenses: decimal("total_expenses", { precision: 12, scale: 2 }).default('0'), // Sum of all expenses
+  lessExpenses: decimal("less_expenses", { precision: 12, scale: 2 }).default('0'),
+  netPayable: decimal("net_payable", { precision: 12, scale: 2 }).default('0'), // Auto: totalAmount - totalExpenses - lessExpenses
+  
+  // Additional fields
+  notes: text("notes"),
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxManualInvoiceFyInvoiceNo: uniqueIndex("ux_manual_invoice_fy_invoiceno").on(table.financialYear, table.invoiceNo),
+}));
+
+// Schema validations for Dhada Book
+export const insertDhadaBookSchema = createInsertSchema(dhadaBook).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateDhadaBookSchema = insertDhadaBookSchema.partial().omit({
+  dhadaId: true, // Don't allow updating auto-generated ID
+});
+
+export type InsertDhadaBook = z.infer<typeof insertDhadaBookSchema>;
+export type UpdateDhadaBook = z.infer<typeof updateDhadaBookSchema>;
+export type DhadaBook = typeof dhadaBook.$inferSelect;
+
+// Schema validations for Farmer Invoice
+export const insertFarmerInvoiceSchema = createInsertSchema(farmerInvoice, {
+  invoiceDate: z.coerce.date(),
+  arrivingDate: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateFarmerInvoiceSchema = createInsertSchema(farmerInvoice, {
+  invoiceDate: z.coerce.date(),
+  arrivingDate: z.coerce.date().optional(),
+}).partial().omit({
+  id: true,
+  invoiceNo: true, // Don't allow updating auto-generated invoice number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFarmerInvoice = z.infer<typeof insertFarmerInvoiceSchema>;
+export type UpdateFarmerInvoice = z.infer<typeof updateFarmerInvoiceSchema>;
+export type FarmerInvoice = typeof farmerInvoice.$inferSelect;
+
+// Schema validations for Manual Invoice
+export const insertManualInvoiceSchema = createInsertSchema(manualInvoice, {
+  invoiceDate: z.coerce.date(),
+  arrivingDate: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateManualInvoiceSchema = createInsertSchema(manualInvoice, {
+  invoiceDate: z.coerce.date(),
+  arrivingDate: z.coerce.date().optional(),
+}).partial().omit({
+  id: true,
+  invoiceNo: true, // Don't allow updating auto-generated invoice number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertManualInvoice = z.infer<typeof insertManualInvoiceSchema>;
+export type UpdateManualInvoice = z.infer<typeof updateManualInvoiceSchema>;
+export type ManualInvoice = typeof manualInvoice.$inferSelect;
