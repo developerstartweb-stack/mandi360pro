@@ -49,6 +49,18 @@ import {
   type ManualInvoice,
   type InsertManualInvoice,
   type UpdateManualInvoice,
+  type Rojmel,
+  type InsertRojmel,
+  type UpdateRojmel,
+  type IncomeExpenseReceipt,
+  type InsertIncomeExpenseReceipt,
+  type UpdateIncomeExpenseReceipt,
+  type BankDepositReceipt,
+  type InsertBankDepositReceipt,
+  type UpdateBankDepositReceipt,
+  type BalanceSheet,
+  type InsertBalanceSheet,
+  type UpdateBalanceSheet,
   users,
   accountMaster,
   productMaster,
@@ -65,7 +77,11 @@ import {
   otherPaymentReceipt,
   dhadaBook,
   farmerInvoice,
-  manualInvoice
+  manualInvoice,
+  rojmel,
+  incomeExpenseReceipt,
+  bankDepositReceipt,
+  balanceSheet
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -204,6 +220,38 @@ export interface IStorage {
   updateManualInvoice(id: string, invoice: UpdateManualInvoice): Promise<ManualInvoice>;
   deleteManualInvoice(id: string): Promise<boolean>;
   generateManualInvoiceNo(financialYear: string): Promise<string>;
+  
+  // Accounting Module operations - Rojmel
+  getRojmels(financialYear: string, searchTerm?: string): Promise<Rojmel[]>;
+  getRojmel(id: string): Promise<Rojmel | undefined>;
+  createRojmel(rojmel: InsertRojmel): Promise<Rojmel>;
+  updateRojmel(id: string, rojmel: UpdateRojmel): Promise<Rojmel>;
+  deleteRojmel(id: string): Promise<boolean>;
+  generateRojmelId(financialYear: string): Promise<string>;
+  
+  // Accounting Module operations - Income/Expense Receipt
+  getIncomeExpenseReceipts(financialYear: string, searchTerm?: string): Promise<IncomeExpenseReceipt[]>;
+  getIncomeExpenseReceipt(id: string): Promise<IncomeExpenseReceipt | undefined>;
+  createIncomeExpenseReceipt(receipt: InsertIncomeExpenseReceipt): Promise<IncomeExpenseReceipt>;
+  updateIncomeExpenseReceipt(id: string, receipt: UpdateIncomeExpenseReceipt): Promise<IncomeExpenseReceipt>;
+  deleteIncomeExpenseReceipt(id: string): Promise<boolean>;
+  generateIncomeExpenseReceiptNo(financialYear: string): Promise<string>;
+  
+  // Accounting Module operations - Bank Deposit Receipt
+  getBankDepositReceipts(financialYear: string, searchTerm?: string): Promise<BankDepositReceipt[]>;
+  getBankDepositReceipt(id: string): Promise<BankDepositReceipt | undefined>;
+  createBankDepositReceipt(receipt: InsertBankDepositReceipt): Promise<BankDepositReceipt>;
+  updateBankDepositReceipt(id: string, receipt: UpdateBankDepositReceipt): Promise<BankDepositReceipt>;
+  deleteBankDepositReceipt(id: string): Promise<boolean>;
+  generateBankDepositReceiptNo(financialYear: string): Promise<string>;
+  
+  // Accounting Module operations - Balance Sheet
+  getBalanceSheets(financialYear: string, searchTerm?: string): Promise<BalanceSheet[]>;
+  getBalanceSheet(id: string): Promise<BalanceSheet | undefined>;
+  createBalanceSheet(sheet: InsertBalanceSheet): Promise<BalanceSheet>;
+  updateBalanceSheet(id: string, sheet: UpdateBalanceSheet): Promise<BalanceSheet>;
+  deleteBalanceSheet(id: string): Promise<boolean>;
+  generateBalanceSheetId(financialYear: string): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -224,6 +272,10 @@ export class MemStorage implements IStorage {
   private dhadaBooks: Map<string, DhadaBook>;
   private farmerInvoices: Map<string, FarmerInvoice>;
   private manualInvoices: Map<string, ManualInvoice>;
+  private rojmels: Map<string, Rojmel>;
+  private incomeExpenseReceipts: Map<string, IncomeExpenseReceipt>;
+  private bankDepositReceipts: Map<string, BankDepositReceipt>;
+  private balanceSheets: Map<string, BalanceSheet>;
 
   constructor() {
     this.users = new Map();
@@ -243,6 +295,10 @@ export class MemStorage implements IStorage {
     this.dhadaBooks = new Map();
     this.farmerInvoices = new Map();
     this.manualInvoices = new Map();
+    this.rojmels = new Map();
+    this.incomeExpenseReceipts = new Map();
+    this.bankDepositReceipts = new Map();
+    this.balanceSheets = new Map();
   }
 
   // User operations
@@ -1363,6 +1419,303 @@ export class MemStorage implements IStorage {
     const nextNumber = String(invoices.length + 1).padStart(3, '0');
     return `MI-${nextNumber}`;
   }
+  
+  // Accounting Module operations - Rojmel
+  async getRojmels(financialYear: string, searchTerm?: string): Promise<Rojmel[]> {
+    const rojmels = Array.from(this.rojmels.values()).filter(rojmel => 
+      rojmel.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return rojmels.filter(rojmel =>
+        rojmel.rojmelId.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return rojmels;
+  }
+
+  async getRojmel(id: string): Promise<Rojmel | undefined> {
+    return this.rojmels.get(id);
+  }
+
+  async createRojmel(rojmel: InsertRojmel): Promise<Rojmel> {
+    const rojmelId = await this.generateRojmelId(rojmel.financialYear || '2025-26');
+    const id = randomUUID();
+    
+    // Auto-calculate totals from income and expense records
+    const incomeRecords = (rojmel.incomeRecords as any[]) || [];
+    const expenseRecords = (rojmel.expenseRecords as any[]) || [];
+    
+    const totalIncome = incomeRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+    const totalExpense = expenseRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+    const net = totalIncome - totalExpense;
+    
+    const rojmelData: Rojmel = {
+      ...rojmel,
+      id,
+      rojmelId,
+      totalIncome: totalIncome.toString(),
+      totalExpense: totalExpense.toString(),
+      net: net.toString(),
+      customFields: rojmel.customFields || {},
+      financialYear: rojmel.financialYear || '2025-26',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.rojmels.set(id, rojmelData);
+    return rojmelData;
+  }
+
+  async updateRojmel(id: string, rojmel: UpdateRojmel): Promise<Rojmel> {
+    const existing = this.rojmels.get(id);
+    if (!existing) throw new Error('Rojmel not found');
+    
+    // Recalculate totals if records changed
+    let totalIncome = existing.totalIncome;
+    let totalExpense = existing.totalExpense;
+    let net = existing.net;
+    
+    if (rojmel.incomeRecords || rojmel.expenseRecords) {
+      const incomeRecords = (rojmel.incomeRecords as any[]) || (existing.incomeRecords as any[]) || [];
+      const expenseRecords = (rojmel.expenseRecords as any[]) || (existing.expenseRecords as any[]) || [];
+      
+      const totalIncomeNum = incomeRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+      const totalExpenseNum = expenseRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+      const netNum = totalIncomeNum - totalExpenseNum;
+      
+      totalIncome = totalIncomeNum.toString();
+      totalExpense = totalExpenseNum.toString();
+      net = netNum.toString();
+    }
+    
+    const updated = { 
+      ...existing, 
+      ...rojmel, 
+      totalIncome, 
+      totalExpense, 
+      net,
+      updatedAt: new Date() 
+    };
+    this.rojmels.set(id, updated);
+    return updated;
+  }
+
+  async deleteRojmel(id: string): Promise<boolean> {
+    return this.rojmels.delete(id);
+  }
+
+  async generateRojmelId(financialYear: string): Promise<string> {
+    const rojmels = Array.from(this.rojmels.values()).filter(rojmel => 
+      rojmel.financialYear === financialYear
+    );
+    const nextNumber = String(rojmels.length + 1).padStart(3, '0');
+    return `ROJ-${nextNumber}`;
+  }
+  
+  // Accounting Module operations - Income/Expense Receipt
+  async getIncomeExpenseReceipts(financialYear: string, searchTerm?: string): Promise<IncomeExpenseReceipt[]> {
+    const receipts = Array.from(this.incomeExpenseReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return receipts.filter(receipt =>
+        receipt.receiptNo.toLowerCase().includes(searchLower) ||
+        receipt.name.toLowerCase().includes(searchLower) ||
+        receipt.type.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return receipts;
+  }
+
+  async getIncomeExpenseReceipt(id: string): Promise<IncomeExpenseReceipt | undefined> {
+    return this.incomeExpenseReceipts.get(id);
+  }
+
+  async createIncomeExpenseReceipt(receipt: InsertIncomeExpenseReceipt): Promise<IncomeExpenseReceipt> {
+    const receiptNo = await this.generateIncomeExpenseReceiptNo(receipt.financialYear || '2025-26');
+    const id = randomUUID();
+    const receiptData: IncomeExpenseReceipt = {
+      ...receipt,
+      id,
+      receiptNo,
+      customFields: receipt.customFields || {},
+      financialYear: receipt.financialYear || '2025-26',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.incomeExpenseReceipts.set(id, receiptData);
+    return receiptData;
+  }
+
+  async updateIncomeExpenseReceipt(id: string, receipt: UpdateIncomeExpenseReceipt): Promise<IncomeExpenseReceipt> {
+    const existing = this.incomeExpenseReceipts.get(id);
+    if (!existing) throw new Error('Income/Expense receipt not found');
+    
+    const updated = { ...existing, ...receipt, updatedAt: new Date() };
+    this.incomeExpenseReceipts.set(id, updated);
+    return updated;
+  }
+
+  async deleteIncomeExpenseReceipt(id: string): Promise<boolean> {
+    return this.incomeExpenseReceipts.delete(id);
+  }
+
+  async generateIncomeExpenseReceiptNo(financialYear: string): Promise<string> {
+    const receipts = Array.from(this.incomeExpenseReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    const nextNumber = String(receipts.length + 1).padStart(3, '0');
+    return `IER-${nextNumber}`;
+  }
+  
+  // Accounting Module operations - Bank Deposit Receipt
+  async getBankDepositReceipts(financialYear: string, searchTerm?: string): Promise<BankDepositReceipt[]> {
+    const receipts = Array.from(this.bankDepositReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return receipts.filter(receipt =>
+        receipt.receiptNo.toLowerCase().includes(searchLower) ||
+        receipt.bankName.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return receipts;
+  }
+
+  async getBankDepositReceipt(id: string): Promise<BankDepositReceipt | undefined> {
+    return this.bankDepositReceipts.get(id);
+  }
+
+  async createBankDepositReceipt(receipt: InsertBankDepositReceipt): Promise<BankDepositReceipt> {
+    const receiptNo = await this.generateBankDepositReceiptNo(receipt.financialYear || '2025-26');
+    const id = randomUUID();
+    
+    // Auto-calculate total from cashMode breakdown
+    const cashMode = (receipt.cashMode as any[]) || [];
+    const total = cashMode.reduce((sum, cash) => sum + (cash.amount || 0), 0);
+    
+    const receiptData: BankDepositReceipt = {
+      ...receipt,
+      id,
+      receiptNo,
+      total: total.toString(),
+      customFields: receipt.customFields || {},
+      financialYear: receipt.financialYear || '2025-26',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.bankDepositReceipts.set(id, receiptData);
+    return receiptData;
+  }
+
+  async updateBankDepositReceipt(id: string, receipt: UpdateBankDepositReceipt): Promise<BankDepositReceipt> {
+    const existing = this.bankDepositReceipts.get(id);
+    if (!existing) throw new Error('Bank deposit receipt not found');
+    
+    // Recalculate total if cashMode changed
+    let total = existing.total;
+    if (receipt.cashMode) {
+      const cashMode = (receipt.cashMode as any[]) || [];
+      const totalNum = cashMode.reduce((sum, cash) => sum + (cash.amount || 0), 0);
+      total = totalNum.toString();
+    }
+    
+    const updated = { ...existing, ...receipt, total, updatedAt: new Date() };
+    this.bankDepositReceipts.set(id, updated);
+    return updated;
+  }
+
+  async deleteBankDepositReceipt(id: string): Promise<boolean> {
+    return this.bankDepositReceipts.delete(id);
+  }
+
+  async generateBankDepositReceiptNo(financialYear: string): Promise<string> {
+    const receipts = Array.from(this.bankDepositReceipts.values()).filter(receipt => 
+      receipt.financialYear === financialYear
+    );
+    const nextNumber = String(receipts.length + 1).padStart(3, '0');
+    return `BDR-${nextNumber}`;
+  }
+  
+  // Accounting Module operations - Balance Sheet
+  async getBalanceSheets(financialYear: string, searchTerm?: string): Promise<BalanceSheet[]> {
+    const sheets = Array.from(this.balanceSheets.values()).filter(sheet => 
+      sheet.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return sheets.filter(sheet =>
+        sheet.balanceSheetId.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return sheets;
+  }
+
+  async getBalanceSheet(id: string): Promise<BalanceSheet | undefined> {
+    return this.balanceSheets.get(id);
+  }
+
+  async createBalanceSheet(sheet: InsertBalanceSheet): Promise<BalanceSheet> {
+    const balanceSheetId = await this.generateBalanceSheetId(sheet.financialYear || '2025-26');
+    const id = randomUUID();
+    
+    // Auto-calculate netWorth from assets and liabilities
+    const totalAssets = Number(sheet.totalAssets) || 0;
+    const totalLiabilities = Number(sheet.totalLiabilities) || 0;
+    const netWorth = totalAssets - totalLiabilities;
+    
+    const sheetData: BalanceSheet = {
+      ...sheet,
+      id,
+      balanceSheetId,
+      netWorth: netWorth.toString(),
+      customFields: sheet.customFields || {},
+      financialYear: sheet.financialYear || '2025-26',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.balanceSheets.set(id, sheetData);
+    return sheetData;
+  }
+
+  async updateBalanceSheet(id: string, sheet: UpdateBalanceSheet): Promise<BalanceSheet> {
+    const existing = this.balanceSheets.get(id);
+    if (!existing) throw new Error('Balance sheet not found');
+    
+    // Recalculate netWorth if assets or liabilities changed
+    let netWorth = existing.netWorth;
+    if (sheet.totalAssets !== undefined || sheet.totalLiabilities !== undefined) {
+      const totalAssets = Number(sheet.totalAssets || existing.totalAssets) || 0;
+      const totalLiabilities = Number(sheet.totalLiabilities || existing.totalLiabilities) || 0;
+      netWorth = (totalAssets - totalLiabilities).toString();
+    }
+    
+    const updated = { ...existing, ...sheet, netWorth, updatedAt: new Date() };
+    this.balanceSheets.set(id, updated);
+    return updated;
+  }
+
+  async deleteBalanceSheet(id: string): Promise<boolean> {
+    return this.balanceSheets.delete(id);
+  }
+
+  async generateBalanceSheetId(financialYear: string): Promise<string> {
+    const sheets = Array.from(this.balanceSheets.values()).filter(sheet => 
+      sheet.financialYear === financialYear
+    );
+    const nextNumber = String(sheets.length + 1).padStart(3, '0');
+    return `BS-${nextNumber}`;
+  }
 }
 
 // Database Storage Implementation
@@ -2316,6 +2669,295 @@ export class DatabaseStorage implements IStorage {
     const invoices = await db.select().from(manualInvoice).where(eq(manualInvoice.financialYear, financialYear));
     const nextNumber = String((invoices || []).length + 1).padStart(3, '0');
     return `MI-${nextNumber}`;
+  }
+  
+  // Accounting Module operations - Rojmel
+  async getRojmels(financialYear: string, searchTerm?: string): Promise<Rojmel[]> {
+    let query = db.select().from(rojmel).where(eq(rojmel.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(rojmel).where(
+        and(
+          eq(rojmel.financialYear, financialYear),
+          ilike(rojmel.rojmelId, `%${searchTerm}%`)
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getRojmel(id: string): Promise<Rojmel | undefined> {
+    const result = await db.select().from(rojmel).where(eq(rojmel.id, id));
+    return result[0];
+  }
+
+  async createRojmel(rojmelData: InsertRojmel): Promise<Rojmel> {
+    const rojmelId = await this.generateRojmelId(rojmelData.financialYear || '2025-26');
+    
+    // Auto-calculate totals from income and expense records
+    const incomeRecords = (rojmelData.incomeRecords as any[]) || [];
+    const expenseRecords = (rojmelData.expenseRecords as any[]) || [];
+    
+    const totalIncome = incomeRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+    const totalExpense = expenseRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+    const net = totalIncome - totalExpense;
+    
+    const data = {
+      ...rojmelData,
+      rojmelId,
+      totalIncome: totalIncome.toString(),
+      totalExpense: totalExpense.toString(),
+      net: net.toString(),
+      financialYear: rojmelData.financialYear || '2025-26'
+    };
+    const result = await db.insert(rojmel).values(data).returning();
+    return result[0];
+  }
+
+  async updateRojmel(id: string, rojmelData: UpdateRojmel): Promise<Rojmel> {
+    // Get existing record for recalculation
+    const existing = await this.getRojmel(id);
+    if (!existing) throw new Error('Rojmel not found');
+    
+    // Recalculate totals if records changed
+    let totalIncome = existing.totalIncome;
+    let totalExpense = existing.totalExpense;
+    let net = existing.net;
+    
+    if (rojmelData.incomeRecords || rojmelData.expenseRecords) {
+      const incomeRecords = (rojmelData.incomeRecords as any[]) || (existing.incomeRecords as any[]) || [];
+      const expenseRecords = (rojmelData.expenseRecords as any[]) || (existing.expenseRecords as any[]) || [];
+      
+      const totalIncomeNum = incomeRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+      const totalExpenseNum = expenseRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+      const netNum = totalIncomeNum - totalExpenseNum;
+      
+      totalIncome = totalIncomeNum.toString();
+      totalExpense = totalExpenseNum.toString();
+      net = netNum.toString();
+    }
+    
+    const result = await db.update(rojmel)
+      .set({ 
+        ...rojmelData, 
+        totalIncome, 
+        totalExpense, 
+        net,
+        updatedAt: new Date() 
+      })
+      .where(eq(rojmel.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteRojmel(id: string): Promise<boolean> {
+    const result = await db.delete(rojmel).where(eq(rojmel.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateRojmelId(financialYear: string): Promise<string> {
+    const rojmels = await db.select().from(rojmel).where(eq(rojmel.financialYear, financialYear));
+    const nextNumber = String((rojmels || []).length + 1).padStart(3, '0');
+    return `ROJ-${nextNumber}`;
+  }
+  
+  // Accounting Module operations - Income/Expense Receipt
+  async getIncomeExpenseReceipts(financialYear: string, searchTerm?: string): Promise<IncomeExpenseReceipt[]> {
+    let query = db.select().from(incomeExpenseReceipt).where(eq(incomeExpenseReceipt.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(incomeExpenseReceipt).where(
+        and(
+          eq(incomeExpenseReceipt.financialYear, financialYear),
+          or(
+            ilike(incomeExpenseReceipt.receiptNo, `%${searchTerm}%`),
+            ilike(incomeExpenseReceipt.name, `%${searchTerm}%`),
+            ilike(incomeExpenseReceipt.type, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getIncomeExpenseReceipt(id: string): Promise<IncomeExpenseReceipt | undefined> {
+    const result = await db.select().from(incomeExpenseReceipt).where(eq(incomeExpenseReceipt.id, id));
+    return result[0];
+  }
+
+  async createIncomeExpenseReceipt(receipt: InsertIncomeExpenseReceipt): Promise<IncomeExpenseReceipt> {
+    const receiptNo = await this.generateIncomeExpenseReceiptNo(receipt.financialYear || '2025-26');
+    
+    const receiptData = {
+      ...receipt,
+      receiptNo,
+      financialYear: receipt.financialYear || '2025-26'
+    };
+    const result = await db.insert(incomeExpenseReceipt).values(receiptData).returning();
+    return result[0];
+  }
+
+  async updateIncomeExpenseReceipt(id: string, receipt: UpdateIncomeExpenseReceipt): Promise<IncomeExpenseReceipt> {
+    const result = await db.update(incomeExpenseReceipt)
+      .set({ ...receipt, updatedAt: new Date() })
+      .where(eq(incomeExpenseReceipt.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteIncomeExpenseReceipt(id: string): Promise<boolean> {
+    const result = await db.delete(incomeExpenseReceipt).where(eq(incomeExpenseReceipt.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateIncomeExpenseReceiptNo(financialYear: string): Promise<string> {
+    const receipts = await db.select().from(incomeExpenseReceipt).where(eq(incomeExpenseReceipt.financialYear, financialYear));
+    const nextNumber = String((receipts || []).length + 1).padStart(3, '0');
+    return `IER-${nextNumber}`;
+  }
+  
+  // Accounting Module operations - Bank Deposit Receipt
+  async getBankDepositReceipts(financialYear: string, searchTerm?: string): Promise<BankDepositReceipt[]> {
+    let query = db.select().from(bankDepositReceipt).where(eq(bankDepositReceipt.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(bankDepositReceipt).where(
+        and(
+          eq(bankDepositReceipt.financialYear, financialYear),
+          or(
+            ilike(bankDepositReceipt.receiptNo, `%${searchTerm}%`),
+            ilike(bankDepositReceipt.bankName, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getBankDepositReceipt(id: string): Promise<BankDepositReceipt | undefined> {
+    const result = await db.select().from(bankDepositReceipt).where(eq(bankDepositReceipt.id, id));
+    return result[0];
+  }
+
+  async createBankDepositReceipt(receipt: InsertBankDepositReceipt): Promise<BankDepositReceipt> {
+    const receiptNo = await this.generateBankDepositReceiptNo(receipt.financialYear || '2025-26');
+    
+    // Auto-calculate total from cashMode breakdown
+    const cashMode = (receipt.cashMode as any[]) || [];
+    const total = cashMode.reduce((sum, cash) => sum + (cash.amount || 0), 0);
+    
+    const receiptData = {
+      ...receipt,
+      receiptNo,
+      total: total.toString(),
+      financialYear: receipt.financialYear || '2025-26'
+    };
+    const result = await db.insert(bankDepositReceipt).values(receiptData).returning();
+    return result[0];
+  }
+
+  async updateBankDepositReceipt(id: string, receipt: UpdateBankDepositReceipt): Promise<BankDepositReceipt> {
+    // Get existing record for recalculation if needed
+    const existing = await this.getBankDepositReceipt(id);
+    if (!existing) throw new Error('Bank deposit receipt not found');
+    
+    // Recalculate total if cashMode changed
+    let total = existing.total;
+    if (receipt.cashMode) {
+      const cashMode = (receipt.cashMode as any[]) || [];
+      const totalNum = cashMode.reduce((sum, cash) => sum + (cash.amount || 0), 0);
+      total = totalNum.toString();
+    }
+    
+    const result = await db.update(bankDepositReceipt)
+      .set({ ...receipt, total, updatedAt: new Date() })
+      .where(eq(bankDepositReceipt.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteBankDepositReceipt(id: string): Promise<boolean> {
+    const result = await db.delete(bankDepositReceipt).where(eq(bankDepositReceipt.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateBankDepositReceiptNo(financialYear: string): Promise<string> {
+    const receipts = await db.select().from(bankDepositReceipt).where(eq(bankDepositReceipt.financialYear, financialYear));
+    const nextNumber = String((receipts || []).length + 1).padStart(3, '0');
+    return `BDR-${nextNumber}`;
+  }
+  
+  // Accounting Module operations - Balance Sheet
+  async getBalanceSheets(financialYear: string, searchTerm?: string): Promise<BalanceSheet[]> {
+    let query = db.select().from(balanceSheet).where(eq(balanceSheet.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(balanceSheet).where(
+        and(
+          eq(balanceSheet.financialYear, financialYear),
+          ilike(balanceSheet.balanceSheetId, `%${searchTerm}%`)
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getBalanceSheet(id: string): Promise<BalanceSheet | undefined> {
+    const result = await db.select().from(balanceSheet).where(eq(balanceSheet.id, id));
+    return result[0];
+  }
+
+  async createBalanceSheet(sheet: InsertBalanceSheet): Promise<BalanceSheet> {
+    const balanceSheetId = await this.generateBalanceSheetId(sheet.financialYear || '2025-26');
+    
+    // Auto-calculate netWorth from assets and liabilities
+    const totalAssets = Number(sheet.totalAssets) || 0;
+    const totalLiabilities = Number(sheet.totalLiabilities) || 0;
+    const netWorth = totalAssets - totalLiabilities;
+    
+    const sheetData = {
+      ...sheet,
+      balanceSheetId,
+      netWorth: netWorth.toString(),
+      financialYear: sheet.financialYear || '2025-26'
+    };
+    const result = await db.insert(balanceSheet).values(sheetData).returning();
+    return result[0];
+  }
+
+  async updateBalanceSheet(id: string, sheet: UpdateBalanceSheet): Promise<BalanceSheet> {
+    // Get existing record for recalculation
+    const existing = await this.getBalanceSheet(id);
+    if (!existing) throw new Error('Balance sheet not found');
+    
+    // Recalculate netWorth if assets or liabilities changed
+    let netWorth = existing.netWorth;
+    if (sheet.totalAssets !== undefined || sheet.totalLiabilities !== undefined) {
+      const totalAssets = Number(sheet.totalAssets || existing.totalAssets) || 0;
+      const totalLiabilities = Number(sheet.totalLiabilities || existing.totalLiabilities) || 0;
+      netWorth = (totalAssets - totalLiabilities).toString();
+    }
+    
+    const result = await db.update(balanceSheet)
+      .set({ ...sheet, netWorth, updatedAt: new Date() })
+      .where(eq(balanceSheet.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteBalanceSheet(id: string): Promise<boolean> {
+    const result = await db.delete(balanceSheet).where(eq(balanceSheet.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateBalanceSheetId(financialYear: string): Promise<string> {
+    const sheets = await db.select().from(balanceSheet).where(eq(balanceSheet.financialYear, financialYear));
+    const nextNumber = String((sheets || []).length + 1).padStart(3, '0');
+    return `BS-${nextNumber}`;
   }
 }
 
