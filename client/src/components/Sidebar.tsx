@@ -1,6 +1,5 @@
 import { 
   Home, 
-  Users, 
   Package, 
   ShoppingCart, 
   FileText, 
@@ -23,7 +22,6 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: Home },
-  { id: "accounts", label: "Accounts", icon: Users },
   { id: "products", label: "Products", icon: Package },
   { id: "master-data", label: "Master Data", icon: Database },
   { id: "transactions", label: "Transactions", icon: ShoppingCart },
