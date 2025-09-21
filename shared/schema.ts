@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, json, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, json, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -297,3 +297,252 @@ export const updateWeightSlipSchema = insertWeightSlipSchema.partial().omit({
 export type InsertWeightSlip = z.infer<typeof insertWeightSlipSchema>;
 export type UpdateWeightSlip = z.infer<typeof updateWeightSlipSchema>;
 export type WeightSlip = typeof weightSlip.$inferSelect;
+
+// Bill Desk Tables
+
+// Customer Billing Table (Cash Bills)
+export const customerBilling = pgTable("customer_billing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  billNo: varchar("bill_no", { length: 50 }).notNull(), // Auto: "cash-sv-0001" (unique per FY)
+  billDate: timestamp("bill_date").notNull(),
+  accountId: varchar("account_id", { length: 50 }).notNull(), // Link to account master
+  customerName: varchar("customer_name", { length: 100 }).notNull(), // Display name (denormalized)
+  billType: varchar("bill_type", { length: 20 }).notNull().default('cash'), // cash/khata
+  
+  // Bill Items (JSON array for multiple lots/products)
+  billItems: json("bill_items").notNull().default([]), // [{lotId, productId, quality, quantity, weight, rate, total}]
+  
+  // Calculations
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  commission: decimal("commission", { precision: 12, scale: 2 }).default('0'),
+  marketFee: decimal("market_fee", { precision: 12, scale: 2 }).default('0'),
+  hamali: decimal("hamali", { precision: 12, scale: 2 }).default('0'),
+  discountWeight: decimal("discount_weight", { precision: 12, scale: 2 }).default('0'),
+  discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default('0'),
+  
+  // Balance tracking
+  previousBalance: decimal("previous_balance", { precision: 12, scale: 2 }).default('0'),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  paidAmount: decimal("paid_amount", { precision: 12, scale: 2 }).default('0'),
+  balanceAmount: decimal("balance_amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // Payment details
+  paymentMode: varchar("payment_mode", { length: 50 }).notNull().default('cash'), // cash/bank/upi/cheque
+  paymentDetails: json("payment_details").notNull().default({}), // {bank, cheque_no, upi_id, etc}
+  
+  // Additional fields
+  customFields: json("custom_fields").default({}),
+  notes: text("notes"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped bill numbers
+  uxCustomerBillingFyBillNo: uniqueIndex("ux_customer_billing_fy_billno").on(table.financialYear, table.billNo),
+}));
+
+// Khata Customer Billing Table (Credit Bills)
+export const khataBilling = pgTable("khata_billing", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  billNo: varchar("bill_no", { length: 50 }).notNull(), // Auto: "khata-sv-0001" (unique per FY)
+  billDate: timestamp("bill_date").notNull(),
+  accountId: varchar("account_id", { length: 50 }).notNull(), // Link to account master
+  customerName: varchar("customer_name", { length: 100 }).notNull(), // Display name (denormalized)
+  billType: varchar("bill_type", { length: 20 }).notNull().default('khata'),
+  
+  // Bill Items (JSON array for multiple lots/products)
+  billItems: json("bill_items").notNull().default([]), // [{lotId, productId, quality, quantity, weight, rate, total}]
+  
+  // Calculations
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  commission: decimal("commission", { precision: 12, scale: 2 }).default('0'),
+  marketFee: decimal("market_fee", { precision: 12, scale: 2 }).default('0'),
+  hamali: decimal("hamali", { precision: 12, scale: 2 }).default('0'),
+  discountWeight: decimal("discount_weight", { precision: 12, scale: 2 }).default('0'),
+  discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default('0'),
+  
+  // Balance tracking
+  previousBalance: decimal("previous_balance", { precision: 12, scale: 2 }).default('0'),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
+  paidAmount: decimal("paid_amount", { precision: 12, scale: 2 }).default('0'),
+  balanceAmount: decimal("balance_amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // Khata specific fields
+  creditLimit: decimal("credit_limit", { precision: 12, scale: 2 }).default('0'),
+  dueDate: timestamp("due_date"),
+  
+  // Payment details (same as Customer Billing for consistency)
+  paymentMode: varchar("payment_mode", { length: 50 }).notNull().default('cash'), // cash/bank/upi/cheque
+  paymentDetails: json("payment_details").notNull().default({}), // {bank, cheque_no, upi_id, etc}
+  
+  // Additional fields
+  customFields: json("custom_fields").default({}),
+  notes: text("notes"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped bill numbers
+  uxKhataBillingFyBillNo: uniqueIndex("ux_khata_billing_fy_billno").on(table.financialYear, table.billNo),
+}));
+
+// Customer Payment Receipt Table
+export const customerPaymentReceipt = pgTable("customer_payment_receipt", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  receiptNo: varchar("receipt_no", { length: 50 }).notNull(), // Auto: "Rec-sv-001" (unique per FY)
+  receiptDate: timestamp("receipt_date").notNull(),
+  accountId: varchar("account_id", { length: 50 }).notNull(), // Link to account master
+  customerName: varchar("customer_name", { length: 100 }).notNull(), // Display name (denormalized)
+  receiptType: varchar("receipt_type", { length: 20 }).notNull().default('customer'), // customer/khata
+  
+  // Bill reference (explicit linkage)
+  billId: varchar("bill_id", { length: 50 }), // Direct link to bill ID
+  billNo: varchar("bill_no", { length: 50 }), // Bill number for display
+  billType: varchar("bill_type", { length: 20 }), // cash/khata
+  billAmount: decimal("bill_amount", { precision: 12, scale: 2 }).default('0'),
+  
+  // Payment details
+  pendingBalance: decimal("pending_balance", { precision: 12, scale: 2 }).notNull(),
+  amountReceived: decimal("amount_received", { precision: 12, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 12, scale: 2 }).default('0'),
+  balanceAmount: decimal("balance_amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // Payment mode
+  paymentMode: varchar("payment_mode", { length: 50 }).notNull(), // cash/bank/upi/cheque
+  paymentDetails: json("payment_details").notNull().default({}), // {bank, cheque_no, upi_id, etc}
+  
+  // Additional fields
+  customFields: json("custom_fields").default({}),
+  notes: text("notes"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped receipt numbers
+  uxCustomerReceiptFyReceiptNo: uniqueIndex("ux_customer_receipt_fy_receiptno").on(table.financialYear, table.receiptNo),
+}));
+
+// Other Payment Receipt Table (Farmer/Agent/Supplier)
+export const otherPaymentReceipt = pgTable("other_payment_receipt", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  receiptNo: varchar("receipt_no", { length: 50 }).notNull(), // Auto: "Rec-sv-001" (unique per FY)
+  receiptDate: timestamp("receipt_date").notNull(),
+  accountId: varchar("account_id", { length: 50 }).notNull(), // Link to account master
+  partyName: varchar("party_name", { length: 100 }).notNull(), // Display name (denormalized)
+  partyType: varchar("party_type", { length: 50 }).notNull(), // farmer/agent/supplier/cold_storage/other
+  
+  // Invoice reference (explicit linkage)
+  invoiceId: varchar("invoice_id", { length: 50 }), // Direct link to invoice/lot ID
+  invoiceNo: varchar("invoice_no", { length: 50 }), // Invoice/lot number for display
+  invoiceAmount: decimal("invoice_amount", { precision: 12, scale: 2 }).default('0'),
+  
+  // Payment details
+  pendingBalance: decimal("pending_balance", { precision: 12, scale: 2 }).notNull(),
+  payableAmount: decimal("payable_amount", { precision: 12, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 12, scale: 2 }).default('0'),
+  balanceAmount: decimal("balance_amount", { precision: 12, scale: 2 }).notNull(),
+  
+  // Payment mode
+  paymentMode: varchar("payment_mode", { length: 50 }).notNull(), // cash/bank/upi/cheque
+  paymentDetails: json("payment_details").notNull().default({}), // {bank, cheque_no, upi_id, etc}
+  
+  // Additional fields
+  customFields: json("custom_fields").default({}),
+  notes: text("notes"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped receipt numbers
+  uxOtherReceiptFyReceiptNo: uniqueIndex("ux_other_receipt_fy_receiptno").on(table.financialYear, table.receiptNo),
+}));
+
+// Schema validations for Customer Billing
+export const insertCustomerBillingSchema = createInsertSchema(customerBilling, {
+  billDate: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateCustomerBillingSchema = createInsertSchema(customerBilling, {
+  billDate: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  billNo: true, // Don't allow updating auto-generated bill number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCustomerBilling = z.infer<typeof insertCustomerBillingSchema>;
+export type UpdateCustomerBilling = z.infer<typeof updateCustomerBillingSchema>;
+export type CustomerBilling = typeof customerBilling.$inferSelect;
+
+// Schema validations for Khata Billing
+export const insertKhataBillingSchema = createInsertSchema(khataBilling, {
+  billDate: z.coerce.date(),
+  dueDate: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateKhataBillingSchema = createInsertSchema(khataBilling, {
+  billDate: z.coerce.date(),
+  dueDate: z.coerce.date().optional(),
+}).partial().omit({
+  id: true,
+  billNo: true, // Don't allow updating auto-generated bill number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertKhataBilling = z.infer<typeof insertKhataBillingSchema>;
+export type UpdateKhataBilling = z.infer<typeof updateKhataBillingSchema>;
+export type KhataBilling = typeof khataBilling.$inferSelect;
+
+// Schema validations for Customer Payment Receipt
+export const insertCustomerPaymentReceiptSchema = createInsertSchema(customerPaymentReceipt, {
+  receiptDate: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateCustomerPaymentReceiptSchema = createInsertSchema(customerPaymentReceipt, {
+  receiptDate: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  receiptNo: true, // Don't allow updating auto-generated receipt number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertCustomerPaymentReceipt = z.infer<typeof insertCustomerPaymentReceiptSchema>;
+export type UpdateCustomerPaymentReceipt = z.infer<typeof updateCustomerPaymentReceiptSchema>;
+export type CustomerPaymentReceipt = typeof customerPaymentReceipt.$inferSelect;
+
+// Schema validations for Other Payment Receipt
+export const insertOtherPaymentReceiptSchema = createInsertSchema(otherPaymentReceipt, {
+  receiptDate: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateOtherPaymentReceiptSchema = createInsertSchema(otherPaymentReceipt, {
+  receiptDate: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  receiptNo: true, // Don't allow updating auto-generated receipt number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertOtherPaymentReceipt = z.infer<typeof insertOtherPaymentReceiptSchema>;
+export type UpdateOtherPaymentReceipt = z.infer<typeof updateOtherPaymentReceiptSchema>;
+export type OtherPaymentReceipt = typeof otherPaymentReceipt.$inferSelect;

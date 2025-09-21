@@ -241,6 +241,17 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
     enabled: activeTab === 'weight-slip'
   });
 
+  // Get current data based on active tab
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case "lot-entry": return lots;
+      case "godown-awak": return godownAwaks;
+      case "damage": return damages;
+      case "weight-slip": return weightSlips;
+      default: return [];
+    }
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -341,15 +352,6 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
     }
   };
 
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case "lot-entry": return lots;
-      case "godown-awak": return godownAwaks;
-      case "damage": return damages;
-      case "weight-slip": return weightSlips;
-      default: return [];
-    }
-  };
 
   const isLoading = () => {
     switch (activeTab) {
