@@ -1,6 +1,5 @@
 import { 
   Home, 
-  ShoppingCart, 
   FileText, 
   BarChart3, 
   Settings,
@@ -22,7 +21,6 @@ interface SidebarProps {
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: Home },
   { id: "master-data", label: "Master Data", icon: Database },
-  { id: "transactions", label: "Transactions", icon: ShoppingCart },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "analytics", label: "Analytics", icon: TrendingUp },
   { id: "settings", label: "Settings", icon: Settings },
