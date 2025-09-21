@@ -160,6 +160,10 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
       );
     
     case "master-data":
+    case "account-master":
+    case "product-master":
+    case "product-expenses":
+    case "place-master":
       return <MasterDataModule currentFY={currentFY} onFYChange={onFYChange} />;
     
     case "transactions":

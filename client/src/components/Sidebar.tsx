@@ -5,7 +5,13 @@ import {
   Settings,
   TrendingUp,
   Building,
-  Database
+  Database,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Package,
+  DollarSign,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +26,38 @@ interface SidebarProps {
 
 const menuItems = [
   { id: "dashboard", label: "Dashboard", icon: Home },
-  { id: "master-data", label: "Master Data", icon: Database },
+  { 
+    id: "master-data", 
+    label: "Master Data", 
+    icon: Database,
+    hasDropdown: true,
+    subItems: [
+      { id: "account-master", label: "Account Master", icon: Users },
+      { id: "product-master", label: "Product Master", icon: Package },
+      { id: "product-expenses", label: "Product Expenses", icon: DollarSign },
+      { id: "place-master", label: "Place Master", icon: MapPin }
+    ]
+  },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "analytics", label: "Analytics", icon: TrendingUp },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollapsed = false }: SidebarProps) {
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  const toggleDropdown = (itemId: string) => {
+    setOpenDropdown(openDropdown === itemId ? null : itemId);
+  };
+
+  const handleItemClick = (itemId: string, hasDropdown?: boolean) => {
+    if (hasDropdown) {
+      toggleDropdown(itemId);
+    } else {
+      onTabChange?.(itemId);
+    }
+  };
+
   return (
     <aside className={cn(
       "bg-sidebar border-r border-sidebar-border transition-all duration-300",
@@ -48,32 +79,67 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
         <nav className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
+            const isActive = activeTab === item.id || (item.subItems && item.subItems.some(sub => sub.id === activeTab));
+            const isDropdownOpen = openDropdown === item.id;
             
             return (
-              <Button
-                key={item.id}
-                variant={isActive ? "default" : "ghost"}
-                className={cn(
-                  "w-full justify-start gap-3 h-10",
-                  isActive && "bg-sidebar-primary text-sidebar-primary-foreground",
-                  isCollapsed && "px-2"
+              <div key={item.id}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  className={cn(
+                    "w-full justify-start gap-3 h-10",
+                    isActive && "bg-sidebar-primary text-sidebar-primary-foreground",
+                    isCollapsed && "px-2"
+                  )}
+                  onClick={() => handleItemClick(item.id, item.hasDropdown)}
+                  data-testid={`nav-${item.id}`}
+                >
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  {!isCollapsed && (
+                    <>
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.hasDropdown && (
+                        isDropdownOpen ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )
+                      )}
+                      {'badge' in item && item.badge && (
+                        <Badge variant="secondary" className="text-xs">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                </Button>
+                
+                {/* Dropdown submenu */}
+                {item.hasDropdown && isDropdownOpen && !isCollapsed && (
+                  <div className="ml-6 mt-2 space-y-1">
+                    {item.subItems?.map((subItem) => {
+                      const SubIcon = subItem.icon;
+                      const isSubActive = activeTab === subItem.id;
+                      
+                      return (
+                        <Button
+                          key={subItem.id}
+                          variant={isSubActive ? "default" : "ghost"}
+                          className={cn(
+                            "w-full justify-start gap-3 h-9 text-sm",
+                            isSubActive && "bg-sidebar-primary text-sidebar-primary-foreground"
+                          )}
+                          onClick={() => onTabChange?.(subItem.id)}
+                          data-testid={`nav-${subItem.id}`}
+                        >
+                          <SubIcon className="h-3 w-3 flex-shrink-0" />
+                          <span className="flex-1 text-left">{subItem.label}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
                 )}
-                onClick={() => onTabChange?.(item.id)}
-                data-testid={`nav-${item.id}`}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {item.badge && (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </Button>
+              </div>
             );
           })}
         </nav>
