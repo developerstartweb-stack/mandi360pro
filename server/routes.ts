@@ -19,7 +19,15 @@ import {
   insertDamageSchema,
   updateDamageSchema,
   insertWeightSlipSchema,
-  updateWeightSlipSchema
+  updateWeightSlipSchema,
+  insertCustomerBillingSchema,
+  updateCustomerBillingSchema,
+  insertKhataBillingSchema,
+  updateKhataBillingSchema,
+  insertCustomerPaymentReceiptSchema,
+  updateCustomerPaymentReceiptSchema,
+  insertOtherPaymentReceiptSchema,
+  updateOtherPaymentReceiptSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -489,6 +497,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete weight slip" });
+    }
+  });
+
+  // Bill Desk - Customer Billing Routes
+  app.get("/api/billdesk/customer-billing", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const billings = await storage.getCustomerBillings(fy as string, search as string);
+      res.json(billings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer billings" });
+    }
+  });
+
+  app.get("/api/billdesk/customer-billing/:id", async (req, res) => {
+    try {
+      const billing = await storage.getCustomerBilling(req.params.id);
+      if (!billing) {
+        return res.status(404).json({ error: "Customer billing not found" });
+      }
+      res.json(billing);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer billing" });
+    }
+  });
+
+  app.post("/api/billdesk/customer-billing", async (req, res) => {
+    try {
+      const validatedData = insertCustomerBillingSchema.parse(req.body);
+      const billing = await storage.createCustomerBilling(validatedData);
+      res.status(201).json(billing);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid customer billing data" });
+    }
+  });
+
+  app.put("/api/billdesk/customer-billing/:id", async (req, res) => {
+    try {
+      const validatedData = updateCustomerBillingSchema.parse(req.body);
+      const billing = await storage.updateCustomerBilling(req.params.id, validatedData);
+      res.json(billing);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update customer billing" });
+    }
+  });
+
+  app.delete("/api/billdesk/customer-billing/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteCustomerBilling(req.params.id);
+      if (success) {
+        res.json({ message: "Customer billing deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Customer billing not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete customer billing" });
+    }
+  });
+
+  // Bill Desk - Khata Billing Routes
+  app.get("/api/billdesk/khata-billing", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const billings = await storage.getKhataBillings(fy as string, search as string);
+      res.json(billings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch khata billings" });
+    }
+  });
+
+  app.get("/api/billdesk/khata-billing/:id", async (req, res) => {
+    try {
+      const billing = await storage.getKhataBilling(req.params.id);
+      if (!billing) {
+        return res.status(404).json({ error: "Khata billing not found" });
+      }
+      res.json(billing);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch khata billing" });
+    }
+  });
+
+  app.post("/api/billdesk/khata-billing", async (req, res) => {
+    try {
+      const validatedData = insertKhataBillingSchema.parse(req.body);
+      const billing = await storage.createKhataBilling(validatedData);
+      res.status(201).json(billing);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid khata billing data" });
+    }
+  });
+
+  app.put("/api/billdesk/khata-billing/:id", async (req, res) => {
+    try {
+      const validatedData = updateKhataBillingSchema.parse(req.body);
+      const billing = await storage.updateKhataBilling(req.params.id, validatedData);
+      res.json(billing);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update khata billing" });
+    }
+  });
+
+  app.delete("/api/billdesk/khata-billing/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteKhataBilling(req.params.id);
+      if (success) {
+        res.json({ message: "Khata billing deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Khata billing not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete khata billing" });
+    }
+  });
+
+  // Bill Desk - Customer Payment Receipt Routes
+  app.get("/api/billdesk/customer-receipt", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const receipts = await storage.getCustomerPaymentReceipts(fy as string, search as string);
+      res.json(receipts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer payment receipts" });
+    }
+  });
+
+  app.get("/api/billdesk/customer-receipt/:id", async (req, res) => {
+    try {
+      const receipt = await storage.getCustomerPaymentReceipt(req.params.id);
+      if (!receipt) {
+        return res.status(404).json({ error: "Customer payment receipt not found" });
+      }
+      res.json(receipt);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer payment receipt" });
+    }
+  });
+
+  app.post("/api/billdesk/customer-receipt", async (req, res) => {
+    try {
+      const validatedData = insertCustomerPaymentReceiptSchema.parse(req.body);
+      const receipt = await storage.createCustomerPaymentReceipt(validatedData);
+      res.status(201).json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid customer payment receipt data" });
+    }
+  });
+
+  app.put("/api/billdesk/customer-receipt/:id", async (req, res) => {
+    try {
+      const validatedData = updateCustomerPaymentReceiptSchema.parse(req.body);
+      const receipt = await storage.updateCustomerPaymentReceipt(req.params.id, validatedData);
+      res.json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update customer payment receipt" });
+    }
+  });
+
+  app.delete("/api/billdesk/customer-receipt/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteCustomerPaymentReceipt(req.params.id);
+      if (success) {
+        res.json({ message: "Customer payment receipt deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Customer payment receipt not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete customer payment receipt" });
+    }
+  });
+
+  // Bill Desk - Other Payment Receipt Routes
+  app.get("/api/billdesk/other-receipt", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const receipts = await storage.getOtherPaymentReceipts(fy as string, search as string);
+      res.json(receipts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch other payment receipts" });
+    }
+  });
+
+  app.get("/api/billdesk/other-receipt/:id", async (req, res) => {
+    try {
+      const receipt = await storage.getOtherPaymentReceipt(req.params.id);
+      if (!receipt) {
+        return res.status(404).json({ error: "Other payment receipt not found" });
+      }
+      res.json(receipt);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch other payment receipt" });
+    }
+  });
+
+  app.post("/api/billdesk/other-receipt", async (req, res) => {
+    try {
+      const validatedData = insertOtherPaymentReceiptSchema.parse(req.body);
+      const receipt = await storage.createOtherPaymentReceipt(validatedData);
+      res.status(201).json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid other payment receipt data" });
+    }
+  });
+
+  app.put("/api/billdesk/other-receipt/:id", async (req, res) => {
+    try {
+      const validatedData = updateOtherPaymentReceiptSchema.parse(req.body);
+      const receipt = await storage.updateOtherPaymentReceipt(req.params.id, validatedData);
+      res.json(receipt);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update other payment receipt" });
+    }
+  });
+
+  app.delete("/api/billdesk/other-receipt/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteOtherPaymentReceipt(req.params.id);
+      if (success) {
+        res.json({ message: "Other payment receipt deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Other payment receipt not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete other payment receipt" });
     }
   });
 
