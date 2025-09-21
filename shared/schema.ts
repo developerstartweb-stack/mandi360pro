@@ -547,6 +547,80 @@ export type InsertOtherPaymentReceipt = z.infer<typeof insertOtherPaymentReceipt
 export type UpdateOtherPaymentReceipt = z.infer<typeof updateOtherPaymentReceiptSchema>;
 export type OtherPaymentReceipt = typeof otherPaymentReceipt.$inferSelect;
 
+// Accounting Module Tables
+
+// Rojmel Table (Daily Income/Expense Records)
+export const rojmel = pgTable("rojmel", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  rojmelId: varchar("rojmel_id", { length: 50 }).notNull(), // Auto: "ROJ-001" (FY-scoped unique)
+  rojmelDate: timestamp("rojmel_date").notNull(),
+  incomeRecords: json("income_records").notNull().default([]), // [{description, amount, category}]
+  expenseRecords: json("expense_records").notNull().default([]), // [{description, amount, category}]
+  totalIncome: decimal("total_income", { precision: 12, scale: 2 }).notNull().default('0'), // Auto calculated
+  totalExpense: decimal("total_expense", { precision: 12, scale: 2 }).notNull().default('0'), // Auto calculated
+  net: decimal("net", { precision: 12, scale: 2 }).notNull().default('0'), // Auto: totalIncome - totalExpense
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped rojmel IDs
+  uxRojmelFyRojmelId: uniqueIndex("ux_rojmel_fy_rojmelid").on(table.financialYear, table.rojmelId),
+}));
+
+// Income/Expense Receipt Table
+export const incomeExpenseReceipt = pgTable("income_expense_receipt", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  receiptNo: varchar("receipt_no", { length: 50 }).notNull(), // Auto: "IER-001" (FY-scoped unique) 
+  receiptDate: timestamp("receipt_date").notNull(),
+  type: varchar("type", { length: 20 }).notNull(), // income/expense dropdown
+  name: varchar("name", { length: 100 }).notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  paymentMode: varchar("payment_mode", { length: 50 }).notNull(), // cash/bank/upi/cheque dropdown
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped receipt numbers
+  uxIncomeExpenseReceiptFyReceiptNo: uniqueIndex("ux_income_expense_receipt_fy_receiptno").on(table.financialYear, table.receiptNo),
+}));
+
+// Bank Deposit Receipt Table
+export const bankDepositReceipt = pgTable("bank_deposit_receipt", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  receiptNo: varchar("receipt_no", { length: 50 }).notNull(), // Auto: "BDR-001" (FY-scoped unique)
+  receiptDate: timestamp("receipt_date").notNull(),
+  bankName: varchar("bank_name", { length: 100 }).notNull(),
+  cashMode: json("cash_mode").notNull().default([]), // [{denomination, quantity, amount}] for cash breakup
+  total: decimal("total", { precision: 12, scale: 2 }).notNull().default('0'), // Auto calculated from cashMode
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped receipt numbers
+  uxBankDepositReceiptFyReceiptNo: uniqueIndex("ux_bank_deposit_receipt_fy_receiptno").on(table.financialYear, table.receiptNo),
+}));
+
+// Balance Sheet Table  
+export const balanceSheet = pgTable("balance_sheet", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  balanceSheetId: varchar("balance_sheet_id", { length: 50 }).notNull(), // Auto: "BS-001" (FY-scoped unique)
+  fromDate: timestamp("from_date").notNull(),
+  toDate: timestamp("to_date").notNull(),
+  totalAssets: decimal("total_assets", { precision: 12, scale: 2 }).notNull().default('0'), // Auto calculated
+  totalLiabilities: decimal("total_liabilities", { precision: 12, scale: 2 }).notNull().default('0'), // Auto calculated
+  netWorth: decimal("net_worth", { precision: 12, scale: 2 }).notNull().default('0'), // Auto: totalAssets - totalLiabilities
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite unique index for FY-scoped balance sheet IDs
+  uxBalanceSheetFyBalanceSheetId: uniqueIndex("ux_balance_sheet_fy_balancesheetid").on(table.financialYear, table.balanceSheetId),
+}));
+
 // Farmer Invoice Module Tables
 
 // Dhada Book Table
@@ -722,3 +796,97 @@ export const updateManualInvoiceSchema = createInsertSchema(manualInvoice, {
 export type InsertManualInvoice = z.infer<typeof insertManualInvoiceSchema>;
 export type UpdateManualInvoice = z.infer<typeof updateManualInvoiceSchema>;
 export type ManualInvoice = typeof manualInvoice.$inferSelect;
+
+// Schema validations for Rojmel
+export const insertRojmelSchema = createInsertSchema(rojmel, {
+  rojmelDate: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateRojmelSchema = createInsertSchema(rojmel, {
+  rojmelDate: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  rojmelId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertRojmel = z.infer<typeof insertRojmelSchema>;
+export type UpdateRojmel = z.infer<typeof updateRojmelSchema>;
+export type Rojmel = typeof rojmel.$inferSelect;
+
+// Schema validations for Income/Expense Receipt
+export const insertIncomeExpenseReceiptSchema = createInsertSchema(incomeExpenseReceipt, {
+  receiptDate: z.coerce.date(),
+  type: z.enum(["income", "expense"]),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateIncomeExpenseReceiptSchema = createInsertSchema(incomeExpenseReceipt, {
+  receiptDate: z.coerce.date(),
+  type: z.enum(["income", "expense"]),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).partial().omit({
+  id: true,
+  receiptNo: true, // Don't allow updating auto-generated receipt number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertIncomeExpenseReceipt = z.infer<typeof insertIncomeExpenseReceiptSchema>;
+export type UpdateIncomeExpenseReceipt = z.infer<typeof updateIncomeExpenseReceiptSchema>;
+export type IncomeExpenseReceipt = typeof incomeExpenseReceipt.$inferSelect;
+
+// Schema validations for Bank Deposit Receipt
+export const insertBankDepositReceiptSchema = createInsertSchema(bankDepositReceipt, {
+  receiptDate: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateBankDepositReceiptSchema = createInsertSchema(bankDepositReceipt, {
+  receiptDate: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  receiptNo: true, // Don't allow updating auto-generated receipt number
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBankDepositReceipt = z.infer<typeof insertBankDepositReceiptSchema>;
+export type UpdateBankDepositReceipt = z.infer<typeof updateBankDepositReceiptSchema>;
+export type BankDepositReceipt = typeof bankDepositReceipt.$inferSelect;
+
+// Schema validations for Balance Sheet
+export const insertBalanceSheetSchema = createInsertSchema(balanceSheet, {
+  fromDate: z.coerce.date(),
+  toDate: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateBalanceSheetSchema = createInsertSchema(balanceSheet, {
+  fromDate: z.coerce.date(),
+  toDate: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  balanceSheetId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBalanceSheet = z.infer<typeof insertBalanceSheetSchema>;
+export type UpdateBalanceSheet = z.infer<typeof updateBalanceSheetSchema>;
+export type BalanceSheet = typeof balanceSheet.$inferSelect;
