@@ -130,6 +130,7 @@ export class MemStorage implements IStorage {
       remarks: account.remarks || null,
       customFields: account.customFields || null,
       active: account.active ?? true,
+      financialYear: account.financialYear || '2025-26',
       createdAt: now,
       updatedAt: now,
     };
@@ -200,6 +201,7 @@ export class MemStorage implements IStorage {
       productId,
       customFields: product.customFields || null,
       active: product.active ?? true,
+      financialYear: product.financialYear || '2025-26',
       createdAt: now,
       updatedAt: now,
     };
@@ -264,6 +266,7 @@ export class MemStorage implements IStorage {
       id,
       customFields: expense.customFields || null,
       active: expense.active ?? true,
+      financialYear: expense.financialYear || '2025-26',
       createdAt: now,
       updatedAt: now,
     };
@@ -321,6 +324,7 @@ export class MemStorage implements IStorage {
       description: place.description || null,
       customFields: place.customFields || null,
       active: place.active ?? true,
+      financialYear: place.financialYear || '2025-26',
       createdAt: now,
       updatedAt: now,
     };
