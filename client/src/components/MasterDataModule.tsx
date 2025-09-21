@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -780,6 +780,12 @@ function FormDialog({
           <DialogTitle>
             {editingItem ? "Edit" : "Add"} {activeTab.slice(0, -1)}
           </DialogTitle>
+          <DialogDescription>
+            {editingItem 
+              ? `Update the ${activeTab.slice(0, -1).toLowerCase()} information below.`
+              : `Enter the details to create a new ${activeTab.slice(0, -1).toLowerCase()}.`
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
