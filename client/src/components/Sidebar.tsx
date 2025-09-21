@@ -55,6 +55,7 @@ const menuItems = [
     ]
   },
   { id: "bill-desk", label: "Bill Desk", icon: Receipt },
+  { id: "farmer-invoice", label: "Farmer Invoice", icon: FileText },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "analytics", label: "Analytics", icon: TrendingUp },
   { id: "settings", label: "Settings", icon: Settings },
