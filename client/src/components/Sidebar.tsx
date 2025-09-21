@@ -14,7 +14,8 @@ import {
   MapPin,
   Plus,
   AlertTriangle,
-  Scale
+  Scale,
+  Receipt
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ const menuItems = [
       { id: "weight-slip", label: "Weight Slip", icon: Scale }
     ]
   },
+  { id: "bill-desk", label: "Bill Desk", icon: Receipt },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "analytics", label: "Analytics", icon: TrendingUp },
   { id: "settings", label: "Settings", icon: Settings },

@@ -9,6 +9,7 @@ import Sidebar from "@/components/Sidebar";
 import DashboardModule from "@/components/DashboardModule";
 import MasterDataModule from "@/components/MasterDataModule";
 import InventoryModule from "@/components/InventoryModule";
+import BillDeskModule from "@/components/BillDeskModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -173,6 +174,9 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
     case "damage":
     case "weight-slip":
       return <InventoryModule currentFY={currentFY} onFYChange={onFYChange} />;
+    
+    case "bill-desk":
+      return <BillDeskModule currentFY={currentFY} onFYChange={onFYChange} />;
     
     case "transactions":
       return (
