@@ -40,6 +40,15 @@ import {
   type OtherPaymentReceipt,
   type InsertOtherPaymentReceipt,
   type UpdateOtherPaymentReceipt,
+  type DhadaBook,
+  type InsertDhadaBook,
+  type UpdateDhadaBook,
+  type FarmerInvoice,
+  type InsertFarmerInvoice,
+  type UpdateFarmerInvoice,
+  type ManualInvoice,
+  type InsertManualInvoice,
+  type UpdateManualInvoice,
   users,
   accountMaster,
   productMaster,
@@ -53,7 +62,10 @@ import {
   customerBilling,
   khataBilling,
   customerPaymentReceipt,
-  otherPaymentReceipt
+  otherPaymentReceipt,
+  dhadaBook,
+  farmerInvoice,
+  manualInvoice
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -168,6 +180,30 @@ export interface IStorage {
   updateOtherPaymentReceipt(id: string, receipt: UpdateOtherPaymentReceipt): Promise<OtherPaymentReceipt>;
   deleteOtherPaymentReceipt(id: string): Promise<boolean>;
   generateOtherReceiptNo(financialYear: string): Promise<string>;
+  
+  // Farmer Invoice Module operations - Dhada Book
+  getDhadaBooks(financialYear: string, searchTerm?: string): Promise<DhadaBook[]>;
+  getDhadaBook(id: string): Promise<DhadaBook | undefined>;
+  createDhadaBook(dhada: InsertDhadaBook): Promise<DhadaBook>;
+  updateDhadaBook(id: string, dhada: UpdateDhadaBook): Promise<DhadaBook>;
+  deleteDhadaBook(id: string): Promise<boolean>;
+  generateDhadaId(financialYear: string): Promise<string>;
+  
+  // Farmer Invoice Module operations - Farmer Invoice
+  getFarmerInvoices(financialYear: string, searchTerm?: string): Promise<FarmerInvoice[]>;
+  getFarmerInvoice(id: string): Promise<FarmerInvoice | undefined>;
+  createFarmerInvoice(invoice: InsertFarmerInvoice): Promise<FarmerInvoice>;
+  updateFarmerInvoice(id: string, invoice: UpdateFarmerInvoice): Promise<FarmerInvoice>;
+  deleteFarmerInvoice(id: string): Promise<boolean>;
+  generateFarmerInvoiceNo(financialYear: string): Promise<string>;
+  
+  // Farmer Invoice Module operations - Manual Invoice
+  getManualInvoices(financialYear: string, searchTerm?: string): Promise<ManualInvoice[]>;
+  getManualInvoice(id: string): Promise<ManualInvoice | undefined>;
+  createManualInvoice(invoice: InsertManualInvoice): Promise<ManualInvoice>;
+  updateManualInvoice(id: string, invoice: UpdateManualInvoice): Promise<ManualInvoice>;
+  deleteManualInvoice(id: string): Promise<boolean>;
+  generateManualInvoiceNo(financialYear: string): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -185,6 +221,9 @@ export class MemStorage implements IStorage {
   private khataBillings: Map<string, KhataBilling>;
   private customerPaymentReceipts: Map<string, CustomerPaymentReceipt>;
   private otherPaymentReceipts: Map<string, OtherPaymentReceipt>;
+  private dhadaBooks: Map<string, DhadaBook>;
+  private farmerInvoices: Map<string, FarmerInvoice>;
+  private manualInvoices: Map<string, ManualInvoice>;
 
   constructor() {
     this.users = new Map();
@@ -201,6 +240,9 @@ export class MemStorage implements IStorage {
     this.khataBillings = new Map();
     this.customerPaymentReceipts = new Map();
     this.otherPaymentReceipts = new Map();
+    this.dhadaBooks = new Map();
+    this.farmerInvoices = new Map();
+    this.manualInvoices = new Map();
   }
 
   // User operations
@@ -1145,6 +1187,182 @@ export class MemStorage implements IStorage {
     const nextNumber = String(receipts.length + 1).padStart(3, '0');
     return `Rec-sv-${nextNumber}`;
   }
+
+  // Farmer Invoice Module operations - Dhada Book
+  async getDhadaBooks(financialYear: string, searchTerm?: string): Promise<DhadaBook[]> {
+    const books = Array.from(this.dhadaBooks.values()).filter(book => 
+      book.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      return books.filter(book =>
+        book.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.dhadaId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.linkedLotId.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return books;
+  }
+
+  async getDhadaBook(id: string): Promise<DhadaBook | undefined> {
+    return this.dhadaBooks.get(id);
+  }
+
+  async createDhadaBook(dhada: InsertDhadaBook): Promise<DhadaBook> {
+    const dhadaId = await this.generateDhadaId(dhada.financialYear || '2025-26');
+    const id = randomUUID();
+    const book: DhadaBook = {
+      ...dhada,
+      id,
+      dhadaId,
+      customFields: dhada.customFields || {},
+      financialYear: dhada.financialYear || '2025-26',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.dhadaBooks.set(id, book);
+    return book;
+  }
+
+  async updateDhadaBook(id: string, dhada: UpdateDhadaBook): Promise<DhadaBook> {
+    const existing = this.dhadaBooks.get(id);
+    if (!existing) throw new Error('Dhada book not found');
+    
+    const updated = { ...existing, ...dhada, updatedAt: new Date() };
+    this.dhadaBooks.set(id, updated);
+    return updated;
+  }
+
+  async deleteDhadaBook(id: string): Promise<boolean> {
+    return this.dhadaBooks.delete(id);
+  }
+
+  async generateDhadaId(financialYear: string): Promise<string> {
+    const books = Array.from(this.dhadaBooks.values()).filter(book => 
+      book.financialYear === financialYear
+    );
+    const nextNumber = String(books.length + 1).padStart(3, '0');
+    return `DHD-${nextNumber}`;
+  }
+
+  // Farmer Invoice Module operations - Farmer Invoice
+  async getFarmerInvoices(financialYear: string, searchTerm?: string): Promise<FarmerInvoice[]> {
+    const invoices = Array.from(this.farmerInvoices.values()).filter(invoice => 
+      invoice.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      return invoices.filter(invoice =>
+        invoice.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.lotId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (invoice.productName && invoice.productName.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    
+    return invoices;
+  }
+
+  async getFarmerInvoice(id: string): Promise<FarmerInvoice | undefined> {
+    return this.farmerInvoices.get(id);
+  }
+
+  async createFarmerInvoice(invoice: InsertFarmerInvoice): Promise<FarmerInvoice> {
+    const invoiceNo = await this.generateFarmerInvoiceNo(invoice.financialYear || '2025-26');
+    const id = randomUUID();
+    const farmerInvoice: FarmerInvoice = {
+      ...invoice,
+      id,
+      invoiceNo,
+      customFields: invoice.customFields || {},
+      financialYear: invoice.financialYear || '2025-26',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.farmerInvoices.set(id, farmerInvoice);
+    return farmerInvoice;
+  }
+
+  async updateFarmerInvoice(id: string, invoice: UpdateFarmerInvoice): Promise<FarmerInvoice> {
+    const existing = this.farmerInvoices.get(id);
+    if (!existing) throw new Error('Farmer invoice not found');
+    
+    const updated = { ...existing, ...invoice, updatedAt: new Date() };
+    this.farmerInvoices.set(id, updated);
+    return updated;
+  }
+
+  async deleteFarmerInvoice(id: string): Promise<boolean> {
+    return this.farmerInvoices.delete(id);
+  }
+
+  async generateFarmerInvoiceNo(financialYear: string): Promise<string> {
+    const invoices = Array.from(this.farmerInvoices.values()).filter(invoice => 
+      invoice.financialYear === financialYear
+    );
+    const nextNumber = String(invoices.length + 1).padStart(3, '0');
+    return `FI-${nextNumber}`;
+  }
+
+  // Farmer Invoice Module operations - Manual Invoice
+  async getManualInvoices(financialYear: string, searchTerm?: string): Promise<ManualInvoice[]> {
+    const invoices = Array.from(this.manualInvoices.values()).filter(invoice => 
+      invoice.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      return invoices.filter(invoice =>
+        invoice.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.lotId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (invoice.productName && invoice.productName.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    
+    return invoices;
+  }
+
+  async getManualInvoice(id: string): Promise<ManualInvoice | undefined> {
+    return this.manualInvoices.get(id);
+  }
+
+  async createManualInvoice(invoice: InsertManualInvoice): Promise<ManualInvoice> {
+    const invoiceNo = await this.generateManualInvoiceNo(invoice.financialYear || '2025-26');
+    const id = randomUUID();
+    const manualInvoice: ManualInvoice = {
+      ...invoice,
+      id,
+      invoiceNo,
+      customFields: invoice.customFields || {},
+      financialYear: invoice.financialYear || '2025-26',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.manualInvoices.set(id, manualInvoice);
+    return manualInvoice;
+  }
+
+  async updateManualInvoice(id: string, invoice: UpdateManualInvoice): Promise<ManualInvoice> {
+    const existing = this.manualInvoices.get(id);
+    if (!existing) throw new Error('Manual invoice not found');
+    
+    const updated = { ...existing, ...invoice, updatedAt: new Date() };
+    this.manualInvoices.set(id, updated);
+    return updated;
+  }
+
+  async deleteManualInvoice(id: string): Promise<boolean> {
+    return this.manualInvoices.delete(id);
+  }
+
+  async generateManualInvoiceNo(financialYear: string): Promise<string> {
+    const invoices = Array.from(this.manualInvoices.values()).filter(invoice => 
+      invoice.financialYear === financialYear
+    );
+    const nextNumber = String(invoices.length + 1).padStart(3, '0');
+    return `MI-${nextNumber}`;
+  }
 }
 
 // Database Storage Implementation
@@ -1928,6 +2146,176 @@ export class DatabaseStorage implements IStorage {
     const receipts = await db.select().from(otherPaymentReceipt).where(eq(otherPaymentReceipt.financialYear, financialYear));
     const nextNumber = String(receipts.length + 1).padStart(3, '0');
     return `Rec-sv-${nextNumber}`;
+  }
+
+  // Farmer Invoice Module operations - Dhada Book
+  async getDhadaBooks(financialYear: string, searchTerm?: string): Promise<DhadaBook[]> {
+    let query = db.select().from(dhadaBook).where(eq(dhadaBook.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(dhadaBook).where(
+        and(
+          eq(dhadaBook.financialYear, financialYear),
+          or(
+            ilike(dhadaBook.farmerName, `%${searchTerm}%`),
+            ilike(dhadaBook.dhadaId, `%${searchTerm}%`),
+            ilike(dhadaBook.linkedLotId, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getDhadaBook(id: string): Promise<DhadaBook | undefined> {
+    const result = await db.select().from(dhadaBook).where(eq(dhadaBook.id, id));
+    return result[0];
+  }
+
+  async createDhadaBook(dhada: InsertDhadaBook): Promise<DhadaBook> {
+    const dhadaId = await this.generateDhadaId(dhada.financialYear || '2025-26');
+    
+    const bookData = {
+      ...dhada,
+      dhadaId,
+      financialYear: dhada.financialYear || '2025-26'
+    };
+    const result = await db.insert(dhadaBook).values(bookData).returning();
+    return result[0];
+  }
+
+  async updateDhadaBook(id: string, dhada: UpdateDhadaBook): Promise<DhadaBook> {
+    const result = await db.update(dhadaBook)
+      .set({ ...dhada, updatedAt: new Date() })
+      .where(eq(dhadaBook.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteDhadaBook(id: string): Promise<boolean> {
+    const result = await db.delete(dhadaBook).where(eq(dhadaBook.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateDhadaId(financialYear: string): Promise<string> {
+    const books = await db.select().from(dhadaBook).where(eq(dhadaBook.financialYear, financialYear));
+    const nextNumber = String((books || []).length + 1).padStart(3, '0');
+    return `DHD-${nextNumber}`;
+  }
+
+  // Farmer Invoice Module operations - Farmer Invoice
+  async getFarmerInvoices(financialYear: string, searchTerm?: string): Promise<FarmerInvoice[]> {
+    let query = db.select().from(farmerInvoice).where(eq(farmerInvoice.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(farmerInvoice).where(
+        and(
+          eq(farmerInvoice.financialYear, financialYear),
+          or(
+            ilike(farmerInvoice.farmerName, `%${searchTerm}%`),
+            ilike(farmerInvoice.invoiceNo, `%${searchTerm}%`),
+            ilike(farmerInvoice.lotId, `%${searchTerm}%`),
+            ilike(farmerInvoice.productName, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getFarmerInvoice(id: string): Promise<FarmerInvoice | undefined> {
+    const result = await db.select().from(farmerInvoice).where(eq(farmerInvoice.id, id));
+    return result[0];
+  }
+
+  async createFarmerInvoice(invoice: InsertFarmerInvoice): Promise<FarmerInvoice> {
+    const invoiceNo = await this.generateFarmerInvoiceNo(invoice.financialYear || '2025-26');
+    
+    const invoiceData = {
+      ...invoice,
+      invoiceNo,
+      financialYear: invoice.financialYear || '2025-26'
+    };
+    const result = await db.insert(farmerInvoice).values(invoiceData).returning();
+    return result[0];
+  }
+
+  async updateFarmerInvoice(id: string, invoice: UpdateFarmerInvoice): Promise<FarmerInvoice> {
+    const result = await db.update(farmerInvoice)
+      .set({ ...invoice, updatedAt: new Date() })
+      .where(eq(farmerInvoice.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteFarmerInvoice(id: string): Promise<boolean> {
+    const result = await db.delete(farmerInvoice).where(eq(farmerInvoice.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateFarmerInvoiceNo(financialYear: string): Promise<string> {
+    const invoices = await db.select().from(farmerInvoice).where(eq(farmerInvoice.financialYear, financialYear));
+    const nextNumber = String((invoices || []).length + 1).padStart(3, '0');
+    return `FI-${nextNumber}`;
+  }
+
+  // Farmer Invoice Module operations - Manual Invoice
+  async getManualInvoices(financialYear: string, searchTerm?: string): Promise<ManualInvoice[]> {
+    let query = db.select().from(manualInvoice).where(eq(manualInvoice.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(manualInvoice).where(
+        and(
+          eq(manualInvoice.financialYear, financialYear),
+          or(
+            ilike(manualInvoice.farmerName, `%${searchTerm}%`),
+            ilike(manualInvoice.invoiceNo, `%${searchTerm}%`),
+            ilike(manualInvoice.lotId, `%${searchTerm}%`),
+            ilike(manualInvoice.productName, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query;
+  }
+
+  async getManualInvoice(id: string): Promise<ManualInvoice | undefined> {
+    const result = await db.select().from(manualInvoice).where(eq(manualInvoice.id, id));
+    return result[0];
+  }
+
+  async createManualInvoice(invoice: InsertManualInvoice): Promise<ManualInvoice> {
+    const invoiceNo = await this.generateManualInvoiceNo(invoice.financialYear || '2025-26');
+    
+    const invoiceData = {
+      ...invoice,
+      invoiceNo,
+      financialYear: invoice.financialYear || '2025-26'
+    };
+    const result = await db.insert(manualInvoice).values(invoiceData).returning();
+    return result[0];
+  }
+
+  async updateManualInvoice(id: string, invoice: UpdateManualInvoice): Promise<ManualInvoice> {
+    const result = await db.update(manualInvoice)
+      .set({ ...invoice, updatedAt: new Date() })
+      .where(eq(manualInvoice.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteManualInvoice(id: string): Promise<boolean> {
+    const result = await db.delete(manualInvoice).where(eq(manualInvoice.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateManualInvoiceNo(financialYear: string): Promise<string> {
+    const invoices = await db.select().from(manualInvoice).where(eq(manualInvoice.financialYear, financialYear));
+    const nextNumber = String((invoices || []).length + 1).padStart(3, '0');
+    return `MI-${nextNumber}`;
   }
 }
 
