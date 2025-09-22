@@ -28,7 +28,6 @@ export const accountMaster = pgTable("account_master", {
   placeId: varchar("place_id", { length: 50 }), // Reference to Place Master
   bankDetails: json("bank_details"), // JSON for bank account information
   governmentIdentity: json("government_identity"), // JSON for government ID information
-  expenseSettings: json("expense_settings"), // JSON for customer-specific expense settings
   openingBalance: decimal("opening_balance", { precision: 12, scale: 2 }).default('0'),
   creditLimit: decimal("credit_limit", { precision: 12, scale: 2 }).default('0'),
   creditTime: integer("credit_time").default(0), // Credit time in days

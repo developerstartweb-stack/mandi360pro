@@ -545,7 +545,6 @@ export class MemStorage implements IStorage {
       placeId: account.placeId || null,
       bankDetails: account.bankDetails || null,
       governmentIdentity: account.governmentIdentity || null,
-      expenseSettings: account.expenseSettings || null,
       openingBalance: account.openingBalance || '0',
       creditLimit: account.creditLimit || '0',
       creditTime: account.creditTime || 0,

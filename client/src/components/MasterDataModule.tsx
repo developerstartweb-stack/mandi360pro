@@ -13,6 +13,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useForm } from "react-hook-form";
@@ -35,7 +36,9 @@ import {
   User,
   DollarSign,
   Eye,
-  MoreHorizontal
+  MoreHorizontal,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 
 // Define form schemas for validation
@@ -1195,188 +1198,138 @@ function AccountFormFields({ form, places }: any) {
         )}
       />
 
-      {/* Government Identity Details */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Government Identity Details</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="governmentIdentity.aadharNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Aadhar Number</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="XXXX-XXXX-XXXX" data-testid="input-aadhar-number" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="governmentIdentity.panNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>PAN Number</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="ABCDE1234F" data-testid="input-pan-number" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="governmentIdentity.gstNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>GST Number</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="22ABCDE1234F1Z5" data-testid="input-gst-number" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="governmentIdentity.voterIdNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Voter ID Number</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="ABC1234567" data-testid="input-voter-id" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </div>
+      {/* Government Identity Details - Collapsible */}
+      <Collapsible>
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+          <h3 className="text-lg font-medium">Government Identity Details</h3>
+          <ChevronDown className="h-4 w-4" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 mt-4">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="governmentIdentity.aadharNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Aadhar Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="XXXX-XXXX-XXXX" data-testid="input-aadhar-number" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="governmentIdentity.panNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PAN Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="ABCDE1234F" data-testid="input-pan-number" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="governmentIdentity.gstNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>GST Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="22ABCDE1234F1Z5" data-testid="input-gst-number" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="governmentIdentity.voterIdNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Voter ID Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="ABC1234567" data-testid="input-voter-id" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Bank Account Details */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Bank Account Details</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="bankDetails.accountNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Account Number</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Enter account number" data-testid="input-account-number" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="bankDetails.ifscCode"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>IFSC Code</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="SBIN0001234" data-testid="input-ifsc-code" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="bankDetails.bankName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Bank Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Enter bank name" data-testid="input-bank-name" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="bankDetails.branchName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Branch Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Enter branch name" data-testid="input-branch-name" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </div>
+      {/* Bank Account Details - Collapsible */}
+      <Collapsible>
+        <CollapsibleTrigger className="flex items-center justify-between w-full p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+          <h3 className="text-lg font-medium">Bank Account Details</h3>
+          <ChevronDown className="h-4 w-4" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 mt-4">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="bankDetails.accountNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Enter account number" data-testid="input-account-number" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="bankDetails.ifscCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>IFSC Code</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="SBIN0001234" data-testid="input-ifsc-code" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="bankDetails.bankName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bank Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Enter bank name" data-testid="input-bank-name" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="bankDetails.branchName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Branch Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Enter branch name" data-testid="input-branch-name" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {/* Expense Settings */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Default Expense Settings</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="expenseSettings.commissionRate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Commission Rate (%)</FormLabel>
-                <FormControl>
-                  <Input {...field} type="number" step="0.01" placeholder="2.5" data-testid="input-commission-rate" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="expenseSettings.marketFeeRate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Market Fee Rate (%)</FormLabel>
-                <FormControl>
-                  <Input {...field} type="number" step="0.01" placeholder="1.0" data-testid="input-market-fee-rate" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="expenseSettings.hamaliRate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Hamali Rate (per bag)</FormLabel>
-                <FormControl>
-                  <Input {...field} type="number" step="0.01" placeholder="10" data-testid="input-hamali-rate" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="expenseSettings.otherCharges"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Other Fixed Charges</FormLabel>
-                <FormControl>
-                  <Input {...field} type="number" step="0.01" placeholder="50" data-testid="input-other-charges" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </div>
 
       <FormField
         control={form.control}
