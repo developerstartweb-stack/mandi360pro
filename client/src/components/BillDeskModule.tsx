@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -514,23 +513,48 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="customer-billing" className="flex items-center gap-2" data-testid="tab-customer-billing">
-            {getTabIcon("customer-billing")}
-            Customer Billing
-          </TabsTrigger>
-          <TabsTrigger value="khata-billing" className="flex items-center gap-2" data-testid="tab-khata-billing">
-            {getTabIcon("khata-billing")}
-            Khata Billing
-          </TabsTrigger>
-          <TabsTrigger value="payment-receipts" className="flex items-center gap-2" data-testid="tab-payment-receipts">
-            {getTabIcon("payment-receipts")}
-            Payment Receipts
-          </TabsTrigger>
-        </TabsList>
+      {/* Sub-Module Navigation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <CardTitle className="text-lg">Sub-Module</CardTitle>
+                <p className="text-sm text-muted-foreground">Select a billing function</p>
+              </div>
+              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-billdesk-submodule">
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer-billing">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("customer-billing")}
+                      <span>Customer Billing</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="khata-billing">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("khata-billing")}
+                      <span>Khata Billing</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="payment-receipts">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("payment-receipts")}
+                      <span>Payment Receipts</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
 
-        <TabsContent value="customer-billing" className="space-y-4">
+      {/* Content based on selected sub-module */}
+      {activeTab === "customer-billing" && (
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -676,9 +700,11 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="payment-receipts" className="space-y-4">
+      {activeTab === "khata-billing" && (
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -749,8 +775,83 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
+
+      {activeTab === "payment-receipts" && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                Payment Receipts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Receipt No.</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Party Name</TableHead>
+                      <TableHead>Receipt Date</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Payment Mode</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getCurrentLoading() ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6">
+                          Loading payment receipts...
+                        </TableCell>
+                      </TableRow>
+                    ) : getCurrentData().length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                          No payment receipts found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      getCurrentData().map((item: any) => (
+                        <TableRow key={item.id} data-testid={`row-payment-receipt-${item.id}`}>
+                          <TableCell className="font-medium">{item.receiptNo}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {item.customerName ? "Customer" : "Other"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{item.customerName || item.partyName}</TableCell>
+                          <TableCell>{new Date(item.receiptDate).toLocaleDateString()}</TableCell>
+                          <TableCell>₹{item.amount || item.netAmount}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{item.paymentMode}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} data-testid={`button-delete-${item.id}`}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm" data-testid={`button-print-${item.id}`}>
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
