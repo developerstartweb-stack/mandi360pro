@@ -4,7 +4,7 @@ import { Plus, Search, Calendar, Receipt, FileText, BookOpen } from "lucide-reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -164,25 +164,47 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
           </div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="dhada-book" className="flex items-center gap-2" data-testid="tab-dhada-book">
-              <BookOpen className="w-4 h-4" />
-              Dhada Book
-            </TabsTrigger>
-            <TabsTrigger value="farmer-invoice" className="flex items-center gap-2" data-testid="tab-farmer-invoice">
-              <Receipt className="w-4 h-4" />
-              Farmer Invoice
-            </TabsTrigger>
-            <TabsTrigger value="manual-invoice" className="flex items-center gap-2" data-testid="tab-manual-invoice">
-              <FileText className="w-4 h-4" />
-              Manual Invoice
-            </TabsTrigger>
-          </TabsList>
+        {/* Sub-Module Navigation */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div>
+                  <CardTitle className="text-lg">Sub-Module</CardTitle>
+                  <p className="text-sm text-muted-foreground">Select an invoice management function</p>
+                </div>
+                <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-farmer-invoice-submodule">
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dhada-book">
+                      <div className="flex items-center space-x-2">
+                        <BookOpen className="w-4 h-4" />
+                        <span>Dhada Book</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="farmer-invoice">
+                      <div className="flex items-center space-x-2">
+                        <Receipt className="w-4 h-4" />
+                        <span>Farmer Invoice</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="manual-invoice">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="w-4 h-4" />
+                        <span>Manual Invoice</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
 
-          {/* Dhada Book Tab */}
-          <TabsContent value="dhada-book">
+        {/* Content based on selected sub-module */}
+        {activeTab === "dhada-book" && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
@@ -266,10 +288,9 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+        )}
 
-          {/* Farmer Invoice Tab */}
-          <TabsContent value="farmer-invoice">
+        {activeTab === "farmer-invoice" && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
@@ -355,10 +376,9 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+        )}
 
-          {/* Manual Invoice Tab */}
-          <TabsContent value="manual-invoice">
+        {activeTab === "manual-invoice" && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
@@ -446,8 +466,7 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+        )}
       </div>
   );
 }

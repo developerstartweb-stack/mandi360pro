@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -659,50 +659,63 @@ export default function ReportsModule() {
         onFilterChange={handleFilterChange}
       />
 
-      {/* Reports Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          {reportTypes.map((type) => {
-            const Icon = type.icon;
-            return (
-              <TabsTrigger
-                key={type.id}
-                value={type.id}
-                className="flex items-center gap-2"
-                data-testid={`tab-${type.id}`}
-              >
-                <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{type.label}</span>
-              </TabsTrigger>
-            );
-          })}
-        </TabsList>
+      {/* Sub-Module Navigation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <CardTitle className="text-lg">Sub-Module</CardTitle>
+                <p className="text-sm text-muted-foreground">Select a report type</p>
+              </div>
+              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-reports-submodule">
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {reportTypes.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <SelectItem key={type.id} value={type.id}>
+                        <div className="flex items-center space-x-2">
+                          <Icon className="w-4 h-4" />
+                          <span>{type.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
 
-        {reportTypes.map((type) => (
-          <TabsContent key={type.id} value={type.id} className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <type.icon className="w-5 h-5 text-brand" />
-                  {type.label}
-                </CardTitle>
-                <CardDescription>
-                  {type.description} - FY {currentFY}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+      {/* Content based on selected report type */}
+      {reportTypes.map((type) => activeTab === type.id && (
+        <div key={type.id} className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <type.icon className="w-5 h-5 text-brand" />
+                {type.label}
+              </CardTitle>
+              <CardDescription>
+                {type.description} - FY {currentFY}
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
-            <ResultsTable
-              type={type.id}
-              data={reportData}
-              isLoading={isLoading}
-              selectedRowId={selectedRowId}
-              onRowSelect={setSelectedRowId}
-              onNavigate={handleNavigate}
-            />
-          </TabsContent>
-        ))}
-      </Tabs>
+          <ResultsTable
+            type={type.id}
+            data={reportData}
+            isLoading={isLoading}
+            selectedRowId={selectedRowId}
+            onRowSelect={setSelectedRowId}
+            onNavigate={handleNavigate}
+          />
+        </div>
+      ))}
 
       {/* Summary Cards */}
       {reportData.length > 0 && (

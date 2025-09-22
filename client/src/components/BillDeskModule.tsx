@@ -627,9 +627,11 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="khata-billing" className="space-y-4">
+      {activeTab === "khata-billing" && (
+        <div className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

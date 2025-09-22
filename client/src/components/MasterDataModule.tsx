@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -641,43 +640,65 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} data-testid="tabs-master-data">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="accounts" className="flex items-center space-x-2" data-testid="tab-accounts">
-            {getTabIcon("accounts")}
-            <span>Account Master</span>
-          </TabsTrigger>
-          <TabsTrigger value="products" className="flex items-center space-x-2" data-testid="tab-products">
-            {getTabIcon("products")}
-            <span>Product Master</span>
-          </TabsTrigger>
-          <TabsTrigger value="expenses" className="flex items-center space-x-2" data-testid="tab-expenses">
-            {getTabIcon("expenses")}
-            <span>Product Expenses</span>
-          </TabsTrigger>
-          <TabsTrigger value="places" className="flex items-center space-x-2" data-testid="tab-places">
-            {getTabIcon("places")}
-            <span>Place Master</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Sub-Module Navigation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <CardTitle className="text-lg">Sub-Module</CardTitle>
+                <p className="text-sm text-muted-foreground">Select a master data category</p>
+              </div>
+              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-masterdata-submodule">
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="accounts">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("accounts")}
+                      <span>Account Master</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="products">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("products")}
+                      <span>Product Master</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="expenses">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("expenses")}
+                      <span>Product Expenses</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="places">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("places")}
+                      <span>Place Master</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
 
-        <TabsContent value="accounts" className="space-y-4">
+      {/* Content based on selected sub-module */}
+      <Card className="space-y-4">
+        <CardHeader>
+          <CardTitle>
+            {activeTab === "accounts" && "Account Master"}
+            {activeTab === "products" && "Product Master"}
+            {activeTab === "expenses" && "Product Expenses"}
+            {activeTab === "places" && "Place Master"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
           {renderTableView()}
-        </TabsContent>
-
-        <TabsContent value="products" className="space-y-4">
-          {renderTableView()}
-        </TabsContent>
-
-        <TabsContent value="expenses" className="space-y-4">
-          {renderTableView()}
-        </TabsContent>
-
-        <TabsContent value="places" className="space-y-4">
-          {renderTableView()}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Form Dialog */}
       <FormDialog
