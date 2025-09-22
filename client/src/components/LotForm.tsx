@@ -81,10 +81,16 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
     queryFn: () => fetch(`/api/accounts?fy=${currentFY}`).then(res => res.json()),
   });
 
-  const { data: places = [] } = useQuery({
-    queryKey: ['/api/places', currentFY],
-    queryFn: () => fetch(`/api/places?fy=${currentFY}`).then(res => res.json()),
+  const { data: places = [], isLoading: placesLoading, error: placesError } = useQuery({
+    queryKey: ['/api/places'],
+    queryFn: () => fetch('/api/places').then(res => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    }),
   });
+
+  // Debug places data
+  console.log('Places data:', places, 'Loading:', placesLoading, 'Error:', placesError);
 
   // Filter accounts by type
   const farmers = accounts.filter((acc: any) => acc.type === 'F' || acc.type === 'Farmer');
