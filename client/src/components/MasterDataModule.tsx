@@ -5,6 +5,7 @@ import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -65,9 +66,11 @@ const productFormSchema = z.object({
 const expenseFormSchema = z.object({
   productId: z.string().min(1, "Product is required"),
   linkedTo: z.string().min(1, "Linked to is required"),
-  expenseNames: z.array(z.string()).min(1, "At least one expense type is required"),
-  expenseType: z.string().min(1, "Expense type is required"),
-  value: z.string().min(1, "Value is required"),
+  expenses: z.array(z.object({
+    name: z.string(),
+    type: z.string().min(1, "Type is required"),
+    value: z.string().min(1, "Value is required")
+  })).min(1, "At least one expense is required"),
   customFields: z.any().optional(),
   active: z.boolean().default(true),
   financialYear: z.string()
@@ -581,11 +584,21 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
                   <Badge variant="secondary">{item.expenseType}</Badge>
                   {!item.active && <Badge variant="destructive">Inactive</Badge>}
                 </div>
-                <h3 className="font-medium truncate" data-testid={`text-expense-names-${item.id}`}>
-                  {Array.isArray(item.expenseNames) ? item.expenseNames.join(", ") : (item.expenseName || "No expenses")}
-                </h3>
-                <div className="text-sm text-muted-foreground" data-testid={`text-expense-value-${item.value}`}>
-                  Value: ₹{item.value}
+                <div className="space-y-1">
+                  {Array.isArray(item.expenses) && item.expenses.length > 0 ? (
+                    item.expenses.map((expense: any, idx: number) => (
+                      <div key={idx} className="text-sm">
+                        <span className="font-medium">{expense.name}</span>
+                        <span className="text-muted-foreground ml-2">
+                          {expense.type} - ₹{expense.value}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      {item.expenseName ? `${item.expenseName} - ${item.expenseType} - ₹${item.value}` : "No expenses"}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -899,11 +912,9 @@ function FormDialog({
       case "product-expenses":
         return {
           ...baseDefaults,
-          expenseNames: [],
+          expenses: [],
           productId: "",
           linkedTo: "",
-          expenseType: "",
-          value: "0",
           customFields: {}
         };
       case "place-master":
@@ -1292,86 +1303,103 @@ function ExpenseFormFields({ form, products }: any) {
 
       <FormField
         control={form.control}
-        name="expenseNames"
+        name="expenses"
         render={({ field }) => {
           const expenseTypes = [
             "Commission", "Market Fee", "Hamali", "Varai", 
             "Tolai", "Levy", "Postage", "Other"
           ];
 
-          const handleExpenseChange = (expenseType: string, checked: boolean) => {
-            const currentValues = field.value || [];
+          const currentExpenses = field.value || [];
+
+          const handleExpenseToggle = (expenseName: string, checked: boolean) => {
             if (checked) {
-              field.onChange([...currentValues, expenseType]);
+              const newExpense = { name: expenseName, type: "", value: "" };
+              field.onChange([...currentExpenses, newExpense]);
             } else {
-              field.onChange(currentValues.filter((value: string) => value !== expenseType));
+              field.onChange(currentExpenses.filter((exp: any) => exp.name !== expenseName));
             }
+          };
+
+          const updateExpenseField = (index: number, fieldName: string, value: string) => {
+            const updatedExpenses = [...currentExpenses];
+            updatedExpenses[index] = { ...updatedExpenses[index], [fieldName]: value };
+            field.onChange(updatedExpenses);
           };
 
           return (
             <FormItem>
-              <FormLabel>Expense Types * (Select Multiple)</FormLabel>
-              <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg">
-                {expenseTypes.map((expenseType) => (
-                  <div key={expenseType} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`expense-${expenseType}`}
-                      checked={(field.value || []).includes(expenseType)}
-                      onCheckedChange={(checked) => handleExpenseChange(expenseType, checked as boolean)}
-                      data-testid={`checkbox-expense-${expenseType.toLowerCase().replace(/\s+/g, '-')}`}
-                    />
-                    <label
-                      htmlFor={`expense-${expenseType}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {expenseType}
-                    </label>
-                  </div>
-                ))}
+              <FormLabel>Expenses * (Select and Configure)</FormLabel>
+              
+              {/* Expense Selection Checkboxes */}
+              <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg mb-4">
+                {expenseTypes.map((expenseType) => {
+                  const isSelected = currentExpenses.some((exp: any) => exp.name === expenseType);
+                  return (
+                    <div key={expenseType} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`expense-${expenseType}`}
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleExpenseToggle(expenseType, checked as boolean)}
+                        data-testid={`checkbox-expense-${expenseType.toLowerCase().replace(/\s+/g, '-')}`}
+                      />
+                      <label
+                        htmlFor={`expense-${expenseType}`}
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        {expenseType}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
+
+              {/* Individual Expense Configuration */}
+              {currentExpenses.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium">Configure Selected Expenses:</h4>
+                  {currentExpenses.map((expense: any, index: number) => (
+                    <div key={expense.name} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
+                      <h5 className="font-medium mb-3">{expense.name}</h5>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Type *</Label>
+                          <Select 
+                            value={expense.type} 
+                            onValueChange={(value) => updateExpenseField(index, 'type', value)}
+                          >
+                            <SelectTrigger data-testid={`select-expense-type-${index}`}>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="%">Percentage (%)</SelectItem>
+                              <SelectItem value="Fixed">Fixed Amount</SelectItem>
+                              <SelectItem value="Per Bag">Per Bag</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>Value *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={expense.value}
+                            onChange={(e) => updateExpenseField(index, 'value', e.target.value)}
+                            placeholder="Enter value"
+                            data-testid={`input-expense-value-${index}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <FormMessage />
             </FormItem>
           );
         }}
       />
-
-      <div className="grid grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="expenseType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger data-testid="select-expense-type">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="%">Percentage (%)</SelectItem>
-                  <SelectItem value="Fixed">Fixed Amount</SelectItem>
-                  <SelectItem value="Per Bag">Per Bag</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="value"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Value *</FormLabel>
-              <FormControl>
-                <Input {...field} type="number" step="0.01" data-testid="input-expense-value" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
 
       <FormField
         control={form.control}
