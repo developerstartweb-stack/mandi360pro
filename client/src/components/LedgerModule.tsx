@@ -35,6 +35,7 @@ interface LedgerModuleProps {
 export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProps) {
   const [activeTab, setActiveTab] = useState("uplag");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
   
   // Form visibility states for each ledger type
   const [showUplagForm, setShowUplagForm] = useState(false);
@@ -51,6 +52,29 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
   const [editingBankDeposit, setEditingBankDeposit] = useState<BankDepositLedger | null>(null);
 
   const { toast } = useToast();
+  const componentRef = useRef<HTMLDivElement>(null);
+  const handlePrint = useReactToPrint({
+    content: () => componentRef.current,
+  });
+
+  // Helper functions
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case 'uplag': return uplagLedgers || [];
+      case 'khata': return khataLedgers || [];
+      case 'farmer-transport': return farmerTransportLedgers || [];
+      case 'income': return incomeLedgers || [];
+      case 'expense': return expenseLedgers || [];
+      case 'bank-deposit': return bankDepositLedgers || [];
+      default: return [];
+    }
+  };
+
+  const getSelectedRow = () => {
+    if (!selectedRowId) return null;
+    const currentData = getCurrentData();
+    return currentData.find((item: any) => item.id === selectedRowId) || null;
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -63,19 +87,69 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
             break;
           case 'e':
             e.preventDefault();
-            // Edit functionality would be handled per tab
+            // Edit selected row
+            if (selectedRowId) {
+              const selectedRow = getSelectedRow();
+              if (selectedRow) {
+                switch (activeTab) {
+                  case 'uplag':
+                    setEditingUplag(selectedRow);
+                    setShowUplagForm(true);
+                    break;
+                  case 'khata':
+                    setEditingKhata(selectedRow);
+                    setShowKhataForm(true);
+                    break;
+                  case 'farmer-transport':
+                    setEditingFarmerTransport(selectedRow);
+                    setShowFarmerTransportForm(true);
+                    break;
+                  case 'income':
+                    setEditingIncome(selectedRow);
+                    setShowIncomeForm(true);
+                    break;
+                  case 'expense':
+                    setEditingExpense(selectedRow);
+                    setShowExpenseForm(true);
+                    break;
+                  case 'bank-deposit':
+                    setEditingBankDeposit(selectedRow);
+                    setShowBankDepositForm(true);
+                    break;
+                }
+              }
+            } else {
+              toast({ title: "No Selection", description: "Please select a row to edit", variant: "destructive" });
+            }
             break;
           case 'd':
             e.preventDefault();
-            // Delete functionality would be handled per tab
+            // Delete selected row
+            if (selectedRowId) {
+              const selectedRow = getSelectedRow();
+              if (selectedRow && confirm(`Are you sure you want to delete this ${activeTab} ledger entry?`)) {
+                switch (activeTab) {
+                  case 'uplag': deleteUplagMutation.mutate(selectedRowId); break;
+                  case 'khata': deleteKhataMutation.mutate(selectedRowId); break;
+                  case 'farmer-transport': deleteFarmerTransportMutation.mutate(selectedRowId); break;
+                  case 'income': deleteIncomeMutation.mutate(selectedRowId); break;
+                  case 'expense': deleteExpenseMutation.mutate(selectedRowId); break;
+                  case 'bank-deposit': deleteBankDepositMutation.mutate(selectedRowId); break;
+                }
+                setSelectedRowId(null);
+              }
+            } else {
+              toast({ title: "No Selection", description: "Please select a row to delete", variant: "destructive" });
+            }
             break;
           case 's':
             e.preventDefault();
-            // Save functionality would be handled in forms
+            // Save functionality is handled in forms
             break;
           case 'p':
             e.preventDefault();
-            // Print functionality would be handled per tab
+            // Print functionality - trigger react-to-print
+            handlePrint();
             break;
         }
       }
@@ -83,6 +157,11 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, selectedRowId, getSelectedRow, uplagLedgers, khataLedgers, farmerTransportLedgers, incomeLedgers, expenseLedgers, bankDepositLedgers]);
+
+  // Clear selection when switching tabs
+  useEffect(() => {
+    setSelectedRowId(null);
   }, [activeTab]);
 
   const handleNewRecord = () => {
@@ -114,34 +193,70 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
     }
   };
 
-  // Fetch data for each ledger type
+  // Fetch data for each ledger type with proper query parameters
   const { data: uplagLedgers, isLoading: uplagLoading } = useQuery({
     queryKey: ['/api/ledger/uplag', currentFY, searchTerm],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.append('fy', currentFY);
+      if (searchTerm) params.append('search', searchTerm);
+      return fetch(`/api/ledger/uplag?${params.toString()}`).then(res => res.json());
+    },
     enabled: activeTab === 'uplag'
   });
 
   const { data: khataLedgers, isLoading: khataLoading } = useQuery({
     queryKey: ['/api/ledger/khata', currentFY, searchTerm],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.append('fy', currentFY);
+      if (searchTerm) params.append('search', searchTerm);
+      return fetch(`/api/ledger/khata?${params.toString()}`).then(res => res.json());
+    },
     enabled: activeTab === 'khata'
   });
 
   const { data: farmerTransportLedgers, isLoading: farmerTransportLoading } = useQuery({
     queryKey: ['/api/ledger/farmer-transport', currentFY, searchTerm],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.append('fy', currentFY);
+      if (searchTerm) params.append('search', searchTerm);
+      return fetch(`/api/ledger/farmer-transport?${params.toString()}`).then(res => res.json());
+    },
     enabled: activeTab === 'farmer-transport'
   });
 
   const { data: incomeLedgers, isLoading: incomeLoading } = useQuery({
     queryKey: ['/api/ledger/income', currentFY, searchTerm],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.append('fy', currentFY);
+      if (searchTerm) params.append('search', searchTerm);
+      return fetch(`/api/ledger/income?${params.toString()}`).then(res => res.json());
+    },
     enabled: activeTab === 'income'
   });
 
   const { data: expenseLedgers, isLoading: expenseLoading } = useQuery({
     queryKey: ['/api/ledger/expense', currentFY, searchTerm],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.append('fy', currentFY);
+      if (searchTerm) params.append('search', searchTerm);
+      return fetch(`/api/ledger/expense?${params.toString()}`).then(res => res.json());
+    },
     enabled: activeTab === 'expense'
   });
 
   const { data: bankDepositLedgers, isLoading: bankDepositLoading } = useQuery({
     queryKey: ['/api/ledger/bank-deposit', currentFY, searchTerm],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      params.append('fy', currentFY);
+      if (searchTerm) params.append('search', searchTerm);
+      return fetch(`/api/ledger/bank-deposit?${params.toString()}`).then(res => res.json());
+    },
     enabled: activeTab === 'bank-deposit'
   });
 
@@ -295,7 +410,7 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
       </div>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4" ref={componentRef}>
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="uplag" data-testid="tab-uplag" className="flex items-center gap-2">
             <ArrowUpCircle className="h-4 w-4" />
@@ -330,6 +445,8 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
             isLoading={uplagLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            selectedRowId={selectedRowId}
+            onRowSelect={setSelectedRowId}
           />
         </TabsContent>
 
@@ -340,6 +457,8 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
             isLoading={khataLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            selectedRowId={selectedRowId}
+            onRowSelect={setSelectedRowId}
           />
         </TabsContent>
 
@@ -350,6 +469,8 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
             isLoading={farmerTransportLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            selectedRowId={selectedRowId}
+            onRowSelect={setSelectedRowId}
           />
         </TabsContent>
 
@@ -360,6 +481,8 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
             isLoading={incomeLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            selectedRowId={selectedRowId}
+            onRowSelect={setSelectedRowId}
           />
         </TabsContent>
 
@@ -370,6 +493,8 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
             isLoading={expenseLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            selectedRowId={selectedRowId}
+            onRowSelect={setSelectedRowId}
           />
         </TabsContent>
 
@@ -380,6 +505,8 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
             isLoading={bankDepositLoading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            selectedRowId={selectedRowId}
+            onRowSelect={setSelectedRowId}
           />
         </TabsContent>
       </Tabs>
@@ -466,9 +593,11 @@ interface TableProps {
   isLoading: boolean;
   onEdit: (ledger: any) => void;
   onDelete: (id: string) => void;
+  selectedRowId?: string | null;
+  onRowSelect?: (id: string) => void;
 }
 
-function UplagLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) {
+function UplagLedgerTable({ ledgers, isLoading, onEdit, onDelete, selectedRowId, onRowSelect }: TableProps) {
   if (isLoading) {
     return (
       <Card>
@@ -508,7 +637,14 @@ function UplagLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) 
           </TableHeader>
           <TableBody>
             {ledgers.map((ledger) => (
-              <TableRow key={ledger.id}>
+              <TableRow 
+                key={ledger.id} 
+                className={`cursor-pointer hover:bg-muted/50 ${
+                  selectedRowId === ledger.id ? 'bg-muted ring-2 ring-brand' : ''
+                }`}
+                onClick={() => onRowSelect?.(ledger.id)}
+                data-testid={`row-uplag-${ledger.id}`}
+              >
                 <TableCell>
                   <Badge variant="outline" data-testid={`text-ledger-id-${ledger.id}`}>
                     {ledger.uplagLedgerId}
@@ -565,7 +701,7 @@ function UplagLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) 
   );
 }
 
-function KhataLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) {
+function KhataLedgerTable({ ledgers, isLoading, onEdit, onDelete, selectedRowId, onRowSelect }: TableProps) {
   if (isLoading) {
     return (
       <Card>
@@ -605,7 +741,14 @@ function KhataLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) 
           </TableHeader>
           <TableBody>
             {ledgers.map((ledger) => (
-              <TableRow key={ledger.id}>
+              <TableRow 
+                key={ledger.id}
+                className={`cursor-pointer hover:bg-muted/50 ${
+                  selectedRowId === ledger.id ? 'bg-muted ring-2 ring-brand' : ''
+                }`}
+                onClick={() => onRowSelect?.(ledger.id)}
+                data-testid={`row-khata-${ledger.id}`}
+              >
                 <TableCell>
                   <Badge variant="outline" data-testid={`text-ledger-id-${ledger.id}`}>
                     {ledger.khataLedgerId}
@@ -662,7 +805,7 @@ function KhataLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) 
   );
 }
 
-function FarmerTransportLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) {
+function FarmerTransportLedgerTable({ ledgers, isLoading, onEdit, onDelete, selectedRowId, onRowSelect }: TableProps) {
   if (isLoading) {
     return (
       <Card>
@@ -704,7 +847,14 @@ function FarmerTransportLedgerTable({ ledgers, isLoading, onEdit, onDelete }: Ta
           </TableHeader>
           <TableBody>
             {ledgers.map((ledger) => (
-              <TableRow key={ledger.id}>
+              <TableRow 
+                key={ledger.id}
+                className={`cursor-pointer hover:bg-muted/50 ${
+                  selectedRowId === ledger.id ? 'bg-muted ring-2 ring-brand' : ''
+                }`}
+                onClick={() => onRowSelect?.(ledger.id)}
+                data-testid={`row-farmer-transport-${ledger.id}`}
+              >
                 <TableCell>
                   <Badge variant="outline" data-testid={`text-ledger-id-${ledger.id}`}>
                     {ledger.farmerTransportLedgerId}
@@ -767,7 +917,7 @@ function FarmerTransportLedgerTable({ ledgers, isLoading, onEdit, onDelete }: Ta
   );
 }
 
-function IncomeLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) {
+function IncomeLedgerTable({ ledgers, isLoading, onEdit, onDelete, selectedRowId, onRowSelect }: TableProps) {
   if (isLoading) {
     return (
       <Card>
@@ -807,7 +957,14 @@ function IncomeLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps)
           </TableHeader>
           <TableBody>
             {ledgers.map((ledger) => (
-              <TableRow key={ledger.id}>
+              <TableRow 
+                key={ledger.id}
+                className={`cursor-pointer hover:bg-muted/50 ${
+                  selectedRowId === ledger.id ? 'bg-muted ring-2 ring-brand' : ''
+                }`}
+                onClick={() => onRowSelect?.(ledger.id)}
+                data-testid={`row-income-${ledger.id}`}
+              >
                 <TableCell>
                   <Badge variant="outline" data-testid={`text-ledger-id-${ledger.id}`}>
                     {ledger.incomeLedgerId}
@@ -866,7 +1023,7 @@ function IncomeLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps)
   );
 }
 
-function ExpenseLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) {
+function ExpenseLedgerTable({ ledgers, isLoading, onEdit, onDelete, selectedRowId, onRowSelect }: TableProps) {
   if (isLoading) {
     return (
       <Card>
@@ -906,7 +1063,14 @@ function ExpenseLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps
           </TableHeader>
           <TableBody>
             {ledgers.map((ledger) => (
-              <TableRow key={ledger.id}>
+              <TableRow 
+                key={ledger.id}
+                className={`cursor-pointer hover:bg-muted/50 ${
+                  selectedRowId === ledger.id ? 'bg-muted ring-2 ring-brand' : ''
+                }`}
+                onClick={() => onRowSelect?.(ledger.id)}
+                data-testid={`row-expense-${ledger.id}`}
+              >
                 <TableCell>
                   <Badge variant="outline" data-testid={`text-ledger-id-${ledger.id}`}>
                     {ledger.expenseLedgerId}
@@ -965,7 +1129,7 @@ function ExpenseLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps
   );
 }
 
-function BankDepositLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableProps) {
+function BankDepositLedgerTable({ ledgers, isLoading, onEdit, onDelete, selectedRowId, onRowSelect }: TableProps) {
   if (isLoading) {
     return (
       <Card>
@@ -1005,7 +1169,14 @@ function BankDepositLedgerTable({ ledgers, isLoading, onEdit, onDelete }: TableP
           </TableHeader>
           <TableBody>
             {ledgers.map((ledger) => (
-              <TableRow key={ledger.id}>
+              <TableRow 
+                key={ledger.id}
+                className={`cursor-pointer hover:bg-muted/50 ${
+                  selectedRowId === ledger.id ? 'bg-muted ring-2 ring-brand' : ''
+                }`}
+                onClick={() => onRowSelect?.(ledger.id)}
+                data-testid={`row-bank-deposit-${ledger.id}`}
+              >
                 <TableCell>
                   <Badge variant="outline" data-testid={`text-ledger-id-${ledger.id}`}>
                     {ledger.bankDepositLedgerId}
