@@ -19,11 +19,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package, Check, ChevronsUpDown, AlertCircle, RefreshCw } from "lucide-react";
 
 // Form validation schema
+const qualityQuantitySchema = z.object({
+  quality: z.string().min(1, "Quality is required"),
+  quantity: z.string().min(1, "Quantity is required").refine(val => Number(val) > 0, "Quantity must be greater than 0"),
+  averageRate: z.string().optional(),
+});
+
 const lotSubFieldSchema = z.object({
   accountId: z.string().min(1, "Farmer account is required"),
-  quantity: z.string().min(1, "Quantity is required").refine(val => Number(val) > 0, "Quantity must be greater than 0"),
-  quality: z.string().optional(),
-  averageRate: z.string().optional(),
+  qualityQuantities: z.array(qualityQuantitySchema).min(1, "At least one quality-quantity pair is required"),
 });
 
 const lotFormSchema = z.object({
@@ -41,10 +45,12 @@ const lotFormSchema = z.object({
   subFields: z.array(lotSubFieldSchema).min(1, "At least one farmer lot is required"),
 }).refine((data) => {
   const totalQty = Number(data.totalQuantity);
-  const farmerQtySum = data.subFields.reduce((sum, field) => sum + Number(field.quantity || 0), 0);
+  const farmerQtySum = data.subFields.reduce((sum, field) => {
+    return sum + field.qualityQuantities.reduce((qSum, qq) => qSum + Number(qq.quantity || 0), 0);
+  }, 0);
   return Math.abs(totalQty - farmerQtySum) < 0.01;
 }, {
-  message: "Total quantity must equal the sum of farmer quantities",
+  message: "Total quantity must equal the sum of all farmer quantities across all qualities",
   path: ["totalQuantity"]
 });
 
@@ -61,7 +67,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
   const { toast } = useToast();
   const [showCalculations, setShowCalculations] = useState(false);
   const [showTransportDetails, setShowTransportDetails] = useState(false);
-  const [loadingRates, setLoadingRates] = useState<Set<number>>(new Set());
+  const [loadingRates, setLoadingRates] = useState<Set<string>>(new Set());
 
   // Fetch master data
   const { data: products = [] } = useQuery({
@@ -84,17 +90,17 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
   const transporters = accounts.filter((acc: any) => acc.type === 'T' || acc.type === 'Transport'); // Support both 'T' and 'Transport'
 
   // Function to fetch average rate
-  const fetchAverageRate = async (productId: string, quality: string, index: number) => {
+  const fetchAverageRate = async (productId: string, quality: string, rateKey: string, farmerIndex: number, qqIndex: number) => {
     if (!productId || !quality) return;
     
-    setLoadingRates(prev => new Set(prev).add(index));
+    setLoadingRates(prev => new Set(prev).add(rateKey));
     
     try {
       const response = await fetch(`/api/rates/average?productId=${productId}&quality=${quality}&financialYear=${currentFY}&days=30`);
       const data = await response.json();
       
       if (data.avgRate !== null) {
-        form.setValue(`subFields.${index}.averageRate`, data.avgRate.toString());
+        form.setValue(`subFields.${farmerIndex}.qualityQuantities.${qqIndex}.averageRate`, data.avgRate.toString());
         toast({
           title: "Rate Updated",
           description: `Auto-populated rate: ₹${data.avgRate} (based on ${data.count} recent transactions)`,
@@ -115,7 +121,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
     } finally {
       setLoadingRates(prev => {
         const newSet = new Set(prev);
-        newSet.delete(index);
+        newSet.delete(rateKey);
         return newSet;
       });
     }
@@ -135,7 +141,10 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
       advance: initialData?.advance || "",
       otherExpenses: initialData?.otherExpenses || "",
       financialYear: currentFY,
-      subFields: initialData?.subFields || [{ accountId: "", quantity: "", quality: "", averageRate: "" }],
+      subFields: initialData?.subFields || [{ 
+        accountId: "", 
+        qualityQuantities: [{ quality: "", quantity: "", averageRate: "" }] 
+      }],
     },
   });
 
@@ -150,20 +159,35 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
 
   // Auto-calculations
   const calculations = {
-    farmerQuantity: subFields.reduce((sum, field) => sum + (Number(field.quantity) || 0), 0),
+    farmerQuantity: subFields.reduce((sum, field) => 
+      sum + field.qualityQuantities.reduce((qSum, qq) => qSum + (Number(qq.quantity) || 0), 0), 0),
     averageWeight: totalWeight && totalQuantity ? (Number(totalWeight) / Number(totalQuantity)).toFixed(2) : "0.00",
     totalFreight: freight ? Number(freight) : 0,
   };
 
   // Calculate sub-field values
   const enhancedSubFields = subFields.map((field, index) => {
-    const quantity = Number(field.quantity) || 0;
-    const weight = calculations.averageWeight ? (Number(calculations.averageWeight) * quantity).toFixed(2) : "0.00";
+    const farmerTotalQuantity = field.qualityQuantities.reduce((sum, qq) => sum + (Number(qq.quantity) || 0), 0);
+    const weight = calculations.averageWeight ? (Number(calculations.averageWeight) * farmerTotalQuantity).toFixed(2) : "0.00";
     const fieldFreight = calculations.totalFreight && totalQuantity ? 
-      ((calculations.totalFreight / Number(totalQuantity)) * quantity).toFixed(2) : "0.00";
+      ((calculations.totalFreight / Number(totalQuantity)) * farmerTotalQuantity).toFixed(2) : "0.00";
+    
+    const enhancedQualityQuantities = field.qualityQuantities.map((qq, qqIndex) => {
+      const quantity = Number(qq.quantity) || 0;
+      const qqWeight = calculations.averageWeight ? (Number(calculations.averageWeight) * quantity).toFixed(2) : "0.00";
+      const qqFreight = calculations.totalFreight && totalQuantity ? 
+        ((calculations.totalFreight / Number(totalQuantity)) * quantity).toFixed(2) : "0.00";
+      
+      return {
+        ...qq,
+        calculatedWeight: qqWeight,
+        calculatedFreight: qqFreight,
+      };
+    });
     
     return {
       ...field,
+      farmerTotalQuantity,
       calculatedWeight: weight,
       calculatedFreight: fieldFreight,
     };
@@ -181,6 +205,8 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
       const payload = {
         lot: {
           productId: data.productId,
+          placeId: data.placeId,
+          arrivingDate: data.arrivingDate,
           totalQuantity: data.totalQuantity,
           totalWeight: data.totalWeight || null,
           freight: data.freight || null,
@@ -190,12 +216,14 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
           otherExpenses: data.otherExpenses || null,
           financialYear: data.financialYear,
         },
-        subFields: data.subFields.map(field => ({
-          accountId: field.accountId,
-          quantity: field.quantity,
-          quality: field.quality || null,
-          averageRate: field.averageRate || null,
-        })),
+        subFields: data.subFields.flatMap(field => 
+          field.qualityQuantities.map(qq => ({
+            accountId: field.accountId,
+            quantity: qq.quantity,
+            quality: qq.quality || null,
+            averageRate: qq.averageRate || null,
+          }))
+        ),
       };
       
       return apiRequest("POST", "/api/inventory/lot-entry/with-sub-fields", payload);
@@ -222,12 +250,31 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
   };
 
   const addSubField = () => {
-    append({ accountId: "", quantity: "", quality: "", averageRate: "" });
+    append({ 
+      accountId: "", 
+      qualityQuantities: [{ quality: "", quantity: "", averageRate: "" }] 
+    });
   };
 
   const removeSubField = (index: number) => {
     if (fields.length > 1) {
       remove(index);
+    }
+  };
+
+  const addQualityQuantity = (farmerIndex: number) => {
+    const currentSubFields = form.getValues('subFields');
+    const updatedSubFields = [...currentSubFields];
+    updatedSubFields[farmerIndex].qualityQuantities.push({ quality: "", quantity: "", averageRate: "" });
+    form.setValue('subFields', updatedSubFields);
+  };
+
+  const removeQualityQuantity = (farmerIndex: number, qqIndex: number) => {
+    const currentSubFields = form.getValues('subFields');
+    const updatedSubFields = [...currentSubFields];
+    if (updatedSubFields[farmerIndex].qualityQuantities.length > 1) {
+      updatedSubFields[farmerIndex].qualityQuantities.splice(qqIndex, 1);
+      form.setValue('subFields', updatedSubFields);
     }
   };
 
@@ -533,198 +580,241 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                   </Button>
                 </div>
 
-                <div className="space-y-3">
-                  {fields.map((field, index) => (
+                <div className="space-y-4">
+                  {fields.map((field, farmerIndex) => (
                     <Card key={field.id} className="relative">
-                      <CardContent className="pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <FormField
-                            control={form.control}
-                            name={`subFields.${index}.accountId`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Farmer Account *</FormLabel>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <FormControl>
-                                      <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
-                                        data-testid={`select-farmer-${index}`}
-                                      >
-                                        {field.value
-                                          ? farmers.find((farmer: any) => farmer.id === field.value)?.name || "Select farmer"
-                                          : "Select farmer"}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                      </Button>
-                                    </FormControl>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-full p-0">
-                                    <Command>
-                                      <CommandInput placeholder="Search farmers..." />
-                                      <CommandList>
-                                        <CommandEmpty>
-                                          {farmers.length === 0 
-                                            ? "No farmer accounts found. Please create Farmer type accounts in Account Master first."
-                                            : "No farmers match your search."
-                                          }
-                                        </CommandEmpty>
-                                        <CommandGroup>
-                                          {farmers.map((farmer: any) => (
-                                            <CommandItem
-                                              key={farmer.id}
-                                              value={`${farmer.name} ${farmer.accountId}`}
-                                              onSelect={() => {
-                                                field.onChange(farmer.id);
-                                              }}
-                                              data-testid={`option-farmer-${farmer.id}`}
-                                            >
-                                              <Check
-                                                className={`mr-2 h-4 w-4 ${
-                                                  farmer.id === field.value ? "opacity-100" : "opacity-0"
-                                                }`}
-                                              />
-                                              <div className="flex flex-col">
-                                                <span className="font-medium">{farmer.name}</span>
-                                                <span className="text-sm text-muted-foreground">
-                                                  {farmer.accountId} • Farmer
-                                                </span>
-                                              </div>
-                                            </CommandItem>
-                                          ))}
-                                        </CommandGroup>
-                                      </CommandList>
-                                    </Command>
-                                  </PopoverContent>
-                                </Popover>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`subFields.${index}.quantity`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Quantity *</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Enter quantity"
-                                    data-testid={`input-quantity-${index}`}
-                                    {...field}
-                                  />
-                                </FormControl>
-                                {enhancedSubFields[index]?.calculatedWeight && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Weight: {enhancedSubFields[index].calculatedWeight} kg
-                                  </p>
-                                )}
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`subFields.${index}.quality`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Quality</FormLabel>
-                                <Select onValueChange={(value) => {
-                                  field.onChange(value);
-                                  const productId = form.getValues('productId');
-                                  if (productId && value) {
-                                    fetchAverageRate(productId, value, index);
-                                  }
-                                }} defaultValue={field.value}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            <span className="font-medium">Farmer {farmerIndex + 1}</span>
+                          </div>
+                          {fields.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeSubField(farmerIndex)}
+                              data-testid={`button-remove-farmer-${farmerIndex}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {/* Farmer Account Selection */}
+                        <FormField
+                          control={form.control}
+                          name={`subFields.${farmerIndex}.accountId`}
+                          render={({ field: accountField }) => (
+                            <FormItem>
+                              <FormLabel>Farmer Account *</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
                                   <FormControl>
-                                    <SelectTrigger data-testid={`select-quality-${index}`}>
-                                      <SelectValue placeholder="Select quality" />
-                                    </SelectTrigger>
+                                    <Button
+                                      variant="outline"
+                                      role="combobox"
+                                      className={`w-full justify-between ${!accountField.value && "text-muted-foreground"}`}
+                                      data-testid={`select-farmer-${farmerIndex}`}
+                                    >
+                                      {accountField.value
+                                        ? farmers.find((farmer: any) => farmer.id === accountField.value)?.name || "Select farmer"
+                                        : "Select farmer"}
+                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
                                   </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="A">Grade A</SelectItem>
-                                    <SelectItem value="B">Grade B</SelectItem>
-                                    <SelectItem value="C">Grade C</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                </PopoverTrigger>
+                                <PopoverContent className="w-full p-0">
+                                  <Command>
+                                    <CommandInput placeholder="Search farmers..." />
+                                    <CommandList>
+                                      <CommandEmpty>
+                                        {farmers.length === 0 
+                                          ? "No farmer accounts found. Please create Farmer type accounts in Account Master first."
+                                          : "No farmers match your search."
+                                        }
+                                      </CommandEmpty>
+                                      <CommandGroup>
+                                        {farmers.map((farmer: any) => (
+                                          <CommandItem
+                                            key={farmer.id}
+                                            value={`${farmer.name} ${farmer.accountId}`}
+                                            onSelect={() => {
+                                              accountField.onChange(farmer.id);
+                                            }}
+                                            data-testid={`option-farmer-${farmer.id}`}
+                                          >
+                                            <Check
+                                              className={`mr-2 h-4 w-4 ${
+                                                farmer.id === accountField.value ? "opacity-100" : "opacity-0"
+                                              }`}
+                                            />
+                                            <div className="flex flex-col">
+                                              <span className="font-medium">{farmer.name}</span>
+                                              <span className="text-sm text-muted-foreground">
+                                                {farmer.accountId} • Farmer
+                                              </span>
+                                            </div>
+                                          </CommandItem>
+                                        ))}
+                                      </CommandGroup>
+                                    </CommandList>
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardHeader>
 
-                          <FormField
-                            control={form.control}
-                            name={`subFields.${index}.averageRate`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                  Average Rate (₹)
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => {
-                                      const productId = form.getValues('productId');
-                                      const quality = form.getValues(`subFields.${index}.quality`);
-                                      if (productId && quality) {
-                                        fetchAverageRate(productId, quality, index);
-                                      } else {
-                                        toast({
-                                          title: "Missing Data",
-                                          description: "Please select product and quality first.",
-                                          variant: "destructive",
-                                        });
-                                      }
-                                    }}
-                                    disabled={loadingRates.has(index)}
-                                    data-testid={`button-refresh-rate-${index}`}
-                                  >
-                                    <RefreshCw className={`h-3 w-3 ${loadingRates.has(index) ? 'animate-spin' : ''}`} />
-                                  </Button>
-                                </FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Input
-                                      type="number"
-                                      placeholder="Enter rate"
-                                      data-testid={`input-rate-${index}`}
-                                      disabled={loadingRates.has(index)}
-                                      {...field}
-                                    />
-                                    {loadingRates.has(index) && (
-                                      <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                                        <RefreshCw className="h-4 w-4 animate-spin" />
-                                      </div>
-                                    )}
-                                  </div>
-                                </FormControl>
-                                {enhancedSubFields[index]?.calculatedFreight && (
-                                  <p className="text-xs text-muted-foreground">
-                                    Freight: ₹{enhancedSubFields[index].calculatedFreight}
-                                  </p>
-                                )}
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                      <CardContent className="pt-0">
+                        {/* Quality-Quantity Pairs */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-sm font-medium">Quality & Quantity Details</Label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addQualityQuantity(farmerIndex)}
+                              data-testid={`button-add-quality-quantity-${farmerIndex}`}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add Quality
+                            </Button>
+                          </div>
+
+                          {field.qualityQuantities?.map((qq: any, qqIndex: number) => (
+                            <div key={qqIndex} className="border rounded-lg p-3 relative">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <FormField
+                                  control={form.control}
+                                  name={`subFields.${farmerIndex}.qualityQuantities.${qqIndex}.quality`}
+                                  render={({ field: qualityField }) => (
+                                    <FormItem>
+                                      <FormLabel>Quality *</FormLabel>
+                                      <Select onValueChange={(value) => {
+                                        qualityField.onChange(value);
+                                        const productId = form.getValues('productId');
+                                        if (productId && value) {
+                                          const rateKey = `${farmerIndex}-${qqIndex}`;
+                                          fetchAverageRate(productId, value, rateKey, farmerIndex, qqIndex);
+                                        }
+                                      }} defaultValue={qualityField.value}>
+                                        <FormControl>
+                                          <SelectTrigger data-testid={`select-quality-${farmerIndex}-${qqIndex}`}>
+                                            <SelectValue placeholder="Select quality" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="A">Grade A</SelectItem>
+                                          <SelectItem value="B">Grade B</SelectItem>
+                                          <SelectItem value="C">Grade C</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name={`subFields.${farmerIndex}.qualityQuantities.${qqIndex}.quantity`}
+                                  render={({ field: quantityField }) => (
+                                    <FormItem>
+                                      <FormLabel>Quantity *</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          placeholder="Enter quantity"
+                                          data-testid={`input-quantity-${farmerIndex}-${qqIndex}`}
+                                          {...quantityField}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name={`subFields.${farmerIndex}.qualityQuantities.${qqIndex}.averageRate`}
+                                  render={({ field: rateField }) => (
+                                    <FormItem>
+                                      <FormLabel className="flex items-center gap-2">
+                                        Rate (₹)
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-5 w-5 p-0"
+                                          onClick={() => {
+                                            const productId = form.getValues('productId');
+                                            const quality = form.getValues(`subFields.${farmerIndex}.qualityQuantities.${qqIndex}.quality`);
+                                            if (productId && quality) {
+                                              const rateKey = `${farmerIndex}-${qqIndex}`;
+                                              fetchAverageRate(productId, quality, rateKey, farmerIndex, qqIndex);
+                                            } else {
+                                              toast({
+                                                title: "Missing Data",
+                                                description: "Please select product and quality first.",
+                                                variant: "destructive",
+                                              });
+                                            }
+                                          }}
+                                          data-testid={`button-refresh-rate-${farmerIndex}-${qqIndex}`}
+                                        >
+                                          <RefreshCw className="h-3 w-3" />
+                                        </Button>
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          placeholder="Enter rate"
+                                          data-testid={`input-rate-${farmerIndex}-${qqIndex}`}
+                                          {...rateField}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+
+                              {field.qualityQuantities?.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="absolute top-1 right-1 h-6 w-6 p-0"
+                                  onClick={() => removeQualityQuantity(farmerIndex, qqIndex)}
+                                  data-testid={`button-remove-quality-quantity-${farmerIndex}-${qqIndex}`}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
                         </div>
 
-                        {fields.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => removeSubField(index)}
-                            data-testid={`button-remove-subfield-${index}`}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                        {/* Farmer Total Summary */}
+                        {enhancedSubFields[farmerIndex] && (
+                          <div className="mt-3 p-2 bg-muted/50 rounded text-sm space-y-1">
+                            <div className="flex justify-between">
+                              <span>Farmer Total Quantity:</span>
+                              <span className="font-medium">{enhancedSubFields[farmerIndex].farmerTotalQuantity}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Calculated Weight:</span>
+                              <span className="font-medium">{enhancedSubFields[farmerIndex].calculatedWeight} kg</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Calculated Freight:</span>
+                              <span className="font-medium">₹{enhancedSubFields[farmerIndex].calculatedFreight}</span>
+                            </div>
+                          </div>
                         )}
                       </CardContent>
                     </Card>
