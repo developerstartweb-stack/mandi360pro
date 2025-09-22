@@ -105,7 +105,14 @@ import {
   farmerTransportLedger,
   incomeLedger,
   expenseLedger,
-  bankDepositLedger
+  bankDepositLedger,
+  reportConfigs,
+  reportSnapshots,
+  type ReportConfig,
+  type ReportSnapshot,
+  type InsertReportConfig,
+  type UpdateReportConfig,
+  type InsertReportSnapshot
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -324,6 +331,17 @@ export interface IStorage {
   updateBankDepositLedger(id: string, ledger: UpdateBankDepositLedger): Promise<BankDepositLedger>;
   deleteBankDepositLedger(id: string): Promise<boolean>;
   generateBankDepositLedgerId(financialYear: string): Promise<string>;
+  
+  // Reports Module operations
+  getReport(type: string, financialYear: string, filters?: Record<string, any>): Promise<any[]>;
+  createReportSnapshot(snapshot: InsertReportSnapshot): Promise<ReportSnapshot>;
+  getReportSnapshots(type?: string, financialYear?: string): Promise<ReportSnapshot[]>;
+  deleteReportSnapshot(id: string): Promise<boolean>;
+  getReportConfigs(type?: string, financialYear?: string): Promise<ReportConfig[]>;
+  getReportConfig(id: string): Promise<ReportConfig | undefined>;
+  createReportConfig(config: InsertReportConfig): Promise<ReportConfig>;
+  updateReportConfig(id: string, config: UpdateReportConfig): Promise<ReportConfig>;
+  deleteReportConfig(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2320,6 +2338,66 @@ export class MemStorage implements IStorage {
     const nextNumber = String(ledgers.length + 1).padStart(4, '0');
     return `BDL-${nextNumber}`;
   }
+
+  // Reports Module operations - MemStorage implementations
+  async getReport(type: string, financialYear: string, filters?: Record<string, any>): Promise<any[]> {
+    // Return empty array for in-memory storage - reports require database aggregations
+    return [];
+  }
+
+  async createReportSnapshot(snapshot: InsertReportSnapshot): Promise<ReportSnapshot> {
+    const id = randomUUID();
+    const newSnapshot: ReportSnapshot = {
+      id,
+      ...snapshot,
+      createdAt: new Date(),
+    };
+    // In memory implementation would store snapshots here
+    return newSnapshot;
+  }
+
+  async getReportSnapshots(type?: string, financialYear?: string): Promise<ReportSnapshot[]> {
+    return [];
+  }
+
+  async deleteReportSnapshot(id: string): Promise<boolean> {
+    return true;
+  }
+
+  async getReportConfigs(type?: string, financialYear?: string): Promise<ReportConfig[]> {
+    return [];
+  }
+
+  async getReportConfig(id: string): Promise<ReportConfig | undefined> {
+    return undefined;
+  }
+
+  async createReportConfig(config: InsertReportConfig): Promise<ReportConfig> {
+    const id = randomUUID();
+    const newConfig: ReportConfig = {
+      id,
+      ...config,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newConfig;
+  }
+
+  async updateReportConfig(id: string, config: UpdateReportConfig): Promise<ReportConfig> {
+    const existing = await this.getReportConfig(id);
+    if (!existing) throw new Error("Report config not found");
+    
+    const updated: ReportConfig = {
+      ...existing,
+      ...config,
+      updatedAt: new Date(),
+    };
+    return updated;
+  }
+
+  async deleteReportConfig(id: string): Promise<boolean> {
+    return true;
+  }
 }
 
 // Database Storage Implementation
@@ -4011,6 +4089,147 @@ export class DatabaseStorage implements IStorage {
     const ledgers = await db.select().from(bankDepositLedger).where(eq(bankDepositLedger.financialYear, financialYear));
     const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
     return `BDL-${nextNumber}`;
+  }
+
+  // Reports Module operations - DatabaseStorage implementations
+  async getReport(type: string, financialYear: string, filters?: Record<string, any>): Promise<any[]> {
+    try {
+      switch (type) {
+        case 'lot':
+          // Aggregate lot data with quantity and weight totals
+          const lots = await db.select().from(lotEntry).where(eq(lotEntry.financialYear, financialYear));
+          return lots.map(lot => ({
+            lotId: lot.lotId,
+            productName: lot.productName,
+            farmerName: lot.farmerName,
+            date: lot.date,
+            totalQuantity: lot.totalQuantity,
+            totalWeight: lot.totalWeight,
+            // Add filtering logic here
+          }));
+          
+        case 'bill':
+          // Aggregate billing data with payment status
+          const bills = await db.select().from(customerBilling).where(eq(customerBilling.financialYear, financialYear));
+          return bills.map(bill => ({
+            billNo: bill.billNo,
+            customerName: bill.customerName,
+            date: bill.date,
+            totalAmount: bill.totalAmount,
+            status: 'active', // Calculate paid/unpaid status
+          }));
+          
+        case 'invoice':
+          // Aggregate farmer invoice data
+          const invoices = await db.select().from(farmerInvoice).where(eq(farmerInvoice.financialYear, financialYear));
+          return invoices.map(invoice => ({
+            invoiceNo: invoice.invoiceNo,
+            farmerName: invoice.farmerName,
+            date: invoice.date,
+            netPayable: invoice.netPayable,
+          }));
+          
+        case 'income':
+          // Aggregate income data from income ledger
+          const incomeData = await db.select().from(incomeLedger).where(eq(incomeLedger.financialYear, financialYear));
+          return incomeData.map(income => ({
+            date: income.date,
+            name: income.customerName,
+            amount: income.amount,
+            paymentMode: income.paymentMode,
+          }));
+          
+        case 'expense':
+          // Aggregate expense data from expense ledger
+          const expenseData = await db.select().from(expenseLedger).where(eq(expenseLedger.financialYear, financialYear));
+          return expenseData.map(expense => ({
+            date: expense.date,
+            name: expense.customerName,
+            amount: expense.amount,
+            paymentMode: expense.paymentMode,
+          }));
+          
+        case 'paid-unpaid':
+          // Aggregate khata ledger balances
+          const khataData = await db.select().from(khataLedger).where(eq(khataLedger.financialYear, financialYear));
+          return khataData.map(khata => ({
+            name: khata.customerName,
+            payable: khata.totalBalance,
+            paid: khata.paymentReceived,
+            unpaid: parseFloat(khata.totalBalance) - parseFloat(khata.paymentReceived),
+            type: 'customer', // Derive from customer type
+          }));
+          
+        default:
+          return [];
+      }
+    } catch (error) {
+      console.error(`Error generating ${type} report:`, error);
+      return [];
+    }
+  }
+
+  async createReportSnapshot(snapshot: InsertReportSnapshot): Promise<ReportSnapshot> {
+    const [result] = await db.insert(reportSnapshots).values(snapshot).returning();
+    return result;
+  }
+
+  async getReportSnapshots(type?: string, financialYear?: string): Promise<ReportSnapshot[]> {
+    let query = db.select().from(reportSnapshots);
+    
+    if (type && financialYear) {
+      query = query.where(and(eq(reportSnapshots.type, type), eq(reportSnapshots.financialYear, financialYear)));
+    } else if (type) {
+      query = query.where(eq(reportSnapshots.type, type));
+    } else if (financialYear) {
+      query = query.where(eq(reportSnapshots.financialYear, financialYear));
+    }
+    
+    return await query;
+  }
+
+  async deleteReportSnapshot(id: string): Promise<boolean> {
+    const result = await db.delete(reportSnapshots).where(eq(reportSnapshots.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getReportConfigs(type?: string, financialYear?: string): Promise<ReportConfig[]> {
+    let query = db.select().from(reportConfigs);
+    
+    if (type && financialYear) {
+      query = query.where(and(eq(reportConfigs.type, type), eq(reportConfigs.financialYear, financialYear)));
+    } else if (type) {
+      query = query.where(eq(reportConfigs.type, type));
+    } else if (financialYear) {
+      query = query.where(eq(reportConfigs.financialYear, financialYear));
+    }
+    
+    return await query;
+  }
+
+  async getReportConfig(id: string): Promise<ReportConfig | undefined> {
+    const [result] = await db.select().from(reportConfigs).where(eq(reportConfigs.id, id));
+    return result;
+  }
+
+  async createReportConfig(config: InsertReportConfig): Promise<ReportConfig> {
+    const [result] = await db.insert(reportConfigs).values(config).returning();
+    return result;
+  }
+
+  async updateReportConfig(id: string, config: UpdateReportConfig): Promise<ReportConfig> {
+    const [result] = await db.update(reportConfigs)
+      .set({ ...config, updatedAt: new Date() })
+      .where(eq(reportConfigs.id, id))
+      .returning();
+    
+    if (!result) throw new Error("Report config not found");
+    return result;
+  }
+
+  async deleteReportConfig(id: string): Promise<boolean> {
+    const result = await db.delete(reportConfigs).where(eq(reportConfigs.id, id));
+    return result.rowCount > 0;
   }
 }
 

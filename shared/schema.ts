@@ -1159,3 +1159,57 @@ export const updateBankDepositLedgerSchema = createInsertSchema(bankDepositLedge
 export type InsertBankDepositLedger = z.infer<typeof insertBankDepositLedgerSchema>;
 export type UpdateBankDepositLedger = z.infer<typeof updateBankDepositLedgerSchema>;
 export type BankDepositLedger = typeof bankDepositLedger.$inferSelect;
+
+// Reports Module - Report Configurations Table
+export const reportConfigs = pgTable("report_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(), // User-defined report name
+  type: varchar("type", { length: 20 }).notNull(), // 'lot' | 'bill' | 'invoice' | 'income' | 'expense' | 'paid-unpaid'
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  filters: json("filters").notNull(), // JSON object with report-specific filters
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
+// Reports Module - Report Snapshots Table
+export const reportSnapshots = pgTable("report_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  configId: varchar("config_id"), // Optional reference to report config
+  name: text("name"), // Optional snapshot name
+  type: varchar("type", { length: 20 }).notNull(), // Same as report config types
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  filters: json("filters").notNull(), // Filters used for this snapshot
+  results: json("results").notNull(), // Aggregated results data
+  sourceMeta: json("source_meta"), // Source data metadata (record counts, hash, etc.)
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+// Report Config Schemas
+export const insertReportConfigSchema = createInsertSchema(reportConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  type: z.enum(["lot", "bill", "invoice", "income", "expense", "paid-unpaid"]),
+  filters: z.record(z.any()), // Flexible JSON object for filters
+});
+
+export const updateReportConfigSchema = insertReportConfigSchema.partial();
+
+// Report Snapshot Schemas
+export const insertReportSnapshotSchema = createInsertSchema(reportSnapshots).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  type: z.enum(["lot", "bill", "invoice", "income", "expense", "paid-unpaid"]),
+  filters: z.record(z.any()),
+  results: z.record(z.any()),
+  sourceMeta: z.record(z.any()).optional(),
+});
+
+// Type exports for Reports
+export type InsertReportConfig = z.infer<typeof insertReportConfigSchema>;
+export type UpdateReportConfig = z.infer<typeof updateReportConfigSchema>;
+export type ReportConfig = typeof reportConfigs.$inferSelect;
+export type InsertReportSnapshot = z.infer<typeof insertReportSnapshotSchema>;
+export type ReportSnapshot = typeof reportSnapshots.$inferSelect;

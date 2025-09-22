@@ -1482,6 +1482,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports Module Routes
+  app.get("/api/reports/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      const { fy = "2025-26", ...filters } = req.query;
+      const reports = await storage.getReport(type, fy as string, filters as Record<string, any>);
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch reports" });
+    }
+  });
+
+  app.post("/api/reports/:type/snapshot", async (req, res) => {
+    try {
+      const { type } = req.params;
+      const validatedData = { ...req.body, type };
+      const snapshot = await storage.createReportSnapshot(validatedData);
+      res.status(201).json(snapshot);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create snapshot" });
+    }
+  });
+
+  app.get("/api/report-configs", async (req, res) => {
+    try {
+      const { type, fy } = req.query;
+      const configs = await storage.getReportConfigs(type as string, fy as string);
+      res.json(configs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch report configs" });
+    }
+  });
+
+  app.post("/api/report-configs", async (req, res) => {
+    try {
+      const config = await storage.createReportConfig(req.body);
+      res.status(201).json(config);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create report config" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
