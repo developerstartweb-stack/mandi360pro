@@ -1210,12 +1210,17 @@ function AccountFormFields({ form, places }: any) {
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="governmentIdentity.aadharNumber"
+              name="governmentIdentity"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Aadhar Number</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="XXXX-XXXX-XXXX" data-testid="input-aadhar-number" />
+                    <Input 
+                      value={field.value?.aadharNumber || ""} 
+                      onChange={(e) => field.onChange({...field.value, aadharNumber: e.target.value})}
+                      placeholder="XXXX-XXXX-XXXX" 
+                      data-testid="input-aadhar-number" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1223,12 +1228,17 @@ function AccountFormFields({ form, places }: any) {
             />
             <FormField
               control={form.control}
-              name="governmentIdentity.panNumber"
+              name="governmentIdentity"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>PAN Number</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="ABCDE1234F" data-testid="input-pan-number" />
+                    <Input 
+                      value={field.value?.panNumber || ""} 
+                      onChange={(e) => field.onChange({...field.value, panNumber: e.target.value})}
+                      placeholder="ABCDE1234F" 
+                      data-testid="input-pan-number" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1238,12 +1248,17 @@ function AccountFormFields({ form, places }: any) {
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="governmentIdentity.gstNumber"
+              name="governmentIdentity"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>GST Number</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="22ABCDE1234F1Z5" data-testid="input-gst-number" />
+                    <Input 
+                      value={field.value?.gstNumber || ""} 
+                      onChange={(e) => field.onChange({...field.value, gstNumber: e.target.value})}
+                      placeholder="22ABCDE1234F1Z5" 
+                      data-testid="input-gst-number" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1251,12 +1266,17 @@ function AccountFormFields({ form, places }: any) {
             />
             <FormField
               control={form.control}
-              name="governmentIdentity.voterIdNumber"
+              name="governmentIdentity"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Voter ID Number</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="ABC1234567" data-testid="input-voter-id" />
+                    <Input 
+                      value={field.value?.voterIdNumber || ""} 
+                      onChange={(e) => field.onChange({...field.value, voterIdNumber: e.target.value})}
+                      placeholder="ABC1234567" 
+                      data-testid="input-voter-id" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1276,12 +1296,17 @@ function AccountFormFields({ form, places }: any) {
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="bankDetails.accountNumber"
+              name="bankDetails"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Account Number</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter account number" data-testid="input-account-number" />
+                    <Input 
+                      value={field.value?.accountNumber || ""} 
+                      onChange={(e) => field.onChange({...field.value, accountNumber: e.target.value})}
+                      placeholder="Enter account number" 
+                      data-testid="input-account-number" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1289,12 +1314,17 @@ function AccountFormFields({ form, places }: any) {
             />
             <FormField
               control={form.control}
-              name="bankDetails.ifscCode"
+              name="bankDetails"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>IFSC Code</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="SBIN0001234" data-testid="input-ifsc-code" />
+                    <Input 
+                      value={field.value?.ifscCode || ""} 
+                      onChange={(e) => field.onChange({...field.value, ifscCode: e.target.value})}
+                      placeholder="SBIN0001234" 
+                      data-testid="input-ifsc-code" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1304,12 +1334,17 @@ function AccountFormFields({ form, places }: any) {
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="bankDetails.bankName"
+              name="bankDetails"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Bank Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter bank name" data-testid="input-bank-name" />
+                    <Input 
+                      value={field.value?.bankName || ""} 
+                      onChange={(e) => field.onChange({...field.value, bankName: e.target.value})}
+                      placeholder="Enter bank name" 
+                      data-testid="input-bank-name" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1317,12 +1352,17 @@ function AccountFormFields({ form, places }: any) {
             />
             <FormField
               control={form.control}
-              name="bankDetails.branchName"
+              name="bankDetails"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Branch Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter branch name" data-testid="input-branch-name" />
+                    <Input 
+                      value={field.value?.branchName || ""} 
+                      onChange={(e) => field.onChange({...field.value, branchName: e.target.value})}
+                      placeholder="Enter branch name" 
+                      data-testid="input-branch-name" 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
