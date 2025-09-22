@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Search, Calendar, Receipt, DollarSign, FileText, TrendingUp, CreditCard } from "lucide-react";
+import { Plus, Search, Calendar, Receipt, DollarSign, FileText, TrendingUp, CreditCard, Printer } from "lucide-react";
+import { useReactToPrint } from 'react-to-print';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,10 @@ import RojmelForm from "@/components/RojmelForm";
 import IncomeExpenseReceiptForm from "@/components/IncomeExpenseReceiptForm";
 import BankDepositReceiptForm from "@/components/BankDepositReceiptForm";
 import BalanceSheetForm from "@/components/BalanceSheetForm";
+import RojmelPrint from "@/components/print/RojmelPrint";
+import IncomeExpenseReceiptPrint from "@/components/print/IncomeExpenseReceiptPrint";
+import BankDepositReceiptPrint from "@/components/print/BankDepositReceiptPrint";
+import BalanceSheetPrint from "@/components/print/BalanceSheetPrint";
 import type { Rojmel, IncomeExpenseReceipt, BankDepositReceipt, BalanceSheet } from "@shared/schema";
 
 interface AccountingModuleProps {
@@ -34,6 +39,61 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
   const [showBalanceSheetForm, setShowBalanceSheetForm] = useState(false);
   const [editingBalanceSheet, setEditingBalanceSheet] = useState<BalanceSheet | null>(null);
   const { toast } = useToast();
+
+  // Print refs and functionality
+  const rojmelPrintRef = useRef<HTMLDivElement>(null);
+  const incomeExpensePrintRef = useRef<HTMLDivElement>(null);
+  const bankDepositPrintRef = useRef<HTMLDivElement>(null);
+  const balanceSheetPrintRef = useRef<HTMLDivElement>(null);
+  
+  const [printingRojmel, setPrintingRojmel] = useState<Rojmel | null>(null);
+  const [printingIncomeExpense, setPrintingIncomeExpense] = useState<IncomeExpenseReceipt | null>(null);
+  const [printingBankDeposit, setPrintingBankDeposit] = useState<BankDepositReceipt | null>(null);
+  const [printingBalanceSheet, setPrintingBalanceSheet] = useState<BalanceSheet | null>(null);
+
+  const handleRojmelPrint = useReactToPrint({
+    contentRef: rojmelPrintRef,
+    documentTitle: `Rojmel-${printingRojmel?.rojmelId || 'Report'}`,
+    onAfterPrint: () => setPrintingRojmel(null),
+  });
+
+  const handleIncomeExpensePrint = useReactToPrint({
+    contentRef: incomeExpensePrintRef,
+    documentTitle: `IncomeExpense-${printingIncomeExpense?.receiptNo || 'Receipt'}`,
+    onAfterPrint: () => setPrintingIncomeExpense(null),
+  });
+
+  const handleBankDepositPrint = useReactToPrint({
+    contentRef: bankDepositPrintRef,
+    documentTitle: `BankDeposit-${printingBankDeposit?.receiptNo || 'Receipt'}`,
+    onAfterPrint: () => setPrintingBankDeposit(null),
+  });
+
+  const handleBalanceSheetPrint = useReactToPrint({
+    contentRef: balanceSheetPrintRef,
+    documentTitle: `BalanceSheet-${printingBalanceSheet?.balanceSheetId || 'Report'}`,
+    onAfterPrint: () => setPrintingBalanceSheet(null),
+  });
+
+  const triggerRojmelPrint = (rojmel: Rojmel) => {
+    setPrintingRojmel(rojmel);
+    setTimeout(() => handleRojmelPrint(), 100);
+  };
+
+  const triggerIncomeExpensePrint = (receipt: IncomeExpenseReceipt) => {
+    setPrintingIncomeExpense(receipt);
+    setTimeout(() => handleIncomeExpensePrint(), 100);
+  };
+
+  const triggerBankDepositPrint = (receipt: BankDepositReceipt) => {
+    setPrintingBankDeposit(receipt);
+    setTimeout(() => handleBankDepositPrint(), 100);
+  };
+
+  const triggerBalanceSheetPrint = (balanceSheet: BalanceSheet) => {
+    setPrintingBalanceSheet(balanceSheet);
+    setTimeout(() => handleBalanceSheetPrint(), 100);
+  };
 
   // Keyboard shortcuts for Accounting Module
   useEffect(() => {
@@ -341,6 +401,14 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
+                                    onClick={() => triggerRojmelPrint(rojmel)}
+                                    data-testid={`button-print-rojmel-${rojmel.id}`}
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
                                     onClick={() => {
                                       setEditingRojmel(rojmel);
                                       setShowRojmelForm(true);
@@ -435,6 +503,14 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                               <TableCell className="max-w-xs truncate">{(receipt.customFields as any)?.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => triggerIncomeExpensePrint(receipt)}
+                                    data-testid={`button-print-income-expense-receipt-${receipt.id}`}
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </Button>
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
@@ -539,6 +615,14 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
+                                    onClick={() => triggerBankDepositPrint(receipt)}
+                                    data-testid={`button-print-bank-deposit-receipt-${receipt.id}`}
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
                                     onClick={() => {
                                       setEditingBankDeposit(receipt);
                                       setShowBankDepositForm(true);
@@ -633,6 +717,14 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                               <TableCell><Badge variant="outline">Active</Badge></TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => triggerBalanceSheetPrint(sheet)}
+                                    data-testid={`button-print-balance-sheet-${sheet.id}`}
+                                  >
+                                    <Printer className="w-4 h-4" />
+                                  </Button>
                                   <Button 
                                     variant="outline" 
                                     size="sm" 
@@ -735,6 +827,38 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
             />
           </div>
         )}
+
+        {/* Hidden Print Components */}
+        <div style={{ display: 'none' }}>
+          {printingRojmel && (
+            <RojmelPrint
+              ref={rojmelPrintRef}
+              rojmel={printingRojmel}
+              currentFY={currentFY}
+            />
+          )}
+          {printingIncomeExpense && (
+            <IncomeExpenseReceiptPrint
+              ref={incomeExpensePrintRef}
+              receipt={printingIncomeExpense}
+              currentFY={currentFY}
+            />
+          )}
+          {printingBankDeposit && (
+            <BankDepositReceiptPrint
+              ref={bankDepositPrintRef}
+              receipt={printingBankDeposit}
+              currentFY={currentFY}
+            />
+          )}
+          {printingBalanceSheet && (
+            <BalanceSheetPrint
+              ref={balanceSheetPrintRef}
+              balanceSheet={printingBalanceSheet}
+              currentFY={currentFY}
+            />
+          )}
+        </div>
     </div>
   );
 }
