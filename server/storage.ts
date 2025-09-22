@@ -192,7 +192,9 @@ export interface IStorage {
   createLotEntry(lot: InsertLotEntry): Promise<LotEntry>;
   updateLotEntry(id: string, lot: UpdateLotEntry): Promise<LotEntry>;
   deleteLotEntry(id: string): Promise<boolean>;
-  generateLotId(productName: string, quantity: number): Promise<string>;
+  generateLotId(productName: string, totalQuantity: number, farmerQuantity: number, financialYear: string): Promise<string>;
+  getNextLotSequence(financialYear: string): Promise<number>;
+  createLotWithSubFields(lot: InsertLotEntry, subFields: InsertLotEntrySubFields[]): Promise<{ lot: LotEntry; subFields: LotEntrySubFields[] }>;
   
   // Lot Entry Sub-Fields
   getLotEntrySubFields(lotId: string): Promise<LotEntrySubFields[]>;
@@ -829,7 +831,9 @@ export class MemStorage implements IStorage {
   }
 
   async createLotEntry(lot: InsertLotEntry): Promise<LotEntry> {
-    const lotId = await this.generateLotId("Product", Number(lot.totalQuantity));
+    // For single lot creation, assume zero farmer quantity initially
+    const lotId = await this.generateLotId("Product", Number(lot.totalQuantity), 0, lot.financialYear || '2025-26');
+    const lotSequence = await this.getNextLotSequence(lot.financialYear || '2025-26');
     const id = randomUUID();
     const now = new Date();
     
@@ -841,11 +845,14 @@ export class MemStorage implements IStorage {
       ...lot,
       id,
       lotId,
-      advance: lot.advance || null,
-      otherExpenses: lot.otherExpenses || null,
-      totalWeight: lot.totalWeight || null,
+      lotSequence,
+      transportName: null, // Will be populated from transportAccountId
+      vehicleNumber: lot.vehicleNumber ?? null,
+      advance: lot.advance ?? null,
+      otherExpenses: lot.otherExpenses ?? null,
+      totalWeight: lot.totalWeight ?? null,
       averageWeight,
-      customFields: lot.customFields || null,
+      customFields: lot.customFields ?? null,
       financialYear: lot.financialYear || '2025-26',
       createdAt: now,
       updatedAt: now,
@@ -884,10 +891,86 @@ export class MemStorage implements IStorage {
     return this.lotEntries.delete(id);
   }
 
-  async generateLotId(productName: string, quantity: number): Promise<string> {
-    const lots = Array.from(this.lotEntries.values());
-    const count = lots.length;
-    return `${productName}${String(quantity).padStart(2, '0')}-${count}`;
+  async getNextLotSequence(financialYear: string): Promise<number> {
+    const lots = Array.from(this.lotEntries.values()).filter(lot => 
+      lot.financialYear === financialYear
+    );
+    return lots.length + 1;
+  }
+
+  async generateLotId(productName: string, totalQuantity: number, farmerQuantity: number, financialYear: string): Promise<string> {
+    const sequence = await this.getNextLotSequence(financialYear);
+    // Format: "ProductName+TotalQuantity-FarmerQuantity-Sequence"
+    // Example: "Onion25-10-001"
+    const cleanProductName = productName.replace(/\s+/g, ''); // Remove spaces
+    return `${cleanProductName}${totalQuantity}-${farmerQuantity}-${String(sequence).padStart(3, '0')}`;
+  }
+
+  async createLotWithSubFields(lot: InsertLotEntry, subFields: InsertLotEntrySubFields[]): Promise<{ lot: LotEntry; subFields: LotEntrySubFields[] }> {
+    // Calculate farmer quantity from sub-fields
+    const farmerQuantity = subFields.reduce((sum, sub) => sum + Number(sub.quantity), 0);
+    
+    // Get product name for LotID generation
+    const productName = "Product"; // TODO: Get actual product name from productId
+    
+    // Generate LotID
+    const lotId = await this.generateLotId(productName, Number(lot.totalQuantity), farmerQuantity, lot.financialYear || '2025-26');
+    const lotSequence = await this.getNextLotSequence(lot.financialYear || '2025-26');
+    
+    // Calculate average weight
+    const averageWeight = lot.totalWeight ? 
+      (Number(lot.totalWeight) / Number(lot.totalQuantity)).toString() : null;
+    
+    // Create lot entry
+    const lotEntryId = randomUUID();
+    const now = new Date();
+    const lotData: LotEntry = {
+      ...lot,
+      id: lotEntryId,
+      lotId,
+      lotSequence,
+      transportName: null, // Will be populated from transportAccountId
+      averageWeight,
+      advance: lot.advance ?? null,
+      otherExpenses: lot.otherExpenses ?? null,
+      totalWeight: lot.totalWeight ?? null,
+      vehicleNumber: lot.vehicleNumber ?? null,
+      customFields: lot.customFields ?? null,
+      financialYear: lot.financialYear || '2025-26',
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.lotEntries.set(lotEntryId, lotData);
+    
+    // Create sub-fields with auto-calculations
+    const createdSubFields: LotEntrySubFields[] = [];
+    for (const subField of subFields) {
+      const subFieldId = randomUUID();
+      
+      // Auto-calculate weight and freight for sub-field
+      const subFieldWeight = averageWeight ? 
+        (Number(averageWeight) * Number(subField.quantity)).toString() : null;
+      const subFieldFreight = lot.freight ? 
+        ((Number(lot.freight) / Number(lot.totalQuantity)) * Number(subField.quantity)).toString() : null;
+      
+      const subFieldData: LotEntrySubFields = {
+        ...subField,
+        id: subFieldId,
+        lotId,
+        productId: lot.productId, // Auto from parent lot
+        quality: subField.quality ?? null,
+        weight: subFieldWeight,
+        freight: subFieldFreight,
+        averageRate: subField.averageRate ?? null,
+        customFields: subField.customFields ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.lotEntrySubFields.set(subFieldId, subFieldData);
+      createdSubFields.push(subFieldData);
+    }
+    
+    return { lot: lotData, subFields: createdSubFields };
   }
 
   // Lot Entry Sub-Fields
@@ -3184,10 +3267,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLotEntry(lot: InsertLotEntry): Promise<LotEntry> {
-    const lotId = await this.generateLotId("Product", Number(lot.totalQuantity));
+    // For single lot creation, assume zero farmer quantity initially
+    const lotId = await this.generateLotId("Product", Number(lot.totalQuantity), 0, lot.financialYear || '2025-26');
+    const lotSequence = await this.getNextLotSequence(lot.financialYear || '2025-26');
+    
     const lotData = {
       ...lot,
       lotId,
+      lotSequence,
+      transportName: null, // Will be populated from transportAccountId
       averageWeight: lot.totalWeight ? 
         (Number(lot.totalWeight) / Number(lot.totalQuantity)).toString() : null,
       financialYear: lot.financialYear || '2025-26'
@@ -3228,10 +3316,71 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async generateLotId(productName: string, quantity: number): Promise<string> {
-    const lots = await db.select().from(lotEntry);
-    const count = lots.length;
-    return `${productName}${String(quantity).padStart(2, '0')}-${count}`;
+  async getNextLotSequence(financialYear: string): Promise<number> {
+    const lots = await db.select().from(lotEntry).where(eq(lotEntry.financialYear, financialYear));
+    return lots.length + 1;
+  }
+
+  async generateLotId(productName: string, totalQuantity: number, farmerQuantity: number, financialYear: string): Promise<string> {
+    const sequence = await this.getNextLotSequence(financialYear);
+    // Format: "ProductName+TotalQuantity-FarmerQuantity-Sequence"
+    // Example: "Onion25-10-001"
+    const cleanProductName = productName.replace(/\s+/g, ''); // Remove spaces
+    return `${cleanProductName}${totalQuantity}-${farmerQuantity}-${String(sequence).padStart(3, '0')}`;
+  }
+
+  async createLotWithSubFields(lot: InsertLotEntry, subFields: InsertLotEntrySubFields[]): Promise<{ lot: LotEntry; subFields: LotEntrySubFields[] }> {
+    // Calculate farmer quantity from sub-fields
+    const farmerQuantity = subFields.reduce((sum, sub) => sum + Number(sub.quantity), 0);
+    
+    // Get product name for LotID generation
+    const productName = "Product"; // TODO: Get actual product name from productId
+    
+    // Generate LotID
+    const lotId = await this.generateLotId(productName, Number(lot.totalQuantity), farmerQuantity, lot.financialYear || '2025-26');
+    const lotSequence = await this.getNextLotSequence(lot.financialYear || '2025-26');
+    
+    // Calculate average weight
+    const averageWeight = lot.totalWeight ? 
+      (Number(lot.totalWeight) / Number(lot.totalQuantity)).toString() : null;
+    
+    // Create lot entry
+    const lotData = {
+      ...lot,
+      lotId,
+      lotSequence,
+      transportName: null, // Will be populated from transportAccountId
+      averageWeight,
+      financialYear: lot.financialYear || '2025-26'
+    };
+    const lotResult = await db.insert(lotEntry).values(lotData).returning();
+    const createdLot = lotResult[0];
+    
+    // Create sub-fields with auto-calculations
+    const createdSubFields: LotEntrySubFields[] = [];
+    for (const subField of subFields) {
+      // Auto-calculate weight and freight for sub-field
+      const subFieldWeight = averageWeight ? 
+        (Number(averageWeight) * Number(subField.quantity)).toString() : null;
+      const subFieldFreight = lot.freight ? 
+        ((Number(lot.freight) / Number(lot.totalQuantity)) * Number(subField.quantity)).toString() : null;
+      
+      const subFieldData = {
+        ...subField,
+        lotId,
+        productId: lot.productId, // Auto from parent lot
+        quality: subField.quality ?? null,
+        weight: subFieldWeight,
+        freight: subFieldFreight,
+        averageRate: subField.averageRate ?? null,
+        customFields: subField.customFields ?? null,
+      };
+      
+      const subFieldResult = await db.insert(lotEntrySubFields).values(subFieldData).returning();
+      createdSubFields.push(subFieldResult[0]);
+    }
+    
+    return { lot: createdLot, subFields: createdSubFields };
   }
 
   // Lot Entry Sub-Fields

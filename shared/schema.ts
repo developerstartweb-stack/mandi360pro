@@ -248,15 +248,8 @@ export const updateLotEntrySchema = createInsertSchema(lotEntry, {
   updatedAt: true,
 });
 
-// Composite schema for creating lot with sub-fields
-export const createLotWithSubFieldsSchema = z.object({
-  lot: insertLotEntrySchema,
-  subFields: z.array(insertLotEntrySubFieldsSchema),
-});
-
 export type InsertLotEntry = z.infer<typeof insertLotEntrySchema>;
 export type UpdateLotEntry = z.infer<typeof updateLotEntrySchema>;
-export type CreateLotWithSubFields = z.infer<typeof createLotWithSubFieldsSchema>;
 export type LotEntry = typeof lotEntry.$inferSelect;
 
 // Schema validations for Lot Entry Sub-Fields
@@ -271,6 +264,14 @@ export const updateLotEntrySubFieldsSchema = insertLotEntrySubFieldsSchema.parti
 export type InsertLotEntrySubFields = z.infer<typeof insertLotEntrySubFieldsSchema>;
 export type UpdateLotEntrySubFields = z.infer<typeof updateLotEntrySubFieldsSchema>;
 export type LotEntrySubFields = typeof lotEntrySubFields.$inferSelect;
+
+// Composite schema for creating lot with sub-fields
+export const createLotWithSubFieldsSchema = z.object({
+  lot: insertLotEntrySchema,
+  subFields: z.array(insertLotEntrySubFieldsSchema),
+});
+
+export type CreateLotWithSubFields = z.infer<typeof createLotWithSubFieldsSchema>;
 
 // Schema validations for Godown Awak
 export const insertGodownAwakSchema = createInsertSchema(godownAwak).omit({
