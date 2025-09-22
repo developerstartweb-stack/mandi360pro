@@ -282,6 +282,37 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
     }
   };
 
+  // Get page title and description based on active sub-module
+  const getPageInfo = () => {
+    switch (activeSubModule) {
+      case "account-master": 
+        return {
+          title: "Account Master",
+          description: "Manage customer and farmer accounts with contact details, credit limits, and financial information"
+        };
+      case "product-master": 
+        return {
+          title: "Product Master", 
+          description: "Manage all mandi products including grains, vegetables, and their measurement units"
+        };
+      case "product-expenses": 
+        return {
+          title: "Product Expenses",
+          description: "Configure default expenses for products like transportation, loading, and market fees"
+        };
+      case "place-master": 
+        return {
+          title: "Place Master",
+          description: "Manage locations, markets, and places for transportation and delivery tracking"
+        };
+      default: 
+        return {
+          title: "Master Data",
+          description: "Manage accounts, products, expenses, and places for your mandi operations"
+        };
+    }
+  };
+
   const handleEdit = (item: any) => {
     setEditingItem(item);
     setShowForm(true);
@@ -581,9 +612,9 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">click on pages</h1>
+          <h1 className="text-3xl font-bold">{getPageInfo().title}</h1>
           <p className="text-muted-foreground">
-            Manage accounts, products, expenses, and places for {currentFY}
+            {getPageInfo().description} for FY {currentFY}
           </p>
         </div>
         <div className="flex items-center space-x-4">

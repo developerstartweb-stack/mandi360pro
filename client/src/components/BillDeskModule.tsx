@@ -344,6 +344,32 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
     }
   };
 
+  // Get page title and description based on active sub-module
+  const getPageInfo = () => {
+    switch (activeSubModule) {
+      case "customer-billing": 
+        return {
+          title: "Customer Billing",
+          description: "Create and manage bills for customers with detailed product information, rates, and payment tracking"
+        };
+      case "khata-billing": 
+        return {
+          title: "Khata Billing", 
+          description: "Manage credit-based billing system for regular customers with account balance tracking"
+        };
+      case "payment-receipts": 
+        return {
+          title: "Payment Receipts",
+          description: "Record and track all payment receipts from customers including cash, cheque, and digital payments"
+        };
+      default: 
+        return {
+          title: "Bill Desk",
+          description: "Manage all billing operations including customer billing, khata billing, and payment receipts"
+        };
+    }
+  };
+
   // Form initialization
   const form = useForm({
     resolver: zodResolver(getFormSchema()),
@@ -490,9 +516,9 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-green-800">Bill Desk</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-green-800">{getPageInfo().title}</h2>
           <p className="text-muted-foreground">
-            Manage customer billing, khata billing, and payment receipts for FY {currentFY}
+            {getPageInfo().description} for FY {currentFY}
           </p>
         </div>
         <div className="flex items-center gap-4">

@@ -215,6 +215,37 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
     }
   };
 
+  // Get page title and description based on active sub-module
+  const getPageInfo = () => {
+    switch (activeSubModule) {
+      case "lot-entry": 
+        return {
+          title: "Lot Entry",
+          description: "Record incoming lots from farmers with product details, quantities, and transportation information"
+        };
+      case "godown-awak": 
+        return {
+          title: "Godown Awak", 
+          description: "Track inventory movement from lots to godown storage with quantity verification"
+        };
+      case "damage": 
+        return {
+          title: "Damage Entry",
+          description: "Record and manage damaged products with quality assessment and quantity tracking"
+        };
+      case "weight-slip": 
+        return {
+          title: "Weight Slip",
+          description: "Generate and manage weight verification slips for accurate product measurement"
+        };
+      default: 
+        return {
+          title: "Inventory",
+          description: "Manage all inventory operations including lot entry, godown tracking, and quality control"
+        };
+    }
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
