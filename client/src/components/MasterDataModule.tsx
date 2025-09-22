@@ -955,8 +955,20 @@ function FormDialog({
   const { toast } = useToast();
 
   const onSubmit = async (data: any) => {
+    // Convert string values to proper types for numeric fields
+    const processedData = {
+      ...data,
+      openingBalance: data.openingBalance || "0",
+      creditLimit: data.creditLimit || "0", 
+      creditTime: parseInt(data.creditTime || "0", 10),
+      // Ensure JSON fields are objects, not undefined
+      bankDetails: data.bankDetails || {},
+      governmentIdentity: data.governmentIdentity || {},
+      customFields: data.customFields || {}
+    };
+
     if (editingItem) {
-      updateMutation.mutate({ id: editingItem.id, data });
+      updateMutation.mutate({ id: editingItem.id, data: processedData });
     } else {
       // Handle multiple expenses for creation
       if (activeSubModule === "product-expenses" && data.expenses && Array.isArray(data.expenses)) {
@@ -987,7 +999,7 @@ function FormDialog({
           });
         }
       } else {
-        createMutation.mutate(data);
+        createMutation.mutate(processedData);
       }
     }
   };
