@@ -24,7 +24,13 @@ import {
   Clock,
   Bell,
   Activity,
-  Zap
+  Zap,
+  CreditCard,
+  ArrowUpCircle,
+  Building2,
+  Cog,
+  Printer,
+  Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,14 +71,87 @@ const menuItems = [
       { id: "weight-slip", label: "Weight Slip", icon: Scale }
     ]
   },
-  { id: "bill-desk", label: "Bill Desk", icon: Receipt, color: "text-purple-500" },
-  { id: "farmer-invoice", label: "Farmer Invoice", icon: FileText, color: "text-indigo-500" },
+  { 
+    id: "bill-desk", 
+    label: "Bill Desk", 
+    icon: Receipt, 
+    color: "text-purple-500",
+    hasDropdown: true,
+    subItems: [
+      { id: "customer-billing", label: "Customer Billing", icon: DollarSign },
+      { id: "khata-billing", label: "Khata Billing", icon: CreditCard },
+      { id: "payment-receipts", label: "Payment Receipts", icon: Receipt }
+    ]
+  },
+  { 
+    id: "farmer-invoice", 
+    label: "Farmer Invoice", 
+    icon: FileText, 
+    color: "text-indigo-500",
+    hasDropdown: true,
+    subItems: [
+      { id: "dhada-book", label: "Dhada Book", icon: BookOpen },
+      { id: "farmer-invoice-sub", label: "Farmer Invoice", icon: Receipt },
+      { id: "manual-invoice", label: "Manual Invoice", icon: FileText }
+    ]
+  },
   { id: "accounting", label: "Accounting", icon: Wallet, color: "text-yellow-500" },
-  { id: "ledger", label: "Ledger Module", icon: BookOpen, color: "text-teal-500" },
-  { id: "reports", label: "Reports", icon: BarChart3, color: "text-red-500" },
+  { 
+    id: "ledger", 
+    label: "Ledger Module", 
+    icon: BookOpen, 
+    color: "text-teal-500",
+    hasDropdown: true,
+    subItems: [
+      { id: "uplag", label: "Uplag (Balance)", icon: ArrowUpCircle },
+      { id: "khata", label: "Khata", icon: Users },
+      { id: "farmer-transport", label: "Farmer/Transport", icon: Truck },
+      { id: "income", label: "Income", icon: TrendingUp },
+      { id: "expense", label: "Expense", icon: CreditCard },
+      { id: "bank-deposit", label: "Bank Deposit", icon: Building2 }
+    ]
+  },
+  { 
+    id: "reports", 
+    label: "Reports", 
+    icon: BarChart3, 
+    color: "text-red-500",
+    hasDropdown: true,
+    subItems: [
+      { id: "daily-summary", label: "Daily Summary", icon: Clock },
+      { id: "product-wise", label: "Product Wise", icon: Package },
+      { id: "account-wise", label: "Account Wise", icon: Users },
+      { id: "financial-overview", label: "Financial Overview", icon: DollarSign },
+      { id: "inventory-status", label: "Inventory Status", icon: Package },
+      { id: "outstanding-report", label: "Outstanding Report", icon: AlertTriangle }
+    ]
+  },
   { id: "analytics", label: "Analytics", icon: TrendingUp, color: "text-pink-500" },
-  { id: "whatsapp", label: "WhatsApp", icon: MessageSquare, color: "text-green-600" },
-  { id: "settings", label: "Settings", icon: Settings, color: "text-gray-500" },
+  { 
+    id: "whatsapp", 
+    label: "WhatsApp", 
+    icon: MessageSquare, 
+    color: "text-green-600",
+    hasDropdown: true,
+    subItems: [
+      { id: "messages", label: "Messages", icon: MessageSquare },
+      { id: "templates", label: "Templates", icon: FileText },
+      { id: "whatsapp-settings", label: "Settings", icon: Settings }
+    ]
+  },
+  { 
+    id: "settings", 
+    label: "Settings", 
+    icon: Settings, 
+    color: "text-gray-500",
+    hasDropdown: true,
+    subItems: [
+      { id: "company-profile", label: "Company Profile", icon: Building },
+      { id: "default-expenses", label: "Default Expenses", icon: DollarSign },
+      { id: "printing-settings", label: "Printing Settings", icon: Printer },
+      { id: "module-settings", label: "Module Settings", icon: Cog }
+    ]
+  },
 ];
 
 export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollapsed = false }: SidebarProps) {
