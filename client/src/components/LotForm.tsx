@@ -14,7 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package, Check, ChevronsUpDown } from "lucide-react";
 
 // Form validation schema
 const lotSubFieldSchema = z.object({
@@ -64,7 +66,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
 
   // Filter accounts by type
   const farmers = accounts.filter((acc: any) => acc.type === 'F');
-  const transporters = accounts.filter((acc: any) => acc.type === 'A');
+  const transporters = accounts.filter((acc: any) => acc.type === 'A' || acc.type === 'B'); // Include Agents and Buyers as transporters
 
   const form = useForm<LotFormData>({
     resolver: zodResolver(lotFormSchema),
@@ -296,20 +298,60 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Transport Account</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-transport">
-                                <SelectValue placeholder="Select transport account" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {transporters.map((account: any) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.name} ({account.accountId})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                                  data-testid="select-transport"
+                                >
+                                  {field.value
+                                    ? transporters.find((account: any) => account.id === field.value)?.name || "Select transport account"
+                                    : "Select transport account"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                              <Command>
+                                <CommandInput placeholder="Search transport accounts..." />
+                                <CommandList>
+                                  <CommandEmpty>
+                                    {transporters.length === 0 
+                                      ? "No transport accounts found. Please create Agent or Buyer accounts first."
+                                      : "No accounts match your search."
+                                    }
+                                  </CommandEmpty>
+                                  <CommandGroup>
+                                    {transporters.map((account: any) => (
+                                      <CommandItem
+                                        key={account.id}
+                                        value={`${account.name} ${account.accountId}`}
+                                        onSelect={() => {
+                                          field.onChange(account.id);
+                                        }}
+                                        data-testid={`option-transport-${account.id}`}
+                                      >
+                                        <Check
+                                          className={`mr-2 h-4 w-4 ${
+                                            account.id === field.value ? "opacity-100" : "opacity-0"
+                                          }`}
+                                        />
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">{account.name}</span>
+                                          <span className="text-sm text-muted-foreground">
+                                            {account.accountId} • {account.type === 'A' ? 'Agent' : 'Buyer'}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage />
                         </FormItem>
                       )}
