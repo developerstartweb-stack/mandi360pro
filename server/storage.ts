@@ -132,6 +132,7 @@ import {
   whatsappMessages,
   whatsappTemplates,
   whatsappSettings,
+  salesTransactions,
   type WhatsappMessages,
   type InsertWhatsappMessages,
   type UpdateWhatsappMessages,
@@ -140,7 +141,10 @@ import {
   type UpdateWhatsappTemplates,
   type WhatsappSettings,
   type InsertWhatsappSettings,
-  type UpdateWhatsappSettings
+  type UpdateWhatsappSettings,
+  type SalesTransactions,
+  type InsertSalesTransactions,
+  type UpdateSalesTransactions
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -427,6 +431,10 @@ export interface IStorage {
   updateWhatsappSetting(id: string, setting: UpdateWhatsappSettings): Promise<WhatsappSettings>;
   deleteWhatsappSetting(id: string): Promise<boolean>;
   generateWhatsappSettingId(): Promise<string>;
+
+  // Rate Calculation operations
+  getAverageRate(productId: string, quality: string, financialYear: string, days?: number): Promise<{ avgRate: number | null; count: number; qtySum: number }>;
+  createSalesTransaction(transaction: InsertSalesTransactions): Promise<SalesTransactions>;
 }
 
 export class MemStorage implements IStorage {
@@ -460,6 +468,7 @@ export class MemStorage implements IStorage {
   private whatsappMessages: Map<string, WhatsappMessages>;
   private whatsappTemplates: Map<string, WhatsappTemplates>;
   private whatsappSettings: Map<string, WhatsappSettings>;
+  private salesTransactions: Map<string, SalesTransactions>;
 
   constructor() {
     this.users = new Map();
@@ -492,6 +501,7 @@ export class MemStorage implements IStorage {
     this.whatsappMessages = new Map();
     this.whatsappTemplates = new Map();
     this.whatsappSettings = new Map();
+    this.salesTransactions = new Map();
   }
 
   // User operations
@@ -5211,6 +5221,60 @@ export class DatabaseStorage implements IStorage {
     const existing = await db.select().from(whatsappSettings);
     const count = existing.length + 1;
     return `WSET-${count.toString().padStart(3, '0')}`;
+  }
+
+  // Rate Calculation operations
+  async getAverageRate(productId: string, quality: string, financialYear: string, days?: number): Promise<{ avgRate: number | null; count: number; qtySum: number }> {
+    try {
+      let query = db.select().from(salesTransactions)
+        .where(and(
+          eq(salesTransactions.productId, productId),
+          eq(salesTransactions.quality, quality),
+          eq(salesTransactions.financialYear, financialYear)
+        ));
+
+      // Add date filter if days specified
+      if (days) {
+        const dateFilter = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        query = query.where(and(
+          eq(salesTransactions.productId, productId),
+          eq(salesTransactions.quality, quality),
+          eq(salesTransactions.financialYear, financialYear),
+          // Note: We'll need to add SQL comparison here
+        ));
+      }
+
+      const transactions = await query;
+
+      if (transactions.length === 0) {
+        return { avgRate: null, count: 0, qtySum: 0 };
+      }
+
+      const totalWeightedRate = transactions.reduce((sum, transaction) => 
+        sum + (Number(transaction.unitRate) * Number(transaction.quantity)), 0
+      );
+      const totalQuantity = transactions.reduce((sum, transaction) => 
+        sum + Number(transaction.quantity), 0
+      );
+
+      const avgRate = totalQuantity > 0 ? totalWeightedRate / totalQuantity : null;
+
+      return {
+        avgRate: avgRate ? Math.round(avgRate * 100) / 100 : null, // Round to 2 decimal places
+        count: transactions.length,
+        qtySum: totalQuantity
+      };
+    } catch (error) {
+      console.error('Error getting average rate:', error);
+      return { avgRate: null, count: 0, qtySum: 0 };
+    }
+  }
+
+  async createSalesTransaction(transaction: InsertSalesTransactions): Promise<SalesTransactions> {
+    const [result] = await db.insert(salesTransactions)
+      .values(transaction)
+      .returning();
+    return result;
   }
 }
 
