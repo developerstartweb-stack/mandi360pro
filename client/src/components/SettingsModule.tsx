@@ -383,6 +383,9 @@ function SettingsTable({ type, financialYear, searchTerm, selectedRowId, onEdit,
     queryKey: [apiPath, { fy: financialYear, search: searchTerm }],
   });
 
+  // Ensure items is properly typed as array
+  const typedItems = Array.isArray(items) ? items : [];
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -402,7 +405,7 @@ function SettingsTable({ type, financialYear, searchTerm, selectedRowId, onEdit,
   // Render table based on type
   const renderTable = () => {
     const commonProps = {
-      items,
+      items: typedItems,
       selectedRowId,
       onEdit,
       onDelete,
