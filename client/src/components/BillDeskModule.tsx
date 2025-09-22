@@ -13,10 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { CalendarIcon, Search, Plus, Edit, Trash2, Save, Printer, Filter, Receipt, DollarSign, CreditCard, Eye } from "lucide-react";
+import { CalendarIcon, Search, Plus, Edit, Trash2, Save, Printer, Filter, Receipt, DollarSign, CreditCard, Eye, MoreHorizontal } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -469,6 +470,14 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
     setShowDeleteDialog(true);
   };
 
+  // Handle print
+  const handlePrint = (item: any) => {
+    toast({
+      title: "Print Item",
+      description: `Printing ${item.billNo || item.receiptNo || 'item'}...`,
+    });
+  };
+
   const confirmDelete = () => {
     if (itemToDelete) {
       deleteMutation.mutate(itemToDelete.id);
@@ -604,20 +613,31 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} data-testid={`button-delete-${item.id}`}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" data-testid={`button-print-${item.id}`}>
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" data-testid={`button-actions-${item.id}`}>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleView(item); }} data-testid={`button-view-${item.id}`}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(item); }} data-testid={`button-edit-${item.id}`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePrint(item); }} data-testid={`button-print-${item.id}`}>
+                                  <Printer className="h-4 w-4 mr-2" />
+                                  Print
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(item); }} data-testid={`button-delete-${item.id}`} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
@@ -682,20 +702,31 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} data-testid={`button-delete-${item.id}`}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" data-testid={`button-print-${item.id}`}>
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" data-testid={`button-actions-${item.id}`}>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleView(item); }} data-testid={`button-view-${item.id}`}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(item); }} data-testid={`button-edit-${item.id}`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePrint(item); }} data-testid={`button-print-${item.id}`}>
+                                  <Printer className="h-4 w-4 mr-2" />
+                                  Print
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(item); }} data-testid={`button-delete-${item.id}`} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
@@ -760,20 +791,31 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                             <Badge variant="outline">{item.paymentMode}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} data-testid={`button-delete-${item.id}`}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" data-testid={`button-print-${item.id}`}>
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" data-testid={`button-actions-${item.id}`}>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleView(item); }} data-testid={`button-view-${item.id}`}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(item); }} data-testid={`button-edit-${item.id}`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePrint(item); }} data-testid={`button-print-${item.id}`}>
+                                  <Printer className="h-4 w-4 mr-2" />
+                                  Print
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(item); }} data-testid={`button-delete-${item.id}`} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
@@ -838,20 +880,31 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                             <Badge variant="outline">{item.paymentMode}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDelete(item)} data-testid={`button-delete-${item.id}`}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" data-testid={`button-print-${item.id}`}>
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" data-testid={`button-actions-${item.id}`}>
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleView(item); }} data-testid={`button-view-${item.id}`}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(item); }} data-testid={`button-edit-${item.id}`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handlePrint(item); }} data-testid={`button-print-${item.id}`}>
+                                  <Printer className="h-4 w-4 mr-2" />
+                                  Print
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(item); }} data-testid={`button-delete-${item.id}`} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       ))
