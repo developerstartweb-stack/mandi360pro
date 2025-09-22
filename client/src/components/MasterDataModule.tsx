@@ -79,12 +79,12 @@ const placeFormSchema = z.object({
 interface MasterDataModuleProps {
   currentFY: string;
   onFYChange: (fy: string) => void;
+  activeSubModule?: string;
 }
 
-export default function MasterDataModule({ currentFY, onFYChange }: MasterDataModuleProps) {
+export default function MasterDataModule({ currentFY, onFYChange, activeSubModule = "account-master" }: MasterDataModuleProps) {
   const { toast } = useToast();
   const { state, updateMasterData } = useGlobalState();
-  const [activeTab, setActiveTab] = useState("accounts");
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -117,39 +117,52 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
     place.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : places;
 
+  // Helper function to map sub-module IDs to API endpoints
+  const getApiEndpoint = () => {
+    switch (activeSubModule) {
+      case "account-master": return "/api/accounts";
+      case "product-master": return "/api/products";
+      case "product-expenses": return "/api/expenses";
+      case "place-master": return "/api/places";
+      default: return "/api/accounts";
+    }
+  };
+
+  const getDataType = () => {
+    switch (activeSubModule) {
+      case "account-master": return "accounts";
+      case "product-master": return "products";
+      case "product-expenses": return "expenses";
+      case "place-master": return "places";
+      default: return "accounts";
+    }
+  };
+
   // Mutations for CRUD operations
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const endpoints: Record<string, string> = {
-        accounts: "/api/accounts",
-        products: "/api/products", 
-        expenses: "/api/expenses",
-        places: "/api/places"
-      };
-      return apiRequest(endpoints[activeTab], "POST", data);
+      return apiRequest(getApiEndpoint(), "POST", data);
     },
     onSuccess: (newData) => {
       // Update global state with new data
-      const dataType = activeTab === "accounts" ? "accounts" : 
-                      activeTab === "products" ? "products" :
-                      activeTab === "expenses" ? "expenses" : "places";
+      const dataType = getDataType();
       
       const currentData = Array.isArray(state.masterData[dataType as keyof typeof state.masterData]) ? 
         state.masterData[dataType as keyof typeof state.masterData] as any[] : [];
       updateMasterData(dataType as keyof typeof state.masterData, [...currentData, newData]);
       
-      queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
+      queryClient.invalidateQueries({ queryKey: [getApiEndpoint()] });
       setShowForm(false);
       setEditingItem(null);
       toast({
         title: "Success",
-        description: `${activeTab.slice(0, -1)} created successfully`,
+        description: `${dataType.slice(0, -1)} created successfully`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: `Failed to create ${activeTab.slice(0, -1)}`,
+        description: `Failed to create ${getDataType().slice(0, -1)}`,
         variant: "destructive",
       });
     }
@@ -157,27 +170,21 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const endpoints: Record<string, string> = {
-        accounts: "/api/accounts",
-        products: "/api/products",
-        expenses: "/api/expenses", 
-        places: "/api/places"
-      };
-      return apiRequest(`${endpoints[activeTab]}/${id}`, "PUT", data);
+      return apiRequest(`${getApiEndpoint()}/${id}`, "PUT", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
+      queryClient.invalidateQueries({ queryKey: [getApiEndpoint()] });
       setShowForm(false);
       setEditingItem(null);
       toast({
         title: "Success",
-        description: `${activeTab.slice(0, -1)} updated successfully`,
+        description: `${getDataType().slice(0, -1)} updated successfully`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: `Failed to update ${activeTab.slice(0, -1)}`,
+        description: `Failed to update ${getDataType().slice(0, -1)}`,
         variant: "destructive",
       });
     }
@@ -185,27 +192,21 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const endpoints: Record<string, string> = {
-        accounts: "/api/accounts",
-        products: "/api/products",
-        expenses: "/api/expenses",
-        places: "/api/places"
-      };
-      return apiRequest(`${endpoints[activeTab]}/${id}`, "DELETE");
+      return apiRequest(`${getApiEndpoint()}/${id}`, "DELETE");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
+      queryClient.invalidateQueries({ queryKey: [getApiEndpoint()] });
       setShowDeleteDialog(false);
       setItemToDelete(null);
       toast({
         title: "Success",
-        description: `${activeTab.slice(0, -1)} deleted successfully`,
+        description: `${getDataType().slice(0, -1)} deleted successfully`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: `Failed to delete ${activeTab.slice(0, -1)}`,
+        description: `Failed to delete ${getDataType().slice(0, -1)}`,
         variant: "destructive",
       });
     }
@@ -254,7 +255,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
           break;
       }
     }
-  }, [activeTab, showForm]);
+  }, [activeSubModule, showForm]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleKeyboard);
@@ -262,21 +263,21 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
   }, [handleKeyboard]);
 
   const getCurrentData = () => {
-    switch (activeTab) {
-      case "accounts": return filteredAccounts || [];
-      case "products": return filteredProducts || [];
-      case "expenses": return expenses || [];
-      case "places": return filteredPlaces || [];
+    switch (activeSubModule) {
+      case "account-master": return filteredAccounts || [];
+      case "product-master": return filteredProducts || [];
+      case "product-expenses": return expenses || [];
+      case "place-master": return filteredPlaces || [];
       default: return [];
     }
   };
 
   const getCurrentLoading = () => {
-    switch (activeTab) {
-      case "accounts": return accountsLoading;
-      case "products": return productsLoading;
-      case "expenses": return expensesLoading;
-      case "places": return placesLoading;
+    switch (activeSubModule) {
+      case "account-master": return accountsLoading;
+      case "product-master": return productsLoading;
+      case "product-expenses": return expensesLoading;
+      case "place-master": return placesLoading;
       default: return false;
     }
   };
@@ -301,7 +302,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
     // Generate PDF logic here
     toast({
       title: "PDF Generated",
-      description: `${activeTab} list has been exported to PDF`,
+      description: `${activeSubModule} list has been exported to PDF`,
     });
   };
 
@@ -333,17 +334,17 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
       return (
         <div className="text-center py-12">
           <div className="text-muted-foreground">
-            No {activeTab} found for {currentFY}
+            No {activeSubModule} found for {currentFY}
             <br />
             <Button 
               variant="outline" 
               size="sm" 
               className="mt-4"
               onClick={() => setShowForm(true)}
-              data-testid={`button-add-first-${activeTab}`}
+              data-testid={`button-add-first-${activeSubModule}`}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add First {activeTab.slice(0, -1)}
+              Add First {activeSubModule.slice(0, -1)}
             </Button>
           </div>
         </div>
@@ -357,7 +358,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
             key={item.id} 
             className="hover-elevate cursor-pointer transition-all duration-200 animate-in fade-in slide-in-from-bottom-2"
             style={{ animationDelay: `${index * 50}ms` }}
-            data-testid={`card-${activeTab}-${item.id}`}
+            data-testid={`card-${activeSubModule}-${item.id}`}
           >
             <CardContent className="p-4">
               {renderTableRow(item)}
@@ -369,7 +370,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
   };
 
   const renderTableRow = (item: any) => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "accounts":
         return (
           <div className="flex items-center justify-between">
@@ -607,11 +608,11 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder={`Search ${activeTab}...`}
+                  placeholder={`Search ${activeSubModule}...`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
-                  data-testid={`input-search-${activeTab}`}
+                  data-testid={`input-search-${activeSubModule}`}
                 />
               </div>
             </div>
@@ -631,59 +632,25 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
                   setEditingItem(null);
                   setShowForm(true);
                 }}
-                data-testid={`button-add-${activeTab}`}
+                data-testid={`button-add-${activeSubModule}`}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add {activeTab.slice(0, -1)}
+                Add {activeSubModule.slice(0, -1)}
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Sub-Module Navigation */}
-      <div className="mb-6">
-        <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-masterdata-submodule">
-          <SelectTrigger className="w-[250px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="accounts">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("accounts")}
-                <span>Account Master</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="products">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("products")}
-                <span>Product Master</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="expenses">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("expenses")}
-                <span>Product Expenses</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="places">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("places")}
-                <span>Place Master</span>
-              </div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Content based on selected sub-module */}
       <Card className="space-y-4">
         <CardHeader>
           <CardTitle>
-            {activeTab === "accounts" && "Account Master"}
-            {activeTab === "products" && "Product Master"}
-            {activeTab === "expenses" && "Product Expenses"}
-            {activeTab === "places" && "Place Master"}
+            {activeSubModule === "accounts" && "Account Master"}
+            {activeSubModule === "products" && "Product Master"}
+            {activeSubModule === "expenses" && "Product Expenses"}
+            {activeSubModule === "places" && "Place Master"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -695,7 +662,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
       <FormDialog
         showForm={showForm}
         setShowForm={setShowForm}
-        activeTab={activeTab}
+        activeSubModule={activeSubModule}
         editingItem={editingItem}
         setEditingItem={setEditingItem}
         currentFY={currentFY}
@@ -711,7 +678,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this {activeTab.slice(0, -1)}? This action cannot be undone.
+              Are you sure you want to delete this {activeSubModule.slice(0, -1)}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -742,7 +709,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
 function FormDialog({
   showForm,
   setShowForm,
-  activeTab,
+  activeSubModule,
   editingItem,
   setEditingItem,
   currentFY,
@@ -752,11 +719,11 @@ function FormDialog({
   places
 }: any) {
   const getFormSchema = () => {
-    switch (activeTab) {
-      case "accounts": return accountFormSchema;
-      case "products": return productFormSchema;
-      case "expenses": return expenseFormSchema;
-      case "places": return placeFormSchema;
+    switch (activeSubModule) {
+      case "account-master": return accountFormSchema;
+      case "product-master": return productFormSchema;
+      case "product-expenses": return expenseFormSchema;
+      case "place-master": return placeFormSchema;
       default: return accountFormSchema;
     }
   };
@@ -805,22 +772,22 @@ function FormDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {editingItem ? "Edit" : "Add"} {activeTab.slice(0, -1)}
+            {editingItem ? "Edit" : "Add"} {activeSubModule.slice(0, -1)}
           </DialogTitle>
           <DialogDescription>
             {editingItem 
-              ? `Update the ${activeTab.slice(0, -1).toLowerCase()} information below.`
-              : `Enter the details to create a new ${activeTab.slice(0, -1).toLowerCase()}.`
+              ? `Update the ${activeSubModule.slice(0, -1).toLowerCase()} information below.`
+              : `Enter the details to create a new ${activeSubModule.slice(0, -1).toLowerCase()}.`
             }
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {activeTab === "accounts" && <AccountFormFields form={form} places={places} />}
-            {activeTab === "products" && <ProductFormFields form={form} />}
-            {activeTab === "expenses" && <ExpenseFormFields form={form} products={products} />}
-            {activeTab === "places" && <PlaceFormFields form={form} />}
+            {activeSubModule === "accounts" && <AccountFormFields form={form} places={places} />}
+            {activeSubModule === "products" && <ProductFormFields form={form} />}
+            {activeSubModule === "expenses" && <ExpenseFormFields form={form} products={products} />}
+            {activeSubModule === "places" && <PlaceFormFields form={form} />}
 
             <DialogFooter>
               <Button 
