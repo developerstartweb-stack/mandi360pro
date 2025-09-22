@@ -947,11 +947,41 @@ function FormDialog({
     }
   }, [editingItem, currentFY, activeSubModule]);
 
-  const onSubmit = (data: any) => {
+  const onSubmit = async (data: any) => {
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data });
     } else {
-      createMutation.mutate(data);
+      // Handle multiple expenses for creation
+      if (activeSubModule === "product-expenses" && data.expenses && Array.isArray(data.expenses)) {
+        try {
+          // Create individual expense records for each expense
+          for (const expense of data.expenses) {
+            const expenseData = {
+              productId: data.productId,
+              linkedTo: data.linkedTo,
+              expenseName: expense.name,
+              expenseType: expense.type,
+              value: expense.value,
+              customFields: data.customFields || {},
+              active: data.active,
+              financialYear: data.financialYear
+            };
+            await apiRequest("POST", "/api/expenses", expenseData);
+          }
+          // Refresh the data
+          queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+          toast({ title: "Success", description: "All expenses created successfully" });
+          handleClose();
+        } catch (error: any) {
+          toast({ 
+            title: "Error", 
+            description: error.message || "Failed to create expenses", 
+            variant: "destructive" 
+          });
+        }
+      } else {
+        createMutation.mutate(data);
+      }
     }
   };
 
