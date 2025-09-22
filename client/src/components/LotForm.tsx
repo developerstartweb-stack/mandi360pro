@@ -27,6 +27,7 @@ const qualityQuantitySchema = z.object({
 
 const lotSubFieldSchema = z.object({
   accountId: z.string().min(1, "Farmer account is required"),
+  productId: z.string().optional(), // Optional, defaults to main product
   qualityQuantities: z.array(qualityQuantitySchema).min(1, "At least one quality-quantity pair is required"),
 });
 
@@ -143,6 +144,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
       financialYear: currentFY,
       subFields: initialData?.subFields || [{ 
         accountId: "", 
+        productId: "",
         qualityQuantities: [{ quality: "", quantity: "", averageRate: "" }] 
       }],
     },
@@ -218,7 +220,8 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
         },
         subFields: data.subFields.flatMap(field => 
           field.qualityQuantities.map(qq => ({
-            accountId: field.accountId,
+            farmerAgentId: field.accountId,
+            productId: field.productId || data.productId, // Use farmer's product or main product as fallback
             quantity: qq.quantity,
             quality: qq.quality || null,
             averageRate: qq.averageRate || null,
@@ -252,6 +255,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
   const addSubField = () => {
     append({ 
       accountId: "", 
+      productId: "", // Will default to main product
       qualityQuantities: [{ quality: "", quantity: "", averageRate: "" }] 
     });
   };
@@ -711,22 +715,78 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                             )}
                           />
 
-                          {/* Product Field for Farmer Lot */}
-                          <FormItem>
-                            <FormLabel>Product</FormLabel>
-                            <FormControl>
-                              <Input
-                                value={selectedProduct?.name || ''}
-                                disabled
-                                placeholder="Auto-selected from main product"
-                                data-testid={`input-farmer-product-${farmerIndex}`}
-                                className="bg-muted"
-                              />
-                            </FormControl>
-                            <p className="text-xs text-muted-foreground">
-                              Inherited from main lot product
-                            </p>
-                          </FormItem>
+                          {/* Product Selection for Farmer Lot */}
+                          <FormField
+                            control={form.control}
+                            name={`subFields.${farmerIndex}.productId`}
+                            render={({ field: productField }) => {
+                              // Auto-default to main product if not set
+                              const effectiveProductId = productField.value || watchedValues.productId;
+                              const effectiveProduct = products.find((p: any) => p.id === effectiveProductId);
+                              
+                              return (
+                                <FormItem>
+                                  <FormLabel>Product</FormLabel>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          className={`w-full justify-between ${!effectiveProductId && "text-muted-foreground"}`}
+                                          data-testid={`select-farmer-product-${farmerIndex}`}
+                                        >
+                                          {effectiveProduct?.name || "Select product"}
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                      <Command>
+                                        <CommandInput placeholder="Search products..." />
+                                        <CommandList>
+                                          <CommandEmpty>
+                                            {products.length === 0 
+                                              ? "No products found."
+                                              : "No products match your search."
+                                            }
+                                          </CommandEmpty>
+                                          <CommandGroup>
+                                            {products.map((product: any) => (
+                                              <CommandItem
+                                                key={product.id}
+                                                value={`${product.name} ${product.unit}`}
+                                                onSelect={() => {
+                                                  productField.onChange(product.id);
+                                                }}
+                                                data-testid={`option-farmer-product-${product.id}`}
+                                              >
+                                                <Check
+                                                  className={`mr-2 h-4 w-4 ${
+                                                    product.id === effectiveProductId ? "opacity-100" : "opacity-0"
+                                                  }`}
+                                                />
+                                                <div className="flex flex-col">
+                                                  <span className="font-medium">{product.name}</span>
+                                                  <span className="text-sm text-muted-foreground">
+                                                    Unit: {product.unit}
+                                                  </span>
+                                                </div>
+                                              </CommandItem>
+                                            ))}
+                                          </CommandGroup>
+                                        </CommandList>
+                                      </Command>
+                                    </PopoverContent>
+                                  </Popover>
+                                  <p className="text-xs text-muted-foreground">
+                                    {!productField.value ? "Inherited from main lot" : "Custom selection"}
+                                  </p>
+                                  <FormMessage />
+                                </FormItem>
+                              );
+                            }}
+                          />
                         </div>
                       </CardHeader>
 
