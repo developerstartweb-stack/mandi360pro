@@ -161,7 +161,7 @@ export interface IStorage {
   createAccountMaster(account: InsertAccountMaster): Promise<AccountMaster>;
   updateAccountMaster(id: string, account: UpdateAccountMaster): Promise<AccountMaster>;
   deleteAccountMaster(id: string): Promise<boolean>;
-  generateAccountId(): Promise<string>;
+  generateAccountId(type: string, name: string, financialYear: string): Promise<string>;
   
   // Product Master operations
   getProductMasters(financialYear: string, searchTerm?: string): Promise<ProductMaster[]>;
@@ -533,7 +533,7 @@ export class MemStorage implements IStorage {
   }
 
   async createAccountMaster(account: InsertAccountMaster): Promise<AccountMaster> {
-    const accountId = await this.generateAccountId(account.type, account.name);
+    const accountId = await this.generateAccountId(account.type, account.name, account.financialYear || '2025-26');
     const id = randomUUID();
     const now = new Date();
     const accountData: AccountMaster = {
@@ -577,7 +577,7 @@ export class MemStorage implements IStorage {
     return this.accounts.delete(id);
   }
 
-  async generateAccountId(type: string, name: string): Promise<string> {
+  async generateAccountId(type: string, name: string, financialYear: string): Promise<string> {
     // Extract type prefix (first letter)
     const typePrefix = type.charAt(0).toUpperCase();
     
@@ -598,7 +598,7 @@ export class MemStorage implements IStorage {
     const accounts = Array.from(this.accounts.values());
     const prefix = `${typePrefix}-${initials}`;
     const matchingAccounts = accounts.filter(account => 
-      account.accountId?.startsWith(prefix) && account.financialYear === this.currentFY
+      account.accountId?.startsWith(prefix) && account.financialYear === financialYear
     );
     
     const nextNumber = String(matchingAccounts.length + 1).padStart(3, '0');
@@ -2939,16 +2939,33 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async generateAccountId(): Promise<string> {
-    const currentYear = new Date().getFullYear().toString().slice(-2);
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  async generateAccountId(type: string, name: string, financialYear: string): Promise<string> {
+    // Extract type prefix (first letter)
+    const typePrefix = type.charAt(0).toUpperCase();
     
-    // Get count of accounts for current month
+    // Extract customer initials (first 2 letters of name)
+    const cleanName = name.trim().replace(/\s+/g, ' ');
+    const nameWords = cleanName.split(' ');
+    let initials = '';
+    
+    if (nameWords.length >= 2) {
+      // First letter of first name + First letter of second name
+      initials = nameWords[0].charAt(0).toUpperCase() + nameWords[1].charAt(0).toUpperCase();
+    } else {
+      // If single name, take first 2 letters
+      initials = cleanName.substring(0, 2).toUpperCase();
+    }
+    
+    // Get count of accounts with same type and initials for sequence
+    const prefix = `${typePrefix}-${initials}`;
     const accounts = await db.select().from(accountMaster)
-      .where(like(accountMaster.accountId, `B-SV${currentYear}${currentMonth}%`));
+      .where(and(
+        like(accountMaster.accountId, `${prefix}%`),
+        eq(accountMaster.financialYear, financialYear)
+      ));
     
-    const nextNumber = String(accounts.length + 1).padStart(2, '0');
-    return `B-SV${currentYear}${currentMonth}${nextNumber}`;
+    const nextNumber = String(accounts.length + 1).padStart(3, '0');
+    return `${prefix}-${nextNumber}`;
   }
 
   // Product Master operations
