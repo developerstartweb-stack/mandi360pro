@@ -15,6 +15,7 @@ import AccountingModule from "@/components/AccountingModule";
 import LedgerModule from "@/components/LedgerModule";
 import ReportsModule from "@/components/ReportsModule";
 import SettingsModule from "@/components/SettingsModule";
+import WhatsAppModule from "@/components/WhatsAppModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -201,6 +202,9 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
     
     case "settings":
       return <SettingsModule />;
+    
+    case "whatsapp":
+      return <WhatsAppModule />;
     
     case "transactions":
       return (

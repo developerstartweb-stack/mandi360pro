@@ -2789,11 +2789,25 @@ export class MemStorage implements IStorage {
     const settings = Array.from(this.whatsappSettings.values()).filter(
       (setting) => setting.financialYear === financialYear
     );
-    return settings.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+    
+    // Remove sensitive fields from response
+    return settings.map(setting => ({
+      ...setting,
+      apiKey: "••••••",
+      apiSecret: setting.apiSecret ? "••••••" : null
+    })).sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
   }
 
   async getWhatsappSetting(id: string): Promise<WhatsappSettings | undefined> {
-    return this.whatsappSettings.get(id);
+    const setting = this.whatsappSettings.get(id);
+    if (!setting) return undefined;
+    
+    // Remove sensitive fields from response
+    return {
+      ...setting,
+      apiKey: "••••••",
+      apiSecret: setting.apiSecret ? "••••••" : null
+    };
   }
 
   async createWhatsappSetting(insertSetting: InsertWhatsappSettings): Promise<WhatsappSettings> {
@@ -4933,15 +4947,30 @@ export class DatabaseStorage implements IStorage {
 
   // WhatsApp Settings operations
   async getWhatsappSettings(financialYear: string): Promise<WhatsappSettings[]> {
-    return await db.select().from(whatsappSettings)
+    const settings = await db.select().from(whatsappSettings)
       .where(eq(whatsappSettings.financialYear, financialYear))
       .orderBy(whatsappSettings.createdAt);
+    
+    // Remove sensitive fields from response
+    return settings.map(setting => ({
+      ...setting,
+      apiKey: "••••••",
+      apiSecret: setting.apiSecret ? "••••••" : null
+    }));
   }
 
   async getWhatsappSetting(id: string): Promise<WhatsappSettings | undefined> {
     const [result] = await db.select().from(whatsappSettings)
       .where(eq(whatsappSettings.id, id));
-    return result;
+    
+    if (!result) return undefined;
+    
+    // Remove sensitive fields from response
+    return {
+      ...result,
+      apiKey: "••••••",
+      apiSecret: result.apiSecret ? "••••••" : null
+    };
   }
 
   async createWhatsappSetting(setting: InsertWhatsappSettings): Promise<WhatsappSettings> {

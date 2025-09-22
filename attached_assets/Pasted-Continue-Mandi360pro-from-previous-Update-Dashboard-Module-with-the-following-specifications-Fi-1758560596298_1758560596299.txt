@@ -1,0 +1,37 @@
+Continue Mandi360pro from previous. Update Dashboard Module with the following specifications:
+- Fields: 
+  - TodayArrivals (JSON: {Product: string, Quantity: number}, e.g., {"Onion": 250, "Potato": 500, "Garlic": 70}).
+  - TodaySales (JSON: {Product: string, Quantity: number}, e.g., {"Onion": 150, "Potato": 300, "Garlic": 40}).
+  - PendingStock (JSON: {Product: string, Quantity: number}, auto-calculated as TodayArrivals - TodaySales).
+  - PendingBalance (number, auto-sum of BalanceAmount from Bill Desk for Cash/Balance customers).
+  - PendingKhata (number, auto-sum of BalanceAmount from Bill Desk for Khata customers).
+  - ReminderAlerts (JSON: {Message: string, Date: date}, e.g., {"Message": "Suraj Varma ₹2000 overdue", "Date": "2025-09-21"}).
+  - QuickActions (array of strings, e.g., ["Add New Lot", "Create Bill", "Send Invoice"]).
+  - RecentActivity (JSON: {Activity: string, Timestamp: date}, e.g., {"Activity": "Sold 150 Onion", "Timestamp": "2025-09-21 07:00"}).
+- UI/UX: 
+  - Layout: Clean grid (2x4 cards, 300px each, #90EE90 border, hover scale animation), professional design with mandi vibe.
+  - Cards: 
+    - "Today’s Arrivals" (bar chart of TodayArrivals).
+    - "Today’s Sales" (bar chart of TodaySales).
+    - "Pending Stock" (table of PendingStock).
+    - "Pending Balance" (value with breakdown: Cash/Balance + Khata).
+    - "Reminder Alerts" (list with bell icon, red if overdue).
+    - "Quick Actions" (button grid, #90EE90 background).
+    - "Recent Activity" (scrollable log, fade-in rows).
+
+  - Multi-window: LocalStorage sync for filters and reminders.
+- Workflow: 
+  - Data Fetch: Load TodayArrivals/Sales from Inventory, PendingBalance/Khata from Bill Desk, RecentActivity from logs.
+  - Add → Click Add (Ctrl+N) → Modal to update TodayArrivals → Save (Ctrl+S).
+  - Edit → Click Edit (Ctrl+E) → Load card data → Update → Save (Ctrl+S).
+  - Delete → Click Delete (Ctrl+D) → Confirm → Move to Trash_Dashboard.
+  - Print → Click Print (Ctrl+P) → Generate PDF with FY and all card data.
+  - Reminder → Set/Trigger (Ctrl+R) → Alert if ReminderDate <= today or overdue payments.
+- Linking: To Inventory Module (arrivals/sales), Bill Desk Module (balances), Ledger Module (activity).
+- Logic: 
+  - PendingStock = TodayArrivals[Product] - TodaySales[Product].
+  - PendingBalance = SUM(BillDesk.BalanceAmount where BillType = "Balance").
+  - PendingKhata = SUM(BillDesk.BalanceAmount where BillType =ate preview for Dashboard Module. Test Add/Edit/Delete/Save/Print, data fetch (TodayArrivals: Onion 250, Potato 500, Garlic 70; Sales: Onion 150, Potato 300, Garlic 40), auto-calculate PendingStock/Balance/Khata, Reminder alerts (e.g., overdue ₹2000), Quick Actions click, Recent Activity log, FY filter (2025-26), PDF, multi-window sync,  "Khata").
+  - ReminderAlerts trigger if Date <= today or Balance/Khata > 0 for 7+ days.
+  - Validation: Quantity/Amount > 0, Date valid.
+- Testing: "Gener

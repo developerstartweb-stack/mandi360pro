@@ -61,7 +61,13 @@ import {
   insertPrintingSettingsSchema,
   updatePrintingSettingsSchema,
   insertModuleSettingsSchema,
-  updateModuleSettingsSchema
+  updateModuleSettingsSchema,
+  insertWhatsappMessagesSchema,
+  updateWhatsappMessagesSchema,
+  insertWhatsappTemplatesSchema,
+  updateWhatsappTemplatesSchema,
+  insertWhatsappSettingsSchema,
+  updateWhatsappSettingsSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1751,6 +1757,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Module setting deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete module setting" });
+    }
+  });
+
+  // WhatsApp Messages Routes
+  app.get("/api/whatsapp-messages", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const messages = await storage.getWhatsappMessages(fy as string, search as string);
+      res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch WhatsApp messages" });
+    }
+  });
+
+  app.get("/api/whatsapp-messages/:id", async (req, res) => {
+    try {
+      const message = await storage.getWhatsappMessage(req.params.id);
+      if (!message) {
+        return res.status(404).json({ error: "WhatsApp message not found" });
+      }
+      res.json(message);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch WhatsApp message" });
+    }
+  });
+
+  app.post("/api/whatsapp-messages", async (req, res) => {
+    try {
+      const validatedData = insertWhatsappMessagesSchema.parse(req.body);
+      const message = await storage.createWhatsappMessage(validatedData);
+      res.status(201).json(message);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create WhatsApp message" });
+    }
+  });
+
+  app.put("/api/whatsapp-messages/:id", async (req, res) => {
+    try {
+      const validatedData = updateWhatsappMessagesSchema.parse(req.body);
+      const message = await storage.updateWhatsappMessage(req.params.id, validatedData);
+      res.json(message);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update WhatsApp message" });
+    }
+  });
+
+  app.delete("/api/whatsapp-messages/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteWhatsappMessage(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "WhatsApp message not found" });
+      }
+      res.json({ message: "WhatsApp message deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete WhatsApp message" });
+    }
+  });
+
+  // WhatsApp Templates Routes
+  app.get("/api/whatsapp-templates", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const templates = await storage.getWhatsappTemplates(fy as string, search as string);
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch WhatsApp templates" });
+    }
+  });
+
+  app.get("/api/whatsapp-templates/:id", async (req, res) => {
+    try {
+      const template = await storage.getWhatsappTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ error: "WhatsApp template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch WhatsApp template" });
+    }
+  });
+
+  app.post("/api/whatsapp-templates", async (req, res) => {
+    try {
+      const validatedData = insertWhatsappTemplatesSchema.parse(req.body);
+      const template = await storage.createWhatsappTemplate(validatedData);
+      res.status(201).json(template);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create WhatsApp template" });
+    }
+  });
+
+  app.put("/api/whatsapp-templates/:id", async (req, res) => {
+    try {
+      const validatedData = updateWhatsappTemplatesSchema.parse(req.body);
+      const template = await storage.updateWhatsappTemplate(req.params.id, validatedData);
+      res.json(template);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update WhatsApp template" });
+    }
+  });
+
+  app.delete("/api/whatsapp-templates/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteWhatsappTemplate(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "WhatsApp template not found" });
+      }
+      res.json({ message: "WhatsApp template deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete WhatsApp template" });
+    }
+  });
+
+  // WhatsApp Settings Routes
+  app.get("/api/whatsapp-settings", async (req, res) => {
+    try {
+      const { fy = "2025-26" } = req.query;
+      const settings = await storage.getWhatsappSettings(fy as string);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch WhatsApp settings" });
+    }
+  });
+
+  app.get("/api/whatsapp-settings/:id", async (req, res) => {
+    try {
+      const setting = await storage.getWhatsappSetting(req.params.id);
+      if (!setting) {
+        return res.status(404).json({ error: "WhatsApp setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch WhatsApp setting" });
+    }
+  });
+
+  app.post("/api/whatsapp-settings", async (req, res) => {
+    try {
+      const validatedData = insertWhatsappSettingsSchema.parse(req.body);
+      const setting = await storage.createWhatsappSetting(validatedData);
+      res.status(201).json(setting);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create WhatsApp setting" });
+    }
+  });
+
+  app.put("/api/whatsapp-settings/:id", async (req, res) => {
+    try {
+      const validatedData = updateWhatsappSettingsSchema.parse(req.body);
+      const setting = await storage.updateWhatsappSetting(req.params.id, validatedData);
+      res.json(setting);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update WhatsApp setting" });
+    }
+  });
+
+  app.delete("/api/whatsapp-settings/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteWhatsappSetting(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "WhatsApp setting not found" });
+      }
+      res.json({ message: "WhatsApp setting deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete WhatsApp setting" });
     }
   });
 

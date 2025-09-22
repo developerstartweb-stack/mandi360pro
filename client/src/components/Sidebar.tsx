@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   Scale,
   Receipt,
-  BookOpen
+  BookOpen,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,7 @@ const menuItems = [
   { id: "ledger", label: "Ledger Module", icon: BookOpen },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "analytics", label: "Analytics", icon: TrendingUp },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageSquare },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
