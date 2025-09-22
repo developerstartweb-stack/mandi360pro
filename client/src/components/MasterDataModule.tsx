@@ -581,7 +581,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Master Data</h1>
+          <h1 className="text-3xl font-bold">click on pages</h1>
           <p className="text-muted-foreground">
             Manage accounts, products, expenses, and places for {currentFY}
           </p>
