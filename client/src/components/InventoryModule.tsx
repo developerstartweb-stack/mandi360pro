@@ -191,9 +191,9 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
   const lotsLoading = false; // Centralized loading
 
   // Mock data for other tabs (will be replaced with centralized loading later)
-  const godownAwaks = [];
-  const damages = [];
-  const weightSlips = [];
+  const godownAwaks: any[] = [];
+  const damages: any[] = [];
+  const weightSlips: any[] = [];
   const godownAwaksLoading = false;
   const damagesLoading = false;
   const weightSlipsLoading = false;
@@ -491,40 +491,6 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
         </CardContent>
       </Card>
 
-      {/* Sub-Module Navigation */}
-      <div className="mb-6">
-        <Select value={activeSubModule} onValueChange={setActiveTab} data-testid="select-inventory-submodule">
-          <SelectTrigger className="w-[250px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="lot-entry">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("lot-entry")}
-                <span>Lot Entry</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="godown-awak">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("godown-awak")}
-                <span>Godown Awak</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="damage">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("damage")}
-                <span>Damage</span>
-              </div>
-            </SelectItem>
-            <SelectItem value="weight-slip">
-              <div className="flex items-center space-x-2">
-                {getTabIcon("weight-slip")}
-                <span>Weight Slip</span>
-              </div>
-            </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* Content based on selected sub-module */}
       <Card className="space-y-4">
