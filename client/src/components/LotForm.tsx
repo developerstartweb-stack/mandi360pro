@@ -67,6 +67,10 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
   // Filter accounts by type
   const farmers = accounts.filter((acc: any) => acc.type === 'F');
   const transporters = accounts.filter((acc: any) => acc.type === 'T'); // Only Transport type accounts
+  
+  // Debug logging to see what accounts are available
+  console.log('All accounts:', accounts.map((acc: any) => ({ name: acc.name, type: acc.type, accountId: acc.accountId })));
+  console.log('Transporters found:', transporters.length, transporters.map((acc: any) => ({ name: acc.name, type: acc.type })));
 
   const form = useForm<LotFormData>({
     resolver: zodResolver(lotFormSchema),
