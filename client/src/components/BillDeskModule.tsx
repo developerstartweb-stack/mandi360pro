@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import ViewDetailsModal from "@/components/ViewDetailsModal";
+import EnhancedCustomerBillingForm from "@/components/EnhancedCustomerBillingForm";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -930,157 +931,16 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
           </DialogHeader>
 
           <div key={activeSubModule}>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {activeSubModule === "customer-billing" && (
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="customerName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter customer name" {...field} data-testid="input-customer-name" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="accountId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Account</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Select account" {...field} data-testid="input-account-id" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bill Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} data-testid="input-bill-date" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="totalAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Total Amount</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="Enter total amount" {...field} data-testid="input-total-amount" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="commission"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Commission</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="Enter commission" {...field} data-testid="input-commission" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="marketFee"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Market Fee</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="Enter market fee" {...field} data-testid="input-market-fee" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="hamali"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hamali</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="Enter hamali" {...field} data-testid="input-hamali" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="netAmount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Net Amount</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="Enter net amount" {...field} data-testid="input-net-amount" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="paymentMode"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Payment Mode</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-payment-mode">
-                              <SelectValue placeholder="Select payment mode" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="cheque">Cheque</SelectItem>
-                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="upi">UPI</SelectItem>
-                            <SelectItem value="card">Card</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="col-span-2">
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Enter any notes" {...field} data-testid="input-notes" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeSubModule === "khata-billing" && (
+            {activeSubModule === "customer-billing" ? (
+              <EnhancedCustomerBillingForm
+                onSubmit={onSubmit}
+                editingItem={editingItem}
+                currentFY={currentFY}
+              />
+            ) : (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  {activeSubModule === "khata-billing" && (
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -1274,16 +1134,17 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                 </div>
               )}
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)} data-testid="button-cancel">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-save">
-                  {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setShowForm(false)} data-testid="button-cancel">
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-save">
+                      {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            )}
           </div>
         </DialogContent>
       </Dialog>
