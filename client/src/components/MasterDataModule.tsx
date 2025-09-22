@@ -49,6 +49,7 @@ const accountFormSchema = z.object({
   address: z.string().optional(),
   placeId: z.string().optional(),
   bankDetails: z.any().optional(),
+  governmentIdentity: z.any().optional(),
   openingBalance: z.string().default("0"),
   creditLimit: z.string().default("0"),
   creditTime: z.string().default("0"),
@@ -901,6 +902,7 @@ function FormDialog({
           address: "",
           placeId: "",
           bankDetails: {},
+          governmentIdentity: {},
           remarks: "",
           customFields: {}
         };
