@@ -112,7 +112,23 @@ import {
   type ReportSnapshot,
   type InsertReportConfig,
   type UpdateReportConfig,
-  type InsertReportSnapshot
+  type InsertReportSnapshot,
+  companyProfile,
+  defaultExpenses,
+  printingSettings,
+  moduleSettings,
+  type CompanyProfile,
+  type InsertCompanyProfile,
+  type UpdateCompanyProfile,
+  type DefaultExpenses,
+  type InsertDefaultExpenses,
+  type UpdateDefaultExpenses,
+  type PrintingSettings,
+  type InsertPrintingSettings,
+  type UpdatePrintingSettings,
+  type ModuleSettings,
+  type InsertModuleSettings,
+  type UpdateModuleSettings
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -342,6 +358,37 @@ export interface IStorage {
   createReportConfig(config: InsertReportConfig): Promise<ReportConfig>;
   updateReportConfig(id: string, config: UpdateReportConfig): Promise<ReportConfig>;
   deleteReportConfig(id: string): Promise<boolean>;
+
+  // Settings Module Operations
+  
+  // Company Profile operations
+  getCompanyProfiles(financialYear: string): Promise<CompanyProfile[]>;
+  getCompanyProfile(id: string): Promise<CompanyProfile | undefined>;
+  createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
+  updateCompanyProfile(id: string, profile: UpdateCompanyProfile): Promise<CompanyProfile>;
+  deleteCompanyProfile(id: string): Promise<boolean>;
+
+  // Default Expenses operations
+  getDefaultExpenses(financialYear: string, searchTerm?: string): Promise<DefaultExpenses[]>;
+  getDefaultExpense(id: string): Promise<DefaultExpenses | undefined>;
+  createDefaultExpense(expense: InsertDefaultExpenses): Promise<DefaultExpenses>;
+  updateDefaultExpense(id: string, expense: UpdateDefaultExpenses): Promise<DefaultExpenses>;
+  deleteDefaultExpense(id: string): Promise<boolean>;
+
+  // Printing Settings operations
+  getPrintingSettings(financialYear: string): Promise<PrintingSettings[]>;
+  getPrintingSetting(id: string): Promise<PrintingSettings | undefined>;
+  createPrintingSetting(setting: InsertPrintingSettings): Promise<PrintingSettings>;
+  updatePrintingSetting(id: string, setting: UpdatePrintingSettings): Promise<PrintingSettings>;
+  deletePrintingSetting(id: string): Promise<boolean>;
+  generateTemplateId(): Promise<string>;
+
+  // Module Settings operations
+  getModuleSettings(financialYear: string): Promise<ModuleSettings[]>;
+  getModuleSetting(id: string): Promise<ModuleSettings | undefined>;
+  createModuleSetting(setting: InsertModuleSettings): Promise<ModuleSettings>;
+  updateModuleSetting(id: string, setting: UpdateModuleSettings): Promise<ModuleSettings>;
+  deleteModuleSetting(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -2398,6 +2445,168 @@ export class MemStorage implements IStorage {
   async deleteReportConfig(id: string): Promise<boolean> {
     return true;
   }
+
+  // Settings Module Operations - MemStorage (Mock implementations)
+  
+  // Company Profile operations
+  async getCompanyProfiles(financialYear: string): Promise<CompanyProfile[]> {
+    return [];
+  }
+
+  async getCompanyProfile(id: string): Promise<CompanyProfile | undefined> {
+    return undefined;
+  }
+
+  async createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile> {
+    const id = randomUUID();
+    const newProfile: CompanyProfile = {
+      id,
+      ...profile,
+      logoUrl: profile.logoUrl || null,
+      customFields: profile.customFields || {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newProfile;
+  }
+
+  async updateCompanyProfile(id: string, profile: UpdateCompanyProfile): Promise<CompanyProfile> {
+    const existing = await this.getCompanyProfile(id);
+    if (!existing) throw new Error("Company profile not found");
+    
+    const updated: CompanyProfile = {
+      ...existing,
+      ...profile,
+      updatedAt: new Date(),
+    };
+    return updated;
+  }
+
+  async deleteCompanyProfile(id: string): Promise<boolean> {
+    return true;
+  }
+
+  // Default Expenses operations
+  async getDefaultExpenses(financialYear: string, searchTerm?: string): Promise<DefaultExpenses[]> {
+    return [];
+  }
+
+  async getDefaultExpense(id: string): Promise<DefaultExpenses | undefined> {
+    return undefined;
+  }
+
+  async createDefaultExpense(expense: InsertDefaultExpenses): Promise<DefaultExpenses> {
+    const id = randomUUID();
+    const newExpense: DefaultExpenses = {
+      id,
+      ...expense,
+      customFields: expense.customFields || {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newExpense;
+  }
+
+  async updateDefaultExpense(id: string, expense: UpdateDefaultExpenses): Promise<DefaultExpenses> {
+    const existing = await this.getDefaultExpense(id);
+    if (!existing) throw new Error("Default expense not found");
+    
+    const updated: DefaultExpenses = {
+      ...existing,
+      ...expense,
+      updatedAt: new Date(),
+    };
+    return updated;
+  }
+
+  async deleteDefaultExpense(id: string): Promise<boolean> {
+    return true;
+  }
+
+  // Printing Settings operations
+  async getPrintingSettings(financialYear: string): Promise<PrintingSettings[]> {
+    return [];
+  }
+
+  async getPrintingSetting(id: string): Promise<PrintingSettings | undefined> {
+    return undefined;
+  }
+
+  async createPrintingSetting(setting: InsertPrintingSettings): Promise<PrintingSettings> {
+    const id = randomUUID();
+    const templateId = await this.generateTemplateId();
+    const newSetting: PrintingSettings = {
+      id,
+      templateId,
+      ...setting,
+      fieldsToShow: setting.fieldsToShow || [],
+      customFields: setting.customFields || {},
+      isActive: setting.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newSetting;
+  }
+
+  async updatePrintingSetting(id: string, setting: UpdatePrintingSettings): Promise<PrintingSettings> {
+    const existing = await this.getPrintingSetting(id);
+    if (!existing) throw new Error("Printing setting not found");
+    
+    const updated: PrintingSettings = {
+      ...existing,
+      ...setting,
+      updatedAt: new Date(),
+    };
+    return updated;
+  }
+
+  async deletePrintingSetting(id: string): Promise<boolean> {
+    return true;
+  }
+
+  async generateTemplateId(): Promise<string> {
+    const timestamp = Date.now().toString().slice(-6);
+    return `TPL-${timestamp}`;
+  }
+
+  // Module Settings operations
+  async getModuleSettings(financialYear: string): Promise<ModuleSettings[]> {
+    return [];
+  }
+
+  async getModuleSetting(id: string): Promise<ModuleSettings | undefined> {
+    return undefined;
+  }
+
+  async createModuleSetting(setting: InsertModuleSettings): Promise<ModuleSettings> {
+    const id = randomUUID();
+    const newSetting: ModuleSettings = {
+      id,
+      ...setting,
+      moduleFields: setting.moduleFields || {},
+      isActive: setting.isActive ?? true,
+      customFields: setting.customFields || {},
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newSetting;
+  }
+
+  async updateModuleSetting(id: string, setting: UpdateModuleSettings): Promise<ModuleSettings> {
+    const existing = await this.getModuleSetting(id);
+    if (!existing) throw new Error("Module setting not found");
+    
+    const updated: ModuleSettings = {
+      ...existing,
+      ...setting,
+      updatedAt: new Date(),
+    };
+    return updated;
+  }
+
+  async deleteModuleSetting(id: string): Promise<boolean> {
+    return true;
+  }
 }
 
 // Database Storage Implementation
@@ -4229,6 +4438,157 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReportConfig(id: string): Promise<boolean> {
     const result = await db.delete(reportConfigs).where(eq(reportConfigs.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Settings Module Operations - DatabaseStorage (Real implementations)
+  
+  // Company Profile operations
+  async getCompanyProfiles(financialYear: string): Promise<CompanyProfile[]> {
+    return await db.select().from(companyProfile)
+      .where(eq(companyProfile.financialYear, financialYear));
+  }
+
+  async getCompanyProfile(id: string): Promise<CompanyProfile | undefined> {
+    const [result] = await db.select().from(companyProfile)
+      .where(eq(companyProfile.id, id));
+    return result;
+  }
+
+  async createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile> {
+    const [result] = await db.insert(companyProfile).values(profile).returning();
+    return result;
+  }
+
+  async updateCompanyProfile(id: string, profile: UpdateCompanyProfile): Promise<CompanyProfile> {
+    const [result] = await db.update(companyProfile)
+      .set({ ...profile, updatedAt: new Date() })
+      .where(eq(companyProfile.id, id))
+      .returning();
+    
+    if (!result) throw new Error("Company profile not found");
+    return result;
+  }
+
+  async deleteCompanyProfile(id: string): Promise<boolean> {
+    const result = await db.delete(companyProfile).where(eq(companyProfile.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Default Expenses operations
+  async getDefaultExpenses(financialYear: string, searchTerm?: string): Promise<DefaultExpenses[]> {
+    let query = db.select().from(defaultExpenses)
+      .where(eq(defaultExpenses.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = query.where(and(
+        eq(defaultExpenses.financialYear, financialYear),
+        or(
+          ilike(defaultExpenses.expenseName, `%${searchTerm}%`),
+          ilike(defaultExpenses.type, `%${searchTerm}%`)
+        )
+      ));
+    }
+    
+    return await query;
+  }
+
+  async getDefaultExpense(id: string): Promise<DefaultExpenses | undefined> {
+    const [result] = await db.select().from(defaultExpenses)
+      .where(eq(defaultExpenses.id, id));
+    return result;
+  }
+
+  async createDefaultExpense(expense: InsertDefaultExpenses): Promise<DefaultExpenses> {
+    const [result] = await db.insert(defaultExpenses).values(expense).returning();
+    return result;
+  }
+
+  async updateDefaultExpense(id: string, expense: UpdateDefaultExpenses): Promise<DefaultExpenses> {
+    const [result] = await db.update(defaultExpenses)
+      .set({ ...expense, updatedAt: new Date() })
+      .where(eq(defaultExpenses.id, id))
+      .returning();
+    
+    if (!result) throw new Error("Default expense not found");
+    return result;
+  }
+
+  async deleteDefaultExpense(id: string): Promise<boolean> {
+    const result = await db.delete(defaultExpenses).where(eq(defaultExpenses.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Printing Settings operations
+  async getPrintingSettings(financialYear: string): Promise<PrintingSettings[]> {
+    return await db.select().from(printingSettings)
+      .where(eq(printingSettings.financialYear, financialYear));
+  }
+
+  async getPrintingSetting(id: string): Promise<PrintingSettings | undefined> {
+    const [result] = await db.select().from(printingSettings)
+      .where(eq(printingSettings.id, id));
+    return result;
+  }
+
+  async createPrintingSetting(setting: InsertPrintingSettings): Promise<PrintingSettings> {
+    const templateId = await this.generateTemplateId();
+    const [result] = await db.insert(printingSettings)
+      .values({ ...setting, templateId })
+      .returning();
+    return result;
+  }
+
+  async updatePrintingSetting(id: string, setting: UpdatePrintingSettings): Promise<PrintingSettings> {
+    const [result] = await db.update(printingSettings)
+      .set({ ...setting, updatedAt: new Date() })
+      .where(eq(printingSettings.id, id))
+      .returning();
+    
+    if (!result) throw new Error("Printing setting not found");
+    return result;
+  }
+
+  async deletePrintingSetting(id: string): Promise<boolean> {
+    const result = await db.delete(printingSettings).where(eq(printingSettings.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateTemplateId(): Promise<string> {
+    const existing = await db.select().from(printingSettings);
+    const count = existing.length + 1;
+    return `TPL-${count.toString().padStart(4, '0')}`;
+  }
+
+  // Module Settings operations
+  async getModuleSettings(financialYear: string): Promise<ModuleSettings[]> {
+    return await db.select().from(moduleSettings)
+      .where(eq(moduleSettings.financialYear, financialYear));
+  }
+
+  async getModuleSetting(id: string): Promise<ModuleSettings | undefined> {
+    const [result] = await db.select().from(moduleSettings)
+      .where(eq(moduleSettings.id, id));
+    return result;
+  }
+
+  async createModuleSetting(setting: InsertModuleSettings): Promise<ModuleSettings> {
+    const [result] = await db.insert(moduleSettings).values(setting).returning();
+    return result;
+  }
+
+  async updateModuleSetting(id: string, setting: UpdateModuleSettings): Promise<ModuleSettings> {
+    const [result] = await db.update(moduleSettings)
+      .set({ ...setting, updatedAt: new Date() })
+      .where(eq(moduleSettings.id, id))
+      .returning();
+    
+    if (!result) throw new Error("Module setting not found");
+    return result;
+  }
+
+  async deleteModuleSetting(id: string): Promise<boolean> {
+    const result = await db.delete(moduleSettings).where(eq(moduleSettings.id, id));
     return result.rowCount > 0;
   }
 }
