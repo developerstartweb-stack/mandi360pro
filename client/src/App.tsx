@@ -14,6 +14,7 @@ import FarmerInvoiceModule from "@/components/FarmerInvoiceModule";
 import AccountingModule from "@/components/AccountingModule";
 import LedgerModule from "@/components/LedgerModule";
 import ReportsModule from "@/components/ReportsModule";
+import SettingsModule from "@/components/SettingsModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -198,6 +199,9 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
         </div>
       );
     
+    case "settings":
+      return <SettingsModule />;
+    
     case "transactions":
       return (
         <div className="p-6 space-y-6">
@@ -226,62 +230,6 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
       );
     
     
-    case "settings":
-      return (
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-display font-bold">Settings</h1>
-              <p className="text-muted-foreground">Configure your mandi management system</p>
-            </div>
-            <ThemeToggle />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5 text-primary" />
-                  FY Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Current Financial Year</span>
-                  <Badge>{currentFY}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Auto FY Detection</span>
-                  <Badge variant="secondary">Enabled</Badge>
-                </div>
-                <Button variant="outline" className="w-full" data-testid="button-fy-settings">
-                  Configure FY Settings
-                </Button>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Data Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full" data-testid="button-backup">
-                  Create Data Backup
-                </Button>
-                <Button variant="outline" className="w-full" data-testid="button-import">
-                  Import Data
-                </Button>
-                <Button variant="outline" className="w-full" data-testid="button-export-all">
-                  Export All Data
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      );
     
     default:
       return <DashboardModule currentFY={currentFY} onFYChange={onFYChange} />;
