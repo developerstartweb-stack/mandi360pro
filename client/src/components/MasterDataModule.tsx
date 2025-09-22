@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useGlobalState } from "@/App";
+import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,51 +92,31 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
-  // Fetch data based on active tab and sync with global state
-  const { data: accounts, isLoading: accountsLoading } = useQuery({
-    queryKey: ["/api/accounts", currentFY, searchTerm],
-    enabled: activeTab === "accounts",
-  });
+  // Read data from global state (centrally loaded)
+  const accounts = state.masterData.accounts || [];
+  const products = state.masterData.products || [];
+  const expenses = state.masterData.expenses || [];
+  const places = state.masterData.places || [];
 
-  const { data: products, isLoading: productsLoading } = useQuery({
-    queryKey: ["/api/products", currentFY, searchTerm],
-    enabled: activeTab === "products",
-  });
+  // Loading states can be derived from the centralized queries if needed
+  const accountsLoading = false; // Centralized loading
+  const productsLoading = false;
+  const expensesLoading = false;
+  const placesLoading = false;
 
-  const { data: expenses, isLoading: expensesLoading } = useQuery({
-    queryKey: ["/api/expenses", currentFY],
-    enabled: activeTab === "expenses",
-  });
+  // Apply client-side search filtering
+  const filteredAccounts = searchTerm ? accounts.filter(acc => 
+    acc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    acc.type?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : accounts;
 
-  const { data: places, isLoading: placesLoading } = useQuery({
-    queryKey: ["/api/places", currentFY, searchTerm],
-    enabled: activeTab === "places",
-  });
+  const filteredProducts = searchTerm ? products.filter(prod => 
+    prod.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : products;
 
-  // Sync fetched data with global state
-  useEffect(() => {
-    if (accounts && activeTab === "accounts") {
-      updateMasterData("accounts", accounts);
-    }
-  }, [accounts, activeTab, updateMasterData]);
-
-  useEffect(() => {
-    if (products && activeTab === "products") {
-      updateMasterData("products", products);
-    }
-  }, [products, activeTab, updateMasterData]);
-
-  useEffect(() => {
-    if (expenses && activeTab === "expenses") {
-      updateMasterData("expenses", expenses);
-    }
-  }, [expenses, activeTab, updateMasterData]);
-
-  useEffect(() => {
-    if (places && activeTab === "places") {
-      updateMasterData("places", places);
-    }
-  }, [places, activeTab, updateMasterData]);
+  const filteredPlaces = searchTerm ? places.filter(place => 
+    place.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : places;
 
   // Mutations for CRUD operations
   const createMutation = useMutation({
@@ -283,10 +263,10 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
 
   const getCurrentData = () => {
     switch (activeTab) {
-      case "accounts": return accounts || [];
-      case "products": return products || [];
+      case "accounts": return filteredAccounts || [];
+      case "products": return filteredProducts || [];
       case "expenses": return expenses || [];
-      case "places": return places || [];
+      case "places": return filteredPlaces || [];
       default: return [];
     }
   };

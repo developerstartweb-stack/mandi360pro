@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useGlobalState } from "@/App";
+import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -187,70 +187,28 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
     }
   };
 
-  // Real data queries with FY and search parameters
-  const { data: lots = [], isLoading: lotsLoading } = useQuery({
-    queryKey: ['/api/inventory/lot-entry', currentFY, searchTerm],
-    queryFn: async () => {
-      const url = new URL('/api/inventory/lot-entry', window.location.origin);
-      url.searchParams.set('fy', currentFY);
-      if (searchTerm) url.searchParams.set('search', searchTerm);
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch lot entries');
-      return response.json();
-    },
-    enabled: activeTab === 'lot-entry'
-  });
+  // Read data from global state (centrally loaded)
+  const lots = state.activeData.lots || [];
+  const lotsLoading = false; // Centralized loading
 
-  const { data: godownAwaks = [], isLoading: godownAwaksLoading } = useQuery({
-    queryKey: ['/api/inventory/godown-awak', currentFY, searchTerm],
-    queryFn: async () => {
-      const url = new URL('/api/inventory/godown-awak', window.location.origin);
-      url.searchParams.set('fy', currentFY);
-      if (searchTerm) url.searchParams.set('search', searchTerm);
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch godown awak records');
-      return response.json();
-    },
-    enabled: activeTab === 'godown-awak'
-  });
+  // Mock data for other tabs (will be replaced with centralized loading later)
+  const godownAwaks = [];
+  const damages = [];
+  const weightSlips = [];
+  const godownAwaksLoading = false;
+  const damagesLoading = false;
+  const weightSlipsLoading = false;
 
-  const { data: damages = [], isLoading: damagesLoading } = useQuery({
-    queryKey: ['/api/inventory/damage', currentFY, searchTerm],
-    queryFn: async () => {
-      const url = new URL('/api/inventory/damage', window.location.origin);
-      url.searchParams.set('fy', currentFY);
-      if (searchTerm) url.searchParams.set('search', searchTerm);
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch damage records');
-      return response.json();
-    },
-    enabled: activeTab === 'damage'
-  });
-
-  const { data: weightSlips = [], isLoading: weightSlipsLoading } = useQuery({
-    queryKey: ['/api/inventory/weight-slip', currentFY, searchTerm],
-    queryFn: async () => {
-      const url = new URL('/api/inventory/weight-slip', window.location.origin);
-      url.searchParams.set('fy', currentFY);
-      if (searchTerm) url.searchParams.set('search', searchTerm);
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch weight slip records');
-      return response.json();
-    },
-    enabled: activeTab === 'weight-slip'
-  });
-
-  // Sync fetched data with global state
-  useEffect(() => {
-    if (lots && lots.length > 0 && activeTab === "lot-entry") {
-      updateActiveData("lots", lots);
-    }
-  }, [lots, activeTab, updateActiveData]);
+  // Apply client-side search filtering for lots
+  const filteredLots = searchTerm ? lots.filter(lot => 
+    lot.productId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lot.placeId?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : lots;
 
   // Get current data based on active tab
   const getCurrentData = () => {
     switch (activeTab) {
-      case "lot-entry": return lots;
+      case "lot-entry": return filteredLots;
       case "godown-awak": return godownAwaks;
       case "damage": return damages;
       case "weight-slip": return weightSlips;
