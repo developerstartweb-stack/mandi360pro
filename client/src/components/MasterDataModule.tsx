@@ -678,10 +678,10 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
       <Card className="space-y-4">
         <CardHeader>
           <CardTitle>
-            {activeSubModule === "accounts" && "Account Master"}
-            {activeSubModule === "products" && "Product Master"}
-            {activeSubModule === "expenses" && "Product Expenses"}
-            {activeSubModule === "places" && "Place Master"}
+            {activeSubModule === "account-master" && "Account Master"}
+            {activeSubModule === "product-master" && "Product Master"}
+            {activeSubModule === "product-expenses" && "Product Expenses"}
+            {activeSubModule === "place-master" && "Place Master"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -815,10 +815,10 @@ function FormDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {activeSubModule === "accounts" && <AccountFormFields form={form} places={places} />}
-            {activeSubModule === "products" && <ProductFormFields form={form} />}
-            {activeSubModule === "expenses" && <ExpenseFormFields form={form} products={products} />}
-            {activeSubModule === "places" && <PlaceFormFields form={form} />}
+            {activeSubModule === "account-master" && <AccountFormFields form={form} places={places} />}
+            {activeSubModule === "product-master" && <ProductFormFields form={form} />}
+            {activeSubModule === "product-expenses" && <ExpenseFormFields form={form} products={products} />}
+            {activeSubModule === "place-master" && <PlaceFormFields form={form} />}
 
             <DialogFooter>
               <Button 
