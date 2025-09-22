@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package, Check, ChevronsUpDown, AlertCircle } from "lucide-react";
 
 // Form validation schema
 const lotSubFieldSchema = z.object({
@@ -28,6 +28,8 @@ const lotSubFieldSchema = z.object({
 
 const lotFormSchema = z.object({
   productId: z.string().min(1, "Product is required"),
+  placeId: z.string().min(1, "Place is required"),
+  arrivingDate: z.string().min(1, "Arriving date is required"),
   totalQuantity: z.string().min(1, "Total quantity is required").refine(val => Number(val) > 0, "Total quantity must be greater than 0"),
   totalWeight: z.string().optional(),
   freight: z.string().optional(),
@@ -37,6 +39,13 @@ const lotFormSchema = z.object({
   otherExpenses: z.string().optional(),
   financialYear: z.string(),
   subFields: z.array(lotSubFieldSchema).min(1, "At least one farmer lot is required"),
+}).refine((data) => {
+  const totalQty = Number(data.totalQuantity);
+  const farmerQtySum = data.subFields.reduce((sum, field) => sum + Number(field.quantity || 0), 0);
+  return Math.abs(totalQty - farmerQtySum) < 0.01;
+}, {
+  message: "Total quantity must equal the sum of farmer quantities",
+  path: ["totalQuantity"]
 });
 
 type LotFormData = z.infer<typeof lotFormSchema>;
@@ -64,6 +73,11 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
     queryFn: () => fetch(`/api/accounts?fy=${currentFY}`).then(res => res.json()),
   });
 
+  const { data: places = [] } = useQuery({
+    queryKey: ['/api/places', currentFY],
+    queryFn: () => fetch(`/api/places?fy=${currentFY}`).then(res => res.json()),
+  });
+
   // Filter accounts by type
   const farmers = accounts.filter((acc: any) => acc.type === 'F' || acc.type === 'Farmer');
   const transporters = accounts.filter((acc: any) => acc.type === 'T' || acc.type === 'Transport'); // Support both 'T' and 'Transport'
@@ -72,6 +86,8 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
     resolver: zodResolver(lotFormSchema),
     defaultValues: {
       productId: initialData?.productId || "",
+      placeId: initialData?.placeId || "",
+      arrivingDate: initialData?.arrivingDate || "",
       totalQuantity: initialData?.totalQuantity || "",
       totalWeight: initialData?.totalWeight || "",
       freight: initialData?.freight || "",
@@ -251,6 +267,49 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                           type="number"
                           placeholder="Enter total weight"
                           data-testid="input-total-weight"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="placeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Place *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-place">
+                            <SelectValue placeholder="Select place" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {places.map((place: any) => (
+                            <SelectItem key={place.id} value={place.id}>
+                              {place.placeName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="arrivingDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Arriving Date *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          data-testid="input-arriving-date"
                           {...field}
                         />
                       </FormControl>
@@ -446,20 +505,60 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Farmer Account *</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger data-testid={`select-farmer-${index}`}>
-                                      <SelectValue placeholder="Select farmer" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {farmers.map((farmer: any) => (
-                                      <SelectItem key={farmer.id} value={farmer.id}>
-                                        {farmer.name} ({farmer.accountId})
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <FormControl>
+                                      <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                                        data-testid={`select-farmer-${index}`}
+                                      >
+                                        {field.value
+                                          ? farmers.find((farmer: any) => farmer.id === field.value)?.name || "Select farmer"
+                                          : "Select farmer"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                      </Button>
+                                    </FormControl>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-full p-0">
+                                    <Command>
+                                      <CommandInput placeholder="Search farmers..." />
+                                      <CommandList>
+                                        <CommandEmpty>
+                                          {farmers.length === 0 
+                                            ? "No farmer accounts found. Please create Farmer type accounts in Account Master first."
+                                            : "No farmers match your search."
+                                          }
+                                        </CommandEmpty>
+                                        <CommandGroup>
+                                          {farmers.map((farmer: any) => (
+                                            <CommandItem
+                                              key={farmer.id}
+                                              value={`${farmer.name} ${farmer.accountId}`}
+                                              onSelect={() => {
+                                                field.onChange(farmer.id);
+                                              }}
+                                              data-testid={`option-farmer-${farmer.id}`}
+                                            >
+                                              <Check
+                                                className={`mr-2 h-4 w-4 ${
+                                                  farmer.id === field.value ? "opacity-100" : "opacity-0"
+                                                }`}
+                                              />
+                                              <div className="flex flex-col">
+                                                <span className="font-medium">{farmer.name}</span>
+                                                <span className="text-sm text-muted-foreground">
+                                                  {farmer.accountId} • Farmer
+                                                </span>
+                                              </div>
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                      </CommandList>
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
                                 <FormMessage />
                               </FormItem>
                             )}
