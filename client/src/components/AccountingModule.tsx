@@ -12,6 +12,9 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import RojmelForm from "@/components/RojmelForm";
+import IncomeExpenseReceiptForm from "@/components/IncomeExpenseReceiptForm";
+import BankDepositReceiptForm from "@/components/BankDepositReceiptForm";
+import BalanceSheetForm from "@/components/BalanceSheetForm";
 import type { Rojmel, IncomeExpenseReceipt, BankDepositReceipt, BalanceSheet } from "@shared/schema";
 
 interface AccountingModuleProps {
@@ -24,11 +27,22 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
   const [searchTerm, setSearchTerm] = useState("");
   const [showRojmelForm, setShowRojmelForm] = useState(false);
   const [editingRojmel, setEditingRojmel] = useState<Rojmel | null>(null);
+  const [showIncomeExpenseForm, setShowIncomeExpenseForm] = useState(false);
+  const [editingIncomeExpense, setEditingIncomeExpense] = useState<IncomeExpenseReceipt | null>(null);
+  const [showBankDepositForm, setShowBankDepositForm] = useState(false);
+  const [editingBankDeposit, setEditingBankDeposit] = useState<BankDepositReceipt | null>(null);
+  const [showBalanceSheetForm, setShowBalanceSheetForm] = useState(false);
+  const [editingBalanceSheet, setEditingBalanceSheet] = useState<BalanceSheet | null>(null);
   const { toast } = useToast();
 
   // Keyboard shortcuts for Accounting Module
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent keyboard shortcuts when any form modal is open
+      if (showRojmelForm || showIncomeExpenseForm || showBankDepositForm || showBalanceSheetForm) {
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
           case 'n':
@@ -36,6 +50,15 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
             if (activeTab === 'rojmel') {
               setEditingRojmel(null);
               setShowRojmelForm(true);
+            } else if (activeTab === 'income-expense-receipts') {
+              setEditingIncomeExpense(null);
+              setShowIncomeExpenseForm(true);
+            } else if (activeTab === 'bank-deposit-receipts') {
+              setEditingBankDeposit(null);
+              setShowBankDepositForm(true);
+            } else if (activeTab === 'balance-sheets') {
+              setEditingBalanceSheet(null);
+              setShowBalanceSheetForm(true);
             }
             break;
         }
@@ -44,7 +67,7 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab]);
+  }, [activeTab, showRojmelForm, showIncomeExpenseForm, showBankDepositForm, showBalanceSheetForm]);
 
   // Rojmel Query
   const { 
@@ -362,6 +385,10 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                   </CardDescription>
                 </div>
                 <Button 
+                  onClick={() => {
+                    setEditingIncomeExpense(null);
+                    setShowIncomeExpenseForm(true);
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   data-testid="button-add-income-expense-receipt"
                 >
@@ -408,7 +435,15 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                               <TableCell className="max-w-xs truncate">{(receipt.customFields as any)?.description || "-"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
-                                  <Button variant="outline" size="sm" data-testid={`button-edit-income-expense-receipt-${receipt.id}`}>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setEditingIncomeExpense(receipt);
+                                      setShowIncomeExpenseForm(true);
+                                    }}
+                                    data-testid={`button-edit-income-expense-receipt-${receipt.id}`}
+                                  >
                                     Edit
                                   </Button>
                                   <Button 
@@ -447,6 +482,10 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                   </CardDescription>
                 </div>
                 <Button 
+                  onClick={() => {
+                    setEditingBankDeposit(null);
+                    setShowBankDepositForm(true);
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   data-testid="button-add-bank-deposit-receipt"
                 >
@@ -497,7 +536,15 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                               <TableCell className="font-mono text-sm">{receipt.bankName}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
-                                  <Button variant="outline" size="sm" data-testid={`button-edit-bank-deposit-receipt-${receipt.id}`}>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setEditingBankDeposit(receipt);
+                                      setShowBankDepositForm(true);
+                                    }}
+                                    data-testid={`button-edit-bank-deposit-receipt-${receipt.id}`}
+                                  >
                                     Edit
                                   </Button>
                                   <Button 
@@ -536,6 +583,10 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                   </CardDescription>
                 </div>
                 <Button 
+                  onClick={() => {
+                    setEditingBalanceSheet(null);
+                    setShowBalanceSheetForm(true);
+                  }}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   data-testid="button-add-balance-sheet"
                 >
@@ -582,7 +633,15 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                               <TableCell><Badge variant="outline">Active</Badge></TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
-                                  <Button variant="outline" size="sm" data-testid={`button-edit-balance-sheet-${sheet.id}`}>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setEditingBalanceSheet(sheet);
+                                      setShowBalanceSheetForm(true);
+                                    }}
+                                    data-testid={`button-edit-balance-sheet-${sheet.id}`}
+                                  >
                                     Edit
                                   </Button>
                                   <Button 
@@ -608,7 +667,7 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
           </TabsContent>
         </Tabs>
 
-        {/* Rojmel Form Modal */}
+        {/* Form Modals */}
         {showRojmelForm && (
           <div className="fixed inset-0 z-50 bg-background">
             <RojmelForm
@@ -621,6 +680,57 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
               onCancel={() => {
                 setShowRojmelForm(false);
                 setEditingRojmel(null);
+              }}
+            />
+          </div>
+        )}
+
+        {showIncomeExpenseForm && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <IncomeExpenseReceiptForm
+              receipt={editingIncomeExpense}
+              currentFY={currentFY}
+              onSubmit={() => {
+                setShowIncomeExpenseForm(false);
+                setEditingIncomeExpense(null);
+              }}
+              onCancel={() => {
+                setShowIncomeExpenseForm(false);
+                setEditingIncomeExpense(null);
+              }}
+            />
+          </div>
+        )}
+
+        {showBankDepositForm && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <BankDepositReceiptForm
+              receipt={editingBankDeposit}
+              currentFY={currentFY}
+              onSubmit={() => {
+                setShowBankDepositForm(false);
+                setEditingBankDeposit(null);
+              }}
+              onCancel={() => {
+                setShowBankDepositForm(false);
+                setEditingBankDeposit(null);
+              }}
+            />
+          </div>
+        )}
+
+        {showBalanceSheetForm && (
+          <div className="fixed inset-0 z-50 bg-background">
+            <BalanceSheetForm
+              balanceSheet={editingBalanceSheet}
+              currentFY={currentFY}
+              onSubmit={() => {
+                setShowBalanceSheetForm(false);
+                setEditingBalanceSheet(null);
+              }}
+              onCancel={() => {
+                setShowBalanceSheetForm(false);
+                setEditingBalanceSheet(null);
               }}
             />
           </div>
