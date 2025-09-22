@@ -591,16 +591,6 @@ export default function DashboardModule({ currentFY, onFYChange }: DashboardModu
           <Button
             variant="outline"
             size="sm"
-            onClick={handleAdd}
-            className="gap-2"
-            data-testid="button-add-data"
-          >
-            <Plus className="h-4 w-4" />
-            Add (Ctrl+N)
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
             onClick={() => handleEdit("TodayArrivals")}
             className="gap-2"
             data-testid="button-edit-data"
