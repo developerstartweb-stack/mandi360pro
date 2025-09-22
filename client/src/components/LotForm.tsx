@@ -304,20 +304,60 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Product *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-product">
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {products.map((product: any) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} ({product.unit})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                              data-testid="select-product"
+                            >
+                              {field.value
+                                ? products.find((product: any) => product.id === field.value)?.name || "Select product"
+                                : "Select product"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search products..." />
+                            <CommandList>
+                              <CommandEmpty>
+                                {products.length === 0 
+                                  ? "No products found. Please create products in Product Master first."
+                                  : "No products match your search."
+                                }
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {products.map((product: any) => (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={`${product.name} ${product.unit}`}
+                                    onSelect={() => {
+                                      field.onChange(product.id);
+                                    }}
+                                    data-testid={`option-product-${product.id}`}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        product.id === field.value ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{product.name}</span>
+                                      <span className="text-sm text-muted-foreground">
+                                        Unit: {product.unit}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -695,25 +735,101 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                                   render={({ field: qualityField }) => (
                                     <FormItem>
                                       <FormLabel>Quality *</FormLabel>
-                                      <Select onValueChange={(value) => {
-                                        qualityField.onChange(value);
-                                        const productId = form.getValues('productId');
-                                        if (productId && value) {
-                                          const rateKey = `${farmerIndex}-${qqIndex}`;
-                                          fetchAverageRate(productId, value, rateKey, farmerIndex, qqIndex);
-                                        }
-                                      }} defaultValue={qualityField.value}>
-                                        <FormControl>
-                                          <SelectTrigger data-testid={`select-quality-${farmerIndex}-${qqIndex}`}>
-                                            <SelectValue placeholder="Select quality" />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                          <SelectItem value="A">Grade A</SelectItem>
-                                          <SelectItem value="B">Grade B</SelectItem>
-                                          <SelectItem value="C">Grade C</SelectItem>
-                                        </SelectContent>
-                                      </Select>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <FormControl>
+                                            <Button
+                                              variant="outline"
+                                              role="combobox"
+                                              className={`w-full justify-between ${!qualityField.value && "text-muted-foreground"}`}
+                                              data-testid={`select-quality-${farmerIndex}-${qqIndex}`}
+                                            >
+                                              {qualityField.value || "Select or enter quality"}
+                                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                          </FormControl>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-full p-0">
+                                          <Command>
+                                            <CommandInput 
+                                              placeholder="Type quality or select..."
+                                              value={qualityField.value}
+                                              onValueChange={(value) => {
+                                                qualityField.onChange(value);
+                                                const productId = form.getValues('productId');
+                                                if (productId && value) {
+                                                  const rateKey = `${farmerIndex}-${qqIndex}`;
+                                                  fetchAverageRate(productId, value, rateKey, farmerIndex, qqIndex);
+                                                }
+                                              }}
+                                            />
+                                            <CommandList>
+                                              <CommandEmpty>
+                                                Press Enter to use "{qualityField.value}"
+                                              </CommandEmpty>
+                                              <CommandGroup heading="Predefined Grades">
+                                                <CommandItem
+                                                  value="A"
+                                                  onSelect={() => {
+                                                    qualityField.onChange("A");
+                                                    const productId = form.getValues('productId');
+                                                    if (productId) {
+                                                      const rateKey = `${farmerIndex}-${qqIndex}`;
+                                                      fetchAverageRate(productId, "A", rateKey, farmerIndex, qqIndex);
+                                                    }
+                                                  }}
+                                                  data-testid={`option-quality-A-${farmerIndex}-${qqIndex}`}
+                                                >
+                                                  <Check
+                                                    className={`mr-2 h-4 w-4 ${
+                                                      qualityField.value === "A" ? "opacity-100" : "opacity-0"
+                                                    }`}
+                                                  />
+                                                  Grade A
+                                                </CommandItem>
+                                                <CommandItem
+                                                  value="B"
+                                                  onSelect={() => {
+                                                    qualityField.onChange("B");
+                                                    const productId = form.getValues('productId');
+                                                    if (productId) {
+                                                      const rateKey = `${farmerIndex}-${qqIndex}`;
+                                                      fetchAverageRate(productId, "B", rateKey, farmerIndex, qqIndex);
+                                                    }
+                                                  }}
+                                                  data-testid={`option-quality-B-${farmerIndex}-${qqIndex}`}
+                                                >
+                                                  <Check
+                                                    className={`mr-2 h-4 w-4 ${
+                                                      qualityField.value === "B" ? "opacity-100" : "opacity-0"
+                                                    }`}
+                                                  />
+                                                  Grade B
+                                                </CommandItem>
+                                                <CommandItem
+                                                  value="C"
+                                                  onSelect={() => {
+                                                    qualityField.onChange("C");
+                                                    const productId = form.getValues('productId');
+                                                    if (productId) {
+                                                      const rateKey = `${farmerIndex}-${qqIndex}`;
+                                                      fetchAverageRate(productId, "C", rateKey, farmerIndex, qqIndex);
+                                                    }
+                                                  }}
+                                                  data-testid={`option-quality-C-${farmerIndex}-${qqIndex}`}
+                                                >
+                                                  <Check
+                                                    className={`mr-2 h-4 w-4 ${
+                                                      qualityField.value === "C" ? "opacity-100" : "opacity-0"
+                                                    }`}
+                                                  />
+                                                  Grade C
+                                                </CommandItem>
+                                              </CommandGroup>
+                                            </CommandList>
+                                          </Command>
+                                        </PopoverContent>
+                                      </Popover>
                                       <FormMessage />
                                     </FormItem>
                                   )}
