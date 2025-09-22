@@ -68,7 +68,9 @@ import {
   insertWhatsappTemplatesSchema,
   updateWhatsappTemplatesSchema,
   insertWhatsappSettingsSchema,
-  updateWhatsappSettingsSchema
+  updateWhatsappSettingsSchema,
+  insertSalesTransactionsSchema,
+  updateSalesTransactionsSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1954,6 +1956,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "WhatsApp setting deleted successfully" });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete WhatsApp setting" });
+    }
+  });
+
+  // Rate Calculation Routes
+  app.get("/api/rates/average", async (req, res) => {
+    try {
+      const { productId, quality, financialYear = "FY2025-26", days } = req.query;
+      
+      if (!productId || !quality) {
+        return res.status(400).json({ error: "productId and quality are required" });
+      }
+
+      const daysNum = days ? parseInt(days as string) : undefined;
+      const result = await storage.getAverageRate(
+        productId as string, 
+        quality as string, 
+        financialYear as string, 
+        daysNum
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching average rate:", error);
+      res.status(500).json({ error: "Failed to fetch average rate" });
+    }
+  });
+
+  // Create a new sales transaction
+  app.post("/api/sales-transactions", async (req, res) => {
+    try {
+      const validatedData = insertSalesTransactionsSchema.parse(req.body);
+      const transaction = await storage.createSalesTransaction(validatedData);
+      res.status(201).json(transaction);
+    } catch (error: any) {
+      console.error("Error creating sales transaction:", error);
+      res.status(400).json({ error: error.message || "Failed to create sales transaction" });
     }
   });
 
