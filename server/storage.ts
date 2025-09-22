@@ -533,7 +533,7 @@ export class MemStorage implements IStorage {
   }
 
   async createAccountMaster(account: InsertAccountMaster): Promise<AccountMaster> {
-    const accountId = await this.generateAccountId();
+    const accountId = await this.generateAccountId(account.type, account.name);
     const id = randomUUID();
     const now = new Date();
     const accountData: AccountMaster = {
@@ -544,6 +544,8 @@ export class MemStorage implements IStorage {
       address: account.address || null,
       placeId: account.placeId || null,
       bankDetails: account.bankDetails || null,
+      governmentIdentity: account.governmentIdentity || null,
+      expenseSettings: account.expenseSettings || null,
       openingBalance: account.openingBalance || '0',
       creditLimit: account.creditLimit || '0',
       creditTime: account.creditTime || 0,
@@ -576,18 +578,32 @@ export class MemStorage implements IStorage {
     return this.accounts.delete(id);
   }
 
-  async generateAccountId(): Promise<string> {
-    const currentYear = new Date().getFullYear().toString().slice(-2);
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  async generateAccountId(type: string, name: string): Promise<string> {
+    // Extract type prefix (first letter)
+    const typePrefix = type.charAt(0).toUpperCase();
     
-    // Get count of accounts for current month
+    // Extract customer initials (first 2 letters of name)
+    const cleanName = name.trim().replace(/\s+/g, ' ');
+    const nameWords = cleanName.split(' ');
+    let initials = '';
+    
+    if (nameWords.length >= 2) {
+      // First letter of first name + First letter of last name
+      initials = nameWords[0].charAt(0).toUpperCase() + nameWords[nameWords.length - 1].charAt(0).toUpperCase();
+    } else {
+      // If single name, take first 2 letters
+      initials = cleanName.substring(0, 2).toUpperCase();
+    }
+    
+    // Get count of accounts with same type and initials for sequence
     const accounts = Array.from(this.accounts.values());
-    const currentMonthAccounts = accounts.filter(account => 
-      account.accountId.startsWith(`B-SV${currentYear}${currentMonth}`)
+    const prefix = `${typePrefix}-${initials}`;
+    const matchingAccounts = accounts.filter(account => 
+      account.accountId.startsWith(prefix)
     );
     
-    const nextNumber = String(currentMonthAccounts.length + 1).padStart(2, '0');
-    return `B-SV${currentYear}${currentMonth}${nextNumber}`;
+    const nextNumber = String(matchingAccounts.length + 1).padStart(3, '0');
+    return `${prefix}-${nextNumber}`;
   }
 
   // Product Master operations

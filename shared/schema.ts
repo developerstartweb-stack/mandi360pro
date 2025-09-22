@@ -20,13 +20,15 @@ export type User = typeof users.$inferSelect;
 // Account Master Table
 export const accountMaster = pgTable("account_master", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  accountId: varchar("account_id", { length: 50 }).notNull().unique(), // Auto-generated like "B-SV2501"
-  type: varchar("type", { length: 50 }).notNull(), // Buyer/Farmer dropdown
+  accountId: varchar("account_id", { length: 50 }).notNull().unique(), // Auto-generated like "B-SK-001"
+  type: varchar("type", { length: 50 }).notNull(), // Buyer, Transport, Farmer, Agent, Supplier, Coldstorage, Other
   name: text("name").notNull(),
   mobile: varchar("mobile", { length: 15 }).unique(), // Unique mobile number
   address: text("address"),
   placeId: varchar("place_id", { length: 50 }), // Reference to Place Master
-  bankDetails: json("bank_details"), // JSON for bank information
+  bankDetails: json("bank_details"), // JSON for bank account information
+  governmentIdentity: json("government_identity"), // JSON for government ID information
+  expenseSettings: json("expense_settings"), // JSON for customer-specific expense settings
   openingBalance: decimal("opening_balance", { precision: 12, scale: 2 }).default('0'),
   creditLimit: decimal("credit_limit", { precision: 12, scale: 2 }).default('0'),
   creditTime: integer("credit_time").default(0), // Credit time in days
