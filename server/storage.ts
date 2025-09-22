@@ -2921,7 +2921,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAccountMaster(id: string): Promise<boolean> {
     const result = await db.delete(accountMaster).where(eq(accountMaster.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async generateAccountId(): Promise<string> {
@@ -2982,7 +2982,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProductMaster(id: string): Promise<boolean> {
     const result = await db.delete(productMaster).where(eq(productMaster.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async generateProductId(name: string): Promise<string> {
@@ -3041,7 +3041,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProductExpense(id: string): Promise<boolean> {
     const result = await db.delete(productExpenses).where(eq(productExpenses.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Place Master operations
@@ -3090,7 +3090,7 @@ export class DatabaseStorage implements IStorage {
 
   async deletePlaceMaster(id: string): Promise<boolean> {
     const result = await db.delete(placeMaster).where(eq(placeMaster.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async generatePlaceId(): Promise<string> {
@@ -3163,7 +3163,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLotEntry(id: string): Promise<boolean> {
     const result = await db.delete(lotEntry).where(eq(lotEntry.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async generateLotId(productName: string, quantity: number): Promise<string> {
@@ -3196,7 +3196,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteLotEntrySubField(id: string): Promise<boolean> {
     const result = await db.delete(lotEntrySubFields).where(eq(lotEntrySubFields.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Godown Awak operations
@@ -3264,7 +3264,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGodownAwak(id: string): Promise<boolean> {
     const result = await db.delete(godownAwak).where(eq(godownAwak.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async generateGodownAwakId(): Promise<string> {
@@ -3319,7 +3319,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDamage(id: string): Promise<boolean> {
     const result = await db.delete(damage).where(eq(damage.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async generateDamageId(): Promise<string> {
@@ -3389,7 +3389,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWeightSlip(id: string): Promise<boolean> {
     const result = await db.delete(weightSlip).where(eq(weightSlip.id, id));
-    return result.length > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async generateWeightSlipId(): Promise<string> {
