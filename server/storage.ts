@@ -587,8 +587,8 @@ export class MemStorage implements IStorage {
     let initials = '';
     
     if (nameWords.length >= 2) {
-      // First letter of first name + First letter of last name
-      initials = nameWords[0].charAt(0).toUpperCase() + nameWords[nameWords.length - 1].charAt(0).toUpperCase();
+      // First letter of first name + First letter of second name
+      initials = nameWords[0].charAt(0).toUpperCase() + nameWords[1].charAt(0).toUpperCase();
     } else {
       // If single name, take first 2 letters
       initials = cleanName.substring(0, 2).toUpperCase();
@@ -598,7 +598,7 @@ export class MemStorage implements IStorage {
     const accounts = Array.from(this.accounts.values());
     const prefix = `${typePrefix}-${initials}`;
     const matchingAccounts = accounts.filter(account => 
-      account.accountId.startsWith(prefix)
+      account.accountId?.startsWith(prefix) && account.financialYear === this.currentFY
     );
     
     const nextNumber = String(matchingAccounts.length + 1).padStart(3, '0');
