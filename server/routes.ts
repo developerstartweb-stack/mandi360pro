@@ -101,7 +101,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const account = await storage.createAccountMaster(validatedData);
       res.status(201).json(account);
     } catch (error: any) {
-      res.status(400).json({ error: error.message || "Invalid account data" });
+      console.error('Account creation error:', error);
+      
+      // Handle duplicate key constraints with user-friendly messages
+      if (error.message?.includes('duplicate key') || error.code === '23505') {
+        if (error.message?.includes('mobile')) {
+          res.status(400).json({ error: 'Mobile number already exists. Please use a different mobile number.' });
+        } else if (error.message?.includes('account_id')) {
+          res.status(400).json({ error: 'Account ID already exists. Please try again.' });
+        } else {
+          res.status(400).json({ error: 'This record already exists. Please check the data and try again.' });
+        }
+      } else {
+        res.status(400).json({ error: error.message || "Invalid account data" });
+      }
     }
   });
 
