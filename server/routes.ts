@@ -53,7 +53,15 @@ import {
   insertExpenseLedgerSchema,
   updateExpenseLedgerSchema,
   insertBankDepositLedgerSchema,
-  updateBankDepositLedgerSchema
+  updateBankDepositLedgerSchema,
+  insertCompanyProfileSchema,
+  updateCompanyProfileSchema,
+  insertDefaultExpensesSchema,
+  updateDefaultExpensesSchema,
+  insertPrintingSettingsSchema,
+  updatePrintingSettingsSchema,
+  insertModuleSettingsSchema,
+  updateModuleSettingsSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1521,6 +1529,228 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(config);
     } catch (error: any) {
       res.status(400).json({ error: error.message || "Failed to create report config" });
+    }
+  });
+
+  // Settings Module API Routes
+
+  // Company Profile Routes
+  app.get("/api/company-profiles", async (req, res) => {
+    try {
+      const { fy = "2025-26" } = req.query;
+      const profiles = await storage.getCompanyProfiles(fy as string);
+      res.json(profiles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company profiles" });
+    }
+  });
+
+  app.get("/api/company-profiles/:id", async (req, res) => {
+    try {
+      const profile = await storage.getCompanyProfile(req.params.id);
+      if (!profile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company profile" });
+    }
+  });
+
+  app.post("/api/company-profiles", async (req, res) => {
+    try {
+      const validatedData = insertCompanyProfileSchema.parse(req.body);
+      const profile = await storage.createCompanyProfile(validatedData);
+      res.status(201).json(profile);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create company profile" });
+    }
+  });
+
+  app.put("/api/company-profiles/:id", async (req, res) => {
+    try {
+      const validatedData = updateCompanyProfileSchema.parse(req.body);
+      const profile = await storage.updateCompanyProfile(req.params.id, validatedData);
+      res.json(profile);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update company profile" });
+    }
+  });
+
+  app.delete("/api/company-profiles/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteCompanyProfile(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+      res.json({ message: "Company profile deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete company profile" });
+    }
+  });
+
+  // Default Expenses Routes
+  app.get("/api/default-expenses", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const expenses = await storage.getDefaultExpenses(fy as string, search as string);
+      res.json(expenses);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch default expenses" });
+    }
+  });
+
+  app.get("/api/default-expenses/:id", async (req, res) => {
+    try {
+      const expense = await storage.getDefaultExpense(req.params.id);
+      if (!expense) {
+        return res.status(404).json({ error: "Default expense not found" });
+      }
+      res.json(expense);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch default expense" });
+    }
+  });
+
+  app.post("/api/default-expenses", async (req, res) => {
+    try {
+      const validatedData = insertDefaultExpensesSchema.parse(req.body);
+      const expense = await storage.createDefaultExpense(validatedData);
+      res.status(201).json(expense);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create default expense" });
+    }
+  });
+
+  app.put("/api/default-expenses/:id", async (req, res) => {
+    try {
+      const validatedData = updateDefaultExpensesSchema.parse(req.body);
+      const expense = await storage.updateDefaultExpense(req.params.id, validatedData);
+      res.json(expense);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update default expense" });
+    }
+  });
+
+  app.delete("/api/default-expenses/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteDefaultExpense(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Default expense not found" });
+      }
+      res.json({ message: "Default expense deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete default expense" });
+    }
+  });
+
+  // Printing Settings Routes
+  app.get("/api/printing-settings", async (req, res) => {
+    try {
+      const { fy = "2025-26" } = req.query;
+      const settings = await storage.getPrintingSettings(fy as string);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch printing settings" });
+    }
+  });
+
+  app.get("/api/printing-settings/:id", async (req, res) => {
+    try {
+      const setting = await storage.getPrintingSetting(req.params.id);
+      if (!setting) {
+        return res.status(404).json({ error: "Printing setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch printing setting" });
+    }
+  });
+
+  app.post("/api/printing-settings", async (req, res) => {
+    try {
+      const validatedData = insertPrintingSettingsSchema.parse(req.body);
+      const setting = await storage.createPrintingSetting(validatedData);
+      res.status(201).json(setting);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create printing setting" });
+    }
+  });
+
+  app.put("/api/printing-settings/:id", async (req, res) => {
+    try {
+      const validatedData = updatePrintingSettingsSchema.parse(req.body);
+      const setting = await storage.updatePrintingSetting(req.params.id, validatedData);
+      res.json(setting);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update printing setting" });
+    }
+  });
+
+  app.delete("/api/printing-settings/:id", async (req, res) => {
+    try {
+      const success = await storage.deletePrintingSetting(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Printing setting not found" });
+      }
+      res.json({ message: "Printing setting deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete printing setting" });
+    }
+  });
+
+  // Module Settings Routes
+  app.get("/api/module-settings", async (req, res) => {
+    try {
+      const { fy = "2025-26" } = req.query;
+      const settings = await storage.getModuleSettings(fy as string);
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch module settings" });
+    }
+  });
+
+  app.get("/api/module-settings/:id", async (req, res) => {
+    try {
+      const setting = await storage.getModuleSetting(req.params.id);
+      if (!setting) {
+        return res.status(404).json({ error: "Module setting not found" });
+      }
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch module setting" });
+    }
+  });
+
+  app.post("/api/module-settings", async (req, res) => {
+    try {
+      const validatedData = insertModuleSettingsSchema.parse(req.body);
+      const setting = await storage.createModuleSetting(validatedData);
+      res.status(201).json(setting);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create module setting" });
+    }
+  });
+
+  app.put("/api/module-settings/:id", async (req, res) => {
+    try {
+      const validatedData = updateModuleSettingsSchema.parse(req.body);
+      const setting = await storage.updateModuleSetting(req.params.id, validatedData);
+      res.json(setting);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update module setting" });
+    }
+  });
+
+  app.delete("/api/module-settings/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteModuleSetting(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Module setting not found" });
+      }
+      res.json({ message: "Module setting deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete module setting" });
     }
   });
 
