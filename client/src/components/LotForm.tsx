@@ -81,16 +81,13 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
     queryFn: () => fetch(`/api/accounts?fy=${currentFY}`).then(res => res.json()),
   });
 
-  const { data: places = [], isLoading: placesLoading, error: placesError } = useQuery({
+  const { data: places = [] } = useQuery({
     queryKey: ['/api/places'],
     queryFn: () => fetch('/api/places').then(res => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     }),
   });
-
-  // Debug places data
-  console.log('Places data:', places, 'Loading:', placesLoading, 'Error:', placesError);
 
   // Filter accounts by type
   const farmers = accounts.filter((acc: any) => acc.type === 'F' || acc.type === 'Farmer');
@@ -446,7 +443,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                               data-testid="select-place"
                             >
                               {field.value
-                                ? places.find((place: any) => place.id === field.value)?.placeName || "Select place"
+                                ? places.find((place: any) => place.id === field.value)?.name || "Select place"
                                 : "Select place"}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
@@ -466,7 +463,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                                 {places.map((place: any) => (
                                   <CommandItem
                                     key={place.id}
-                                    value={`${place.placeName} ${place.placeCode || ''}`}
+                                    value={`${place.name} ${place.placeId || ''}`}
                                     onSelect={() => {
                                       field.onChange(place.id);
                                     }}
@@ -478,10 +475,10 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                                       }`}
                                     />
                                     <div className="flex flex-col">
-                                      <span className="font-medium">{place.placeName}</span>
-                                      {place.placeCode && (
+                                      <span className="font-medium">{place.name}</span>
+                                      {place.placeId && (
                                         <span className="text-sm text-muted-foreground">
-                                          Code: {place.placeCode}
+                                          Code: {place.placeId}
                                         </span>
                                       )}
                                     </div>
