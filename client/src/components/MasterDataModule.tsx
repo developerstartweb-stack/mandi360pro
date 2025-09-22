@@ -141,7 +141,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
   // Mutations for CRUD operations
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(getApiEndpoint(), "POST", data);
+      return apiRequest("POST", getApiEndpoint(), data);
     },
     onSuccess: (newData) => {
       // Update global state with new data
@@ -170,7 +170,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      return apiRequest(`${getApiEndpoint()}/${id}`, "PUT", data);
+      return apiRequest("PUT", `${getApiEndpoint()}/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [getApiEndpoint()] });
@@ -192,7 +192,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`${getApiEndpoint()}/${id}`, "DELETE");
+      return apiRequest("DELETE", `${getApiEndpoint()}/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [getApiEndpoint()] });
