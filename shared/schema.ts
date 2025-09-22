@@ -146,17 +146,20 @@ export type PlaceMaster = typeof placeMaster.$inferSelect;
 // Lot Entry Table
 export const lotEntry = pgTable("lot_entry", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  lotId: varchar("lot_id", { length: 50 }).notNull().unique(), // Auto: "Onion25-10-0"
+  lotId: varchar("lot_id", { length: 50 }).notNull().unique(), // Auto: "Onion25-10-001"
   arrivingDate: timestamp("arriving_date").notNull(),
-  transportName: varchar("transport_name", { length: 100 }).notNull(), // Dropdown/searchable
+  transportAccountId: varchar("transport_account_id", { length: 50 }).notNull(), // Reference to Account Master (type=Transport)
+  transportName: varchar("transport_name", { length: 100 }), // Denormalized for printing
   placeId: varchar("place_id", { length: 50 }).notNull(), // Auto from Place Master
   productId: varchar("product_id", { length: 50 }).notNull(), // Dropdown
+  vehicleNumber: varchar("vehicle_number", { length: 50 }), // Vehicle number
   totalQuantity: decimal("total_quantity", { precision: 12, scale: 2 }).notNull(),
   freight: decimal("freight", { precision: 12, scale: 2 }).notNull(),
   advance: json("advance"), // JSON for advance payments
   otherExpenses: json("other_expenses"), // JSON for other expenses
   totalWeight: decimal("total_weight", { precision: 12, scale: 2 }), // Auto or manual
   averageWeight: decimal("average_weight", { precision: 12, scale: 2 }), // Auto: totalWeight/totalQuantity
+  lotSequence: integer("lot_sequence").notNull(), // Sequence number per FY for LotID generation
   customFields: json("custom_fields"), // JSON for custom fields
   financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
   createdAt: timestamp("created_at").default(sql`now()`),
@@ -227,6 +230,10 @@ export const insertLotEntrySchema = createInsertSchema(lotEntry, {
   arrivingDate: z.coerce.date(), // Handle date coercion from JSON strings
 }).omit({
   id: true,
+  lotId: true, // Auto-generated, don't require in input
+  lotSequence: true, // Auto-generated, don't require in input
+  transportName: true, // Auto-populated from transportAccountId
+  averageWeight: true, // Auto-calculated
   createdAt: true,
   updatedAt: true,
 });
@@ -236,12 +243,20 @@ export const updateLotEntrySchema = createInsertSchema(lotEntry, {
 }).partial().omit({
   id: true,
   lotId: true, // Don't allow updating auto-generated ID
+  lotSequence: true, // Don't allow updating sequence
   createdAt: true,
   updatedAt: true,
 });
 
+// Composite schema for creating lot with sub-fields
+export const createLotWithSubFieldsSchema = z.object({
+  lot: insertLotEntrySchema,
+  subFields: z.array(insertLotEntrySubFieldsSchema),
+});
+
 export type InsertLotEntry = z.infer<typeof insertLotEntrySchema>;
 export type UpdateLotEntry = z.infer<typeof updateLotEntrySchema>;
+export type CreateLotWithSubFields = z.infer<typeof createLotWithSubFieldsSchema>;
 export type LotEntry = typeof lotEntry.$inferSelect;
 
 // Schema validations for Lot Entry Sub-Fields
