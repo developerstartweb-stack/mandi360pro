@@ -65,6 +65,7 @@ const productFormSchema = z.object({
 
 const expenseFormSchema = z.object({
   productId: z.string().min(1, "Product is required"),
+  linkedTo: z.string().min(1, "Linked to is required"),
   expenses: z.array(z.object({
     name: z.string(),
     type: z.string().min(1, "Type is required"),
@@ -577,12 +578,10 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
               <div className="flex flex-col min-w-0">
                 <div className="flex items-center space-x-2">
                   <Badge variant="secondary">{item.productId}</Badge>
-                  {item.linkedTo && (
-                    <Badge variant={item.linkedTo === "Buyer" ? "default" : "outline"}>
-                      {item.linkedTo}
-                    </Badge>
-                  )}
-                  {item.expenseType && <Badge variant="secondary">{item.expenseType}</Badge>}
+                  <Badge variant={item.linkedTo === "Buyer" ? "default" : "outline"}>
+                    {item.linkedTo}
+                  </Badge>
+                  <Badge variant="secondary">{item.expenseType}</Badge>
                   {!item.active && <Badge variant="destructive">Inactive</Badge>}
                 </div>
                 <div className="space-y-1">
@@ -915,6 +914,7 @@ function FormDialog({
           ...baseDefaults,
           expenses: [],
           productId: "",
+          linkedTo: "",
           customFields: {}
         };
       case "place-master":
@@ -1253,30 +1253,53 @@ function ProductFormFields({ form }: any) {
 function ExpenseFormFields({ form, products }: any) {
   return (
     <>
-      <FormField
-        control={form.control}
-        name="productId"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Product *</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger data-testid="select-expense-product">
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {products?.map((product: any) => (
-                  <SelectItem key={product.id} value={product.productId}>
-                    {product.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="productId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Product *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-expense-product">
+                    <SelectValue placeholder="Select product" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {products?.map((product: any) => (
+                    <SelectItem key={product.id} value={product.productId}>
+                      {product.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="linkedTo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Linked To *</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger data-testid="select-expense-linked-to">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Buyer">Buyer</SelectItem>
+                  <SelectItem value="Farmer">Farmer</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
       <FormField
         control={form.control}
