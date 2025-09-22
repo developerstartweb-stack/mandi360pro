@@ -15,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
-import { CalendarIcon, Search, Plus, Edit, Trash2, Save, Printer, Filter, Receipt, DollarSign, CreditCard } from "lucide-react";
+import { CalendarIcon, Search, Plus, Edit, Trash2, Save, Printer, Filter, Receipt, DollarSign, CreditCard, Eye } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -104,7 +104,7 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
   const { toast } = useToast();
   const { state, updateActiveData } = useGlobalState();
 
-  // Access master data and inventory data from global state
+  // Access master data and inventory data from global state for dropdowns
   const accounts = state.masterData.accounts || [];
   const products = state.masterData.products || [];
   const places = state.masterData.places || [];
@@ -447,6 +447,14 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
     }
   };
 
+  // Handle view
+  const handleView = (item: any) => {
+    toast({
+      title: "View Item",
+      description: `Viewing ${item.billNo || item.receiptNo} details`,
+    });
+  };
+
   // Handle edit
   const handleEdit = (item: any) => {
     setEditingItem(item);
@@ -596,6 +604,9 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -671,6 +682,9 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -746,6 +760,9 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -821,6 +838,9 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleView(item)} data-testid={`button-view-${item.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} data-testid={`button-edit-${item.id}`}>
                                 <Edit className="h-4 w-4" />
                               </Button>

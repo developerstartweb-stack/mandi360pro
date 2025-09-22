@@ -29,7 +29,8 @@ import {
   MapPin,
   PhoneCall,
   User,
-  DollarSign
+  DollarSign,
+  Eye
 } from "lucide-react";
 
 // Define form schemas for validation
@@ -91,17 +92,30 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
-  // Read data from global state (centrally loaded)
-  const accounts = state.masterData.accounts || [];
-  const products = state.masterData.products || [];
-  const expenses = state.masterData.expenses || [];
-  const places = state.masterData.places || [];
+  // Fetch data directly from API
+  const { data: accounts = [], isLoading: accountsLoading } = useQuery({
+    queryKey: ['/api/accounts', currentFY],
+    queryFn: () => fetch(`/api/accounts?fy=${currentFY}`).then(res => res.json()),
+    enabled: activeSubModule === "account-master"
+  });
 
-  // Loading states can be derived from the centralized queries if needed
-  const accountsLoading = false; // Centralized loading
-  const productsLoading = false;
-  const expensesLoading = false;
-  const placesLoading = false;
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['/api/products', currentFY],
+    queryFn: () => fetch(`/api/products?fy=${currentFY}`).then(res => res.json()),
+    enabled: activeSubModule === "product-master"
+  });
+
+  const { data: expenses = [], isLoading: expensesLoading } = useQuery({
+    queryKey: ['/api/expenses', currentFY],
+    queryFn: () => fetch(`/api/expenses?fy=${currentFY}`).then(res => res.json()),
+    enabled: activeSubModule === "product-expenses"
+  });
+
+  const { data: places = [], isLoading: placesLoading } = useQuery({
+    queryKey: ['/api/places', currentFY],
+    queryFn: () => fetch(`/api/places?fy=${currentFY}`).then(res => res.json()),
+    enabled: activeSubModule === "place-master"
+  });
 
   // Apply client-side search filtering
   const filteredAccounts = searchTerm ? accounts.filter(acc => 
@@ -156,13 +170,13 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
       setEditingItem(null);
       toast({
         title: "Success",
-        description: `${dataType.slice(0, -1)} created successfully`,
+        description: `${getPageInfo().singular} created successfully`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: `Failed to create ${getDataType().slice(0, -1)}`,
+        description: `Failed to create ${getPageInfo().singular}`,
         variant: "destructive",
       });
     }
@@ -178,13 +192,13 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
       setEditingItem(null);
       toast({
         title: "Success",
-        description: `${getDataType().slice(0, -1)} updated successfully`,
+        description: `${getPageInfo().singular} updated successfully`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: `Failed to update ${getDataType().slice(0, -1)}`,
+        description: `Failed to update ${getPageInfo().singular}`,
         variant: "destructive",
       });
     }
@@ -200,13 +214,13 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
       setItemToDelete(null);
       toast({
         title: "Success",
-        description: `${getDataType().slice(0, -1)} deleted successfully`,
+        description: `${getPageInfo().singular} deleted successfully`,
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: `Failed to delete ${getDataType().slice(0, -1)}`,
+        description: `Failed to delete ${getPageInfo().singular}`,
         variant: "destructive",
       });
     }
@@ -288,29 +302,42 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
       case "account-master": 
         return {
           title: "Account Master",
-          description: "Manage customer and farmer accounts with contact details, credit limits, and financial information"
+          description: "Manage customer and farmer accounts with contact details, credit limits, and financial information",
+          singular: "Account"
         };
       case "product-master": 
         return {
           title: "Product Master", 
-          description: "Manage all mandi products including grains, vegetables, and their measurement units"
+          description: "Manage all mandi products including grains, vegetables, and their measurement units",
+          singular: "Product"
         };
       case "product-expenses": 
         return {
           title: "Product Expenses",
-          description: "Configure default expenses for products like transportation, loading, and market fees"
+          description: "Configure default expenses for products like transportation, loading, and market fees",
+          singular: "Expense"
         };
       case "place-master": 
         return {
           title: "Place Master",
-          description: "Manage locations, markets, and places for transportation and delivery tracking"
+          description: "Manage locations, markets, and places for transportation and delivery tracking",
+          singular: "Place"
         };
       default: 
         return {
           title: "Master Data",
-          description: "Manage accounts, products, expenses, and places for your mandi operations"
+          description: "Manage accounts, products, expenses, and places for your mandi operations",
+          singular: "Item"
         };
     }
+  };
+
+  const handleView = (item: any) => {
+    // For now, just show a toast with item details
+    toast({
+      title: "View Item",
+      description: `Viewing ${item.name || item.expenseName} details`,
+    });
   };
 
   const handleEdit = (item: any) => {
@@ -375,7 +402,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
               data-testid={`button-add-first-${activeSubModule}`}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add First {activeSubModule.slice(0, -1)}
+              Add First {getPageInfo().singular}
             </Button>
           </div>
         </div>
@@ -402,7 +429,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
 
   const renderTableRow = (item: any) => {
     switch (activeSubModule) {
-      case "accounts":
+      case "account-master":
         return (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1">
@@ -441,6 +468,17 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
                 size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
+                  handleView(item);
+                }}
+                data-testid={`button-view-account-${item.id}`}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleEdit(item);
                 }}
                 data-testid={`button-edit-account-${item.id}`}
@@ -462,7 +500,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
           </div>
         );
 
-      case "products":
+      case "product-master":
         return (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1">
@@ -480,6 +518,17 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleView(item);
+                }}
+                data-testid={`button-view-product-${item.id}`}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -506,7 +555,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
           </div>
         );
 
-      case "expenses":
+      case "product-expenses":
         return (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1">
@@ -533,6 +582,17 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
                 size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
+                  handleView(item);
+                }}
+                data-testid={`button-view-expense-${item.id}`}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleEdit(item);
                 }}
                 data-testid={`button-edit-expense-${item.id}`}
@@ -554,7 +614,7 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
           </div>
         );
 
-      case "places":
+      case "place-master":
         return (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4 flex-1">
@@ -576,6 +636,17 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleView(item);
+                }}
+                data-testid={`button-view-place-${item.id}`}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
