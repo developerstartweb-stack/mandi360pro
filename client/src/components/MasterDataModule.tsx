@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useGlobalState } from "@/App";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +84,7 @@ interface MasterDataModuleProps {
 
 export default function MasterDataModule({ currentFY, onFYChange }: MasterDataModuleProps) {
   const { toast } = useToast();
+  const { state, updateMasterData } = useGlobalState();
   const [activeTab, setActiveTab] = useState("accounts");
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -90,7 +92,7 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
 
-  // Fetch data based on active tab
+  // Fetch data based on active tab and sync with global state
   const { data: accounts, isLoading: accountsLoading } = useQuery({
     queryKey: ["/api/accounts", currentFY, searchTerm],
     enabled: activeTab === "accounts",
@@ -111,6 +113,31 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
     enabled: activeTab === "places",
   });
 
+  // Sync fetched data with global state
+  useEffect(() => {
+    if (accounts && activeTab === "accounts") {
+      updateMasterData("accounts", accounts);
+    }
+  }, [accounts, activeTab, updateMasterData]);
+
+  useEffect(() => {
+    if (products && activeTab === "products") {
+      updateMasterData("products", products);
+    }
+  }, [products, activeTab, updateMasterData]);
+
+  useEffect(() => {
+    if (expenses && activeTab === "expenses") {
+      updateMasterData("expenses", expenses);
+    }
+  }, [expenses, activeTab, updateMasterData]);
+
+  useEffect(() => {
+    if (places && activeTab === "places") {
+      updateMasterData("places", places);
+    }
+  }, [places, activeTab, updateMasterData]);
+
   // Mutations for CRUD operations
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -122,7 +149,15 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
       };
       return apiRequest(endpoints[activeTab], "POST", data);
     },
-    onSuccess: () => {
+    onSuccess: (newData) => {
+      // Update global state with new data
+      const dataType = activeTab === "accounts" ? "accounts" : 
+                      activeTab === "products" ? "products" :
+                      activeTab === "expenses" ? "expenses" : "places";
+      
+      const currentData = state.masterData[dataType as keyof typeof state.masterData] || [];
+      updateMasterData(dataType as keyof typeof state.masterData, [...currentData, newData]);
+      
       queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
       setShowForm(false);
       setEditingItem(null);

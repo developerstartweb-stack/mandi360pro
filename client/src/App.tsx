@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useState } from "react";
+import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import DashboardModule from "@/components/DashboardModule";
@@ -22,9 +22,52 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { Plus, Settings, BarChart3, FileText } from "lucide-react";
 
-function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; currentFY: string; onFYChange: (fy: string) => void }) {
+// Global State Management Context
+interface GlobalState {
+  currentFY: string;
+  masterData: {
+    accounts: any[];
+    products: any[];
+    places: any[];
+    expenses: any[];
+  };
+  activeData: {
+    lots: any[];
+    bills: any[];
+    invoices: any[];
+    transactions: any[];
+  };
+  preferences: {
+    autoSave: boolean;
+    notifications: boolean;
+    multiWindow: boolean;
+  };
+}
+
+interface GlobalContextType {
+  state: GlobalState;
+  updateMasterData: (type: keyof GlobalState['masterData'], data: any[]) => void;
+  updateActiveData: (type: keyof GlobalState['activeData'], data: any[]) => void;
+  updatePreferences: (prefs: Partial<GlobalState['preferences']>) => void;
+  setCurrentFY: (fy: string) => void;
+  syncData: () => void;
+}
+
+const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
+
+export const useGlobalState = () => {
+  const context = useContext(GlobalContext);
+  if (!context) {
+    throw new Error('useGlobalState must be used within GlobalProvider');
+  }
+  return context;
+};
+
+function MainContent({ activeTab }: { activeTab: string }) {
+  const { state, setCurrentFY } = useGlobalState();
   const [showLotForm, setShowLotForm] = useState(false);
   const [showAccountForm, setShowAccountForm] = useState(false);
 
@@ -58,7 +101,7 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
 
   switch (activeTab) {
     case "dashboard":
-      return <DashboardModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <DashboardModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "lots":
       return (
@@ -172,26 +215,26 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
     case "product-master":
     case "product-expenses":
     case "place-master":
-      return <MasterDataModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <MasterDataModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "inventory":
     case "lot-entry":
     case "godown-awak":
     case "damage":
     case "weight-slip":
-      return <InventoryModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <InventoryModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "bill-desk":
-      return <BillDeskModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <BillDeskModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "farmer-invoice":
-      return <FarmerInvoiceModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <FarmerInvoiceModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "accounting":
-      return <AccountingModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <AccountingModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "ledger":
-      return <LedgerModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <LedgerModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "reports":
       return (
@@ -236,55 +279,317 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
     
     
     default:
-      return <DashboardModule currentFY={currentFY} onFYChange={onFYChange} />;
+      return <DashboardModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
   }
+}
+
+// Global State Provider Component
+function GlobalProvider({ children }: { children: React.ReactNode }) {
+  const { toast } = useToast();
+  const [state, setState] = useState<GlobalState>(() => {
+    // Initialize from localStorage with auto-detected FY
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+    
+    // Indian FY starts from April (month 4)
+    const autoFY = currentMonth >= 4 
+      ? `${currentYear}-${String(currentYear + 1).slice(-2)}`
+      : `${currentYear - 1}-${String(currentYear).slice(-2)}`;
+
+    const savedState = localStorage.getItem(`mandi360pro-global-${autoFY}`);
+    const defaultState: GlobalState = {
+      currentFY: autoFY,
+      masterData: {
+        accounts: [],
+        products: [],
+        places: [],
+        expenses: []
+      },
+      activeData: {
+        lots: [],
+        bills: [],
+        invoices: [],
+        transactions: []
+      },
+      preferences: {
+        autoSave: true,
+        notifications: true,
+        multiWindow: true
+      }
+    };
+    
+    return savedState ? { ...defaultState, ...JSON.parse(savedState) } : defaultState;
+  });
+
+  // Auto-save state to localStorage (with FY transition guard)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (state.currentFY) { // Only save if FY is properly set
+        localStorage.setItem(`mandi360pro-global-${state.currentFY}`, JSON.stringify(state));
+      }
+    }, 500); // Debounce saves
+    
+    return () => clearTimeout(timeoutId);
+  }, [state]);
+
+  // Multi-window synchronization
+  useEffect(() => {
+    if (!state.preferences.multiWindow) return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `mandi360pro-global-${state.currentFY}` && e.newValue) {
+        try {
+          const newState = JSON.parse(e.newValue);
+          setState(prevState => ({ ...prevState, ...newState }));
+          toast({
+            title: "Data Synced",
+            description: "Application data updated from another window"
+          });
+        } catch (error) {
+          console.error('Error syncing global state:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [state.currentFY, state.preferences.multiWindow, toast]);
+
+  // Auto-cleanup trash data (30-day rule)
+  useEffect(() => {
+    const cleanupTrash = () => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Clean up old data from localStorage
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('mandi360pro-trash-')) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key) || '{}');
+            if (data.deletedAt && new Date(data.deletedAt) < thirtyDaysAgo) {
+              localStorage.removeItem(key);
+            }
+          } catch (error) {
+            console.error('Error cleaning up trash:', error);
+          }
+        }
+      });
+    };
+
+    // Run cleanup daily
+    const interval = setInterval(cleanupTrash, 24 * 60 * 60 * 1000);
+    cleanupTrash(); // Run immediately
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateMasterData = useCallback((type: keyof GlobalState['masterData'], data: any[]) => {
+    setState(prevState => ({
+      ...prevState,
+      masterData: {
+        ...prevState.masterData,
+        [type]: data
+      }
+    }));
+  }, []);
+
+  const updateActiveData = useCallback((type: keyof GlobalState['activeData'], data: any[]) => {
+    setState(prevState => ({
+      ...prevState,
+      activeData: {
+        ...prevState.activeData,
+        [type]: data
+      }
+    }));
+  }, []);
+
+  const updatePreferences = useCallback((prefs: Partial<GlobalState['preferences']>) => {
+    setState(prevState => ({
+      ...prevState,
+      preferences: {
+        ...prevState.preferences,
+        ...prefs
+      }
+    }));
+  }, []);
+
+  const setCurrentFY = useCallback((fy: string) => {
+    // Save current state before switching
+    localStorage.setItem(`mandi360pro-global-${state.currentFY}`, JSON.stringify(state));
+    
+    // Load data for the new FY
+    const savedFYData = localStorage.getItem(`mandi360pro-global-${fy}`);
+    
+    if (savedFYData) {
+      try {
+        const fyData = JSON.parse(savedFYData);
+        setState({ ...fyData, currentFY: fy });
+      } catch (error) {
+        console.error('Error loading FY data:', error);
+        // Fallback to default state for this FY
+        setState(prevState => ({
+          ...prevState,
+          currentFY: fy,
+          masterData: { accounts: [], products: [], places: [], expenses: [] },
+          activeData: { lots: [], bills: [], invoices: [], transactions: [] }
+        }));
+      }
+    } else {
+      // Create fresh state for new FY
+      setState(prevState => ({
+        ...prevState,
+        currentFY: fy,
+        masterData: { accounts: [], products: [], places: [], expenses: [] },
+        activeData: { lots: [], bills: [], invoices: [], transactions: [] }
+      }));
+    }
+    
+    toast({
+      title: "Financial Year Changed",
+      description: `Switched to FY ${fy} with ${savedFYData ? 'existing' : 'new'} data`
+    });
+  }, [state, toast]);
+
+  const syncData = useCallback(() => {
+    // Force sync across all windows by updating localStorage (triggers storage event in other windows)
+    if (state.currentFY) {
+      localStorage.setItem(`mandi360pro-global-${state.currentFY}`, JSON.stringify(state));
+      
+      // Also dispatch to current window for immediate feedback
+      const event = new StorageEvent('storage', {
+        key: `mandi360pro-global-${state.currentFY}`,
+        newValue: JSON.stringify(state)
+      });
+      window.dispatchEvent(event);
+    }
+  }, [state]);
+
+  const contextValue: GlobalContextType = {
+    state,
+    updateMasterData,
+    updateActiveData,
+    updatePreferences,
+    setCurrentFY,
+    syncData
+  };
+
+  return (
+    <GlobalContext.Provider value={contextValue}>
+      {children}
+    </GlobalContext.Provider>
+  );
 }
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [currentFY, setCurrentFY] = useState("2025-26");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Auto-detect FY based on current date (as specified in requirements)
-  useState(() => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth() + 1; // getMonth() is 0-indexed
-    
-    // Indian FY starts from April (month 4)
-    if (currentMonth >= 4) {
-      setCurrentFY(`${currentYear}-${String(currentYear + 1).slice(-2)}`);
-    } else {
-      setCurrentFY(`${currentYear - 1}-${String(currentYear).slice(-2)}`);
-    }
-  });
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="flex h-screen bg-background">
-          <Sidebar 
+        <GlobalProvider>
+          <AppContent
             activeTab={activeTab}
-            onTabChange={setActiveTab}
-            isCollapsed={sidebarCollapsed}
+            setActiveTab={setActiveTab}
+            sidebarCollapsed={sidebarCollapsed}
+            setSidebarCollapsed={setSidebarCollapsed}
           />
-          
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <Header 
-              currentFY={currentFY}
-              onFYChange={setCurrentFY}
-              onMenuClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            />
-            
-            <main className="flex-1 overflow-auto">
-              <MainContent activeTab={activeTab} currentFY={currentFY} onFYChange={setCurrentFY} />
-            </main>
-          </div>
-        </div>
-        
-        <Toaster />
+        </GlobalProvider>
       </TooltipProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppContent({ 
+  activeTab, 
+  setActiveTab, 
+  sidebarCollapsed, 
+  setSidebarCollapsed 
+}: {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+}) {
+  const { state, setCurrentFY } = useGlobalState();
+  const { toast } = useToast();
+
+  // Universal keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'n':
+            e.preventDefault();
+            toast({
+              title: "New Record",
+              description: "Use the Add button in the active module"
+            });
+            break;
+          case 's':
+            e.preventDefault();
+            toast({
+              title: "Auto-save Active",
+              description: "Your data is automatically saved"
+            });
+            break;
+          case 'e':
+            e.preventDefault();
+            toast({
+              title: "Edit Mode",
+              description: "Use the Edit button in the active module"
+            });
+            break;
+          case 'd':
+            e.preventDefault();
+            toast({
+              title: "Delete Action",
+              description: "Use the Delete button in the active module"
+            });
+            break;
+          case 'p':
+            e.preventDefault();
+            toast({
+              title: "Print/Export",
+              description: "Use the Print button in the active module"
+            });
+            break;
+          case 'r':
+            e.preventDefault();
+            window.location.reload();
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [toast]);
+
+  return (
+    <div className="flex h-screen bg-background">
+      <Sidebar 
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        isCollapsed={sidebarCollapsed}
+      />
+      
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <Header 
+          currentFY={state.currentFY}
+          onFYChange={setCurrentFY}
+          onMenuClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+        
+        <main className="flex-1 overflow-auto">
+          <MainContent activeTab={activeTab} />
+        </main>
+      </div>
+      
+      <Toaster />
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useGlobalState } from "@/App";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -69,20 +70,23 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
   const [searchTerm, setSearchTerm] = useState("");
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const { toast } = useToast();
+  const { state, updateActiveData } = useGlobalState();
 
   // Mutation for creating inventory items
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       const endpoint = getApiEndpoint();
-      return apiRequest(endpoint, {
-        method: 'POST',
-        body: JSON.stringify({ ...data, financialYear: currentFY }),
-      });
+      return apiRequest(endpoint, "POST", { ...data, financialYear: currentFY });
     },
-    onSuccess: () => {
+    onSuccess: (newData) => {
+      // Update global state with new inventory data
+      if (activeTab === "lot-entry") {
+        const currentLots = state.activeData.lots || [];
+        updateActiveData("lots", [...currentLots, newData]);
+      }
+      
       setShowForm(false);
       setEditingItem(null);
-      // Invalidate queries instead of manual refetch
       queryClient.invalidateQueries({ queryKey: [getApiEndpoint(), currentFY] });
       toast({
         title: "Success",
@@ -102,10 +106,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const endpoint = getApiEndpoint();
-      return apiRequest(`${endpoint}/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ ...data, financialYear: currentFY }),
-      });
+      return apiRequest(`${endpoint}/${id}`, "PUT", { ...data, financialYear: currentFY });
     },
     onSuccess: () => {
       setShowForm(false);
@@ -130,9 +131,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const endpoint = getApiEndpoint();
-      return apiRequest(`${endpoint}/${id}`, {
-        method: 'DELETE',
-      });
+      return apiRequest(`${endpoint}/${id}`, "DELETE");
     },
     onSuccess: () => {
       setShowDeleteDialog(false);
@@ -240,6 +239,13 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
     },
     enabled: activeTab === 'weight-slip'
   });
+
+  // Sync fetched data with global state
+  useEffect(() => {
+    if (lots && lots.length > 0 && activeTab === "lot-entry") {
+      updateActiveData("lots", lots);
+    }
+  }, [lots, activeTab, updateActiveData]);
 
   // Get current data based on active tab
   const getCurrentData = () => {

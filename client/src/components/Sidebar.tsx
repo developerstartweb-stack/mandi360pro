@@ -17,12 +17,19 @@ import {
   Scale,
   Receipt,
   BookOpen,
-  MessageSquare
+  MessageSquare,
+  Truck,
+  PieChart,
+  Wallet,
+  Clock,
+  Bell,
+  Activity,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface SidebarProps {
   activeTab?: string;
@@ -31,11 +38,12 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: Home },
+  { id: "dashboard", label: "Dashboard", icon: Home, color: "text-blue-500" },
   { 
     id: "master-data", 
     label: "Master Data", 
     icon: Database,
+    color: "text-green-500",
     hasDropdown: true,
     subItems: [
       { id: "account-master", label: "Account Master", icon: Users },
@@ -48,6 +56,7 @@ const menuItems = [
     id: "inventory",
     label: "Inventory",
     icon: Package,
+    color: "text-orange-500",
     hasDropdown: true,
     subItems: [
       { id: "lot-entry", label: "Lot Entry", icon: Plus },
@@ -56,18 +65,27 @@ const menuItems = [
       { id: "weight-slip", label: "Weight Slip", icon: Scale }
     ]
   },
-  { id: "bill-desk", label: "Bill Desk", icon: Receipt },
-  { id: "farmer-invoice", label: "Farmer Invoice", icon: FileText },
-  { id: "accounting", label: "Accounting", icon: DollarSign },
-  { id: "ledger", label: "Ledger Module", icon: BookOpen },
-  { id: "reports", label: "Reports", icon: BarChart3 },
-  { id: "analytics", label: "Analytics", icon: TrendingUp },
-  { id: "whatsapp", label: "WhatsApp", icon: MessageSquare },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "bill-desk", label: "Bill Desk", icon: Receipt, color: "text-purple-500" },
+  { id: "farmer-invoice", label: "Farmer Invoice", icon: FileText, color: "text-indigo-500" },
+  { id: "accounting", label: "Accounting", icon: Wallet, color: "text-yellow-500" },
+  { id: "ledger", label: "Ledger Module", icon: BookOpen, color: "text-teal-500" },
+  { id: "reports", label: "Reports", icon: BarChart3, color: "text-red-500" },
+  { id: "analytics", label: "Analytics", icon: TrendingUp, color: "text-pink-500" },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageSquare, color: "text-green-600" },
+  { id: "settings", label: "Settings", icon: Settings, color: "text-gray-500" },
 ];
 
 export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollapsed = false }: SidebarProps) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  
+  // Mock data for quick stats (will be replaced with global state later)
+  const quickStats = {
+    activeLots: 12,
+    todayRevenue: 245000,
+    pendingBills: 5,
+    totalAccounts: 45,
+    totalProducts: 8
+  };
 
   const toggleDropdown = (itemId: string) => {
     setOpenDropdown(openDropdown === itemId ? null : itemId);
@@ -106,30 +124,33 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
             const isDropdownOpen = openDropdown === item.id;
             
             return (
-              <div key={item.id}>
+              <div key={item.id} className="relative">
                 <Button
                   variant={isActive ? "default" : "ghost"}
                   className={cn(
-                    "w-full justify-start gap-3 h-10",
-                    isActive && "bg-sidebar-primary text-sidebar-primary-foreground",
+                    "w-full justify-start gap-3 h-10 transition-all duration-200 hover-elevate",
+                    isActive && "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm",
+                    !isActive && "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     isCollapsed && "px-2"
                   )}
                   onClick={() => handleItemClick(item.id, item.hasDropdown)}
                   data-testid={`nav-${item.id}`}
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className={cn("h-4 w-4 flex-shrink-0", !isActive && item.color)} />
                   {!isCollapsed && (
                     <>
                       <span className="flex-1 text-left">{item.label}</span>
                       {item.hasDropdown && (
-                        isDropdownOpen ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )
+                        <div className="transition-transform duration-200">
+                          {isDropdownOpen ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </div>
                       )}
                       {'badge' in item && item.badge ? (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs animate-pulse">
                           {(item as any).badge}
                         </Badge>
                       ) : null}
@@ -137,29 +158,42 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
                   )}
                 </Button>
                 
-                {/* Dropdown submenu */}
-                {item.hasDropdown && isDropdownOpen && !isCollapsed && (
-                  <div className="ml-6 mt-2 space-y-1">
-                    {item.subItems?.map((subItem) => {
-                      const SubIcon = subItem.icon;
-                      const isSubActive = activeTab === subItem.id;
-                      
-                      return (
-                        <Button
-                          key={subItem.id}
-                          variant={isSubActive ? "default" : "ghost"}
-                          className={cn(
-                            "w-full justify-start gap-3 h-9 text-sm",
-                            isSubActive && "bg-sidebar-primary text-sidebar-primary-foreground"
-                          )}
-                          onClick={() => onTabChange?.(subItem.id)}
-                          data-testid={`nav-${subItem.id}`}
-                        >
-                          <SubIcon className="h-3 w-3 flex-shrink-0" />
-                          <span className="flex-1 text-left">{subItem.label}</span>
-                        </Button>
-                      );
-                    })}
+                {/* Dropdown submenu with smooth animation */}
+                {item.hasDropdown && !isCollapsed && (
+                  <div 
+                    className={cn(
+                      "overflow-hidden transition-all duration-300 ease-in-out",
+                      isDropdownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                    )}
+                  >
+                    <div className="ml-6 mt-2 space-y-1 pb-2">
+                      {item.subItems?.map((subItem, index) => {
+                        const SubIcon = subItem.icon;
+                        const isSubActive = activeTab === subItem.id;
+                        
+                        return (
+                          <Button
+                            key={subItem.id}
+                            variant={isSubActive ? "default" : "ghost"}
+                            className={cn(
+                              "w-full justify-start gap-3 h-9 text-sm transition-all duration-200 hover-elevate",
+                              isSubActive && "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm",
+                              !isSubActive && "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                              "transform",
+                              isDropdownOpen ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0"
+                            )}
+                            style={{
+                              transitionDelay: isDropdownOpen ? `${index * 50}ms` : "0ms"
+                            }}
+                            onClick={() => onTabChange?.(subItem.id)}
+                            data-testid={`nav-${subItem.id}`}
+                          >
+                            <SubIcon className="h-3 w-3 flex-shrink-0" />
+                            <span className="flex-1 text-left">{subItem.label}</span>
+                          </Button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -168,24 +202,67 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
         </nav>
 
         {!isCollapsed && (
-          <div className="mt-8 p-3 bg-card rounded-md border border-card-border">
-            <h4 className="text-sm font-medium text-card-foreground mb-2">
-              Quick Stats
-            </h4>
+          <div className="mt-8 p-3 bg-card rounded-md border border-card-border hover-elevate transition-all duration-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Activity className="h-4 w-4 text-primary" />
+              <h4 className="text-sm font-medium text-card-foreground">
+                Quick Stats
+              </h4>
+            </div>
             <div className="space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Active Lots:</span>
-                <span className="font-medium">12</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Package className="h-3 w-3 text-blue-500" />
+                  <span className="text-muted-foreground">Active Lots:</span>
+                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {quickStats.activeLots}
+                </Badge>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Today's Revenue:</span>
-                <span className="font-medium text-primary">₹2,45,000</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-3 w-3 text-green-500" />
+                  <span className="text-muted-foreground">Revenue:</span>
+                </div>
+                <span className="font-medium text-primary">
+                  ₹{quickStats.todayRevenue.toLocaleString()}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Pending Bills:</span>
-                <span className="font-medium text-destructive">5</span>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-3 w-3 text-orange-500" />
+                  <span className="text-muted-foreground">Pending Bills:</span>
+                </div>
+                <Badge variant={quickStats.pendingBills > 0 ? "destructive" : "secondary"} className="text-xs">
+                  {quickStats.pendingBills}
+                </Badge>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Users className="h-3 w-3 text-purple-500" />
+                  <span className="text-muted-foreground">Accounts:</span>
+                </div>
+                <span className="font-medium">{quickStats.totalAccounts}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Package className="h-3 w-3 text-indigo-500" />
+                  <span className="text-muted-foreground">Products:</span>
+                </div>
+                <span className="font-medium">{quickStats.totalProducts}</span>
               </div>
             </div>
+            
+            {quickStats.pendingBills > 0 && (
+              <div className="mt-3 p-2 bg-destructive/10 rounded-md border border-destructive/20">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-3 w-3 text-destructive" />
+                  <span className="text-xs text-destructive font-medium">
+                    {quickStats.pendingBills} bills need attention
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

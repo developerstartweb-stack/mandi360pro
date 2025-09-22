@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useGlobalState } from "@/App";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,46 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
   const [searchTerm, setSearchTerm] = useState("");
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const { toast } = useToast();
+  const { state, updateActiveData } = useGlobalState();
+
+  // Access master data and inventory data from global state
+  const accounts = state.masterData.accounts || [];
+  const products = state.masterData.products || [];
+  const places = state.masterData.places || [];
+  const availableLots = state.activeData.lots || [];
+  
+  // Helper function to get available inventory items for billing
+  const getAvailableInventoryItems = () => {
+    return availableLots.map(lot => ({
+      id: lot.id,
+      productName: products.find(p => p.id === lot.productId)?.name || 'Unknown Product',
+      quantity: lot.totalQuantity,
+      place: places.find(p => p.id === lot.placeId)?.name || 'Unknown Place',
+      arrivingDate: lot.arrivingDate,
+      lotData: lot
+    }));
+  };
+
+  // Helper function to get customer accounts for billing
+  const getCustomerAccounts = () => {
+    return accounts.filter(account => account.type === 'Customer');
+  };
+
+  // Helper function to validate data linking
+  const validateDataLinking = () => {
+    const hasProducts = products.length > 0;
+    const hasAccounts = accounts.length > 0;
+    const hasPlaces = places.length > 0;
+    const hasLots = availableLots.length > 0;
+    
+    console.log('Data Linking Status:', {
+      masterData: { products: hasProducts, accounts: hasAccounts, places: hasPlaces },
+      inventoryData: { lots: hasLots },
+      totalItems: products.length + accounts.length + places.length + availableLots.length
+    });
+    
+    return { hasProducts, hasAccounts, hasPlaces, hasLots };
+  };
 
   // Mutation for creating bill desk items
   const createMutation = useMutation({
