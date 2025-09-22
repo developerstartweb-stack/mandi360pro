@@ -14,12 +14,37 @@ import { useToast } from "@/hooks/use-toast";
 import type { DhadaBook, FarmerInvoice, ManualInvoice } from "@shared/schema";
 
 interface FarmerInvoiceModuleProps {
+  activeSubModule: string;
   currentFY: string;
   onFYChange: (fy: string) => void;
 }
 
-export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInvoiceModuleProps) {
-  const [activeTab, setActiveTab] = useState("dhada-book");
+export default function FarmerInvoiceModule({ activeSubModule, currentFY, onFYChange }: FarmerInvoiceModuleProps) {
+  // Get page title and description based on active sub-module
+  const getPageInfo = () => {
+    switch (activeSubModule) {
+      case "dhada-book": 
+        return {
+          title: "Dhada Book",
+          description: "Manage dhada book entries for farmer transactions and lot tracking"
+        };
+      case "farmer-invoice": 
+        return {
+          title: "Farmer Invoice", 
+          description: "Generate and manage invoices for farmers with detailed payment information"
+        };
+      case "manual-invoice": 
+        return {
+          title: "Manual Invoice",
+          description: "Create and track manual invoices for custom billing scenarios"
+        };
+      default: 
+        return {
+          title: "Farmer Invoice",
+          description: "Manage all farmer invoice operations including dhada books and manual invoices"
+        };
+    }
+  };
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
@@ -35,7 +60,7 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
       const response = await fetch(`/api/farmerinvoice/dhada-book?${params}`);
       return response.json();
     },
-    enabled: activeTab === "dhada-book"
+    enabled: activeSubModule === "dhada-book"
   });
 
   // Farmer Invoice Query
@@ -50,7 +75,7 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
       const response = await fetch(`/api/farmerinvoice/farmer-invoice?${params}`);
       return response.json();
     },
-    enabled: activeTab === "farmer-invoice"
+    enabled: activeSubModule === "farmer-invoice"
   });
 
   // Manual Invoice Query
@@ -65,7 +90,7 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
       const response = await fetch(`/api/farmerinvoice/manual-invoice?${params}`);
       return response.json();
     },
-    enabled: activeTab === "manual-invoice"
+    enabled: activeSubModule === "manual-invoice"
   });
 
   // Delete mutations
@@ -132,10 +157,10 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                Farmer Invoice Module
+                {getPageInfo().title}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Manage dhada books, farmer invoices, and manual invoices for FY {currentFY}
+                {getPageInfo().description} for FY {currentFY}
               </p>
             </div>
           </div>
@@ -164,37 +189,9 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
           </div>
         </div>
 
-        {/* Sub-Module Navigation */}
-        <div className="mb-6">
-          <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-farmer-invoice-submodule">
-            <SelectTrigger className="w-[250px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dhada-book">
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="w-4 h-4" />
-                  <span>Dhada Book</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="farmer-invoice">
-                <div className="flex items-center space-x-2">
-                  <Receipt className="w-4 h-4" />
-                  <span>Farmer Invoice</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="manual-invoice">
-                <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4" />
-                  <span>Manual Invoice</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
 
         {/* Content based on selected sub-module */}
-        {activeTab === "dhada-book" && (
+        {activeSubModule === "dhada-book" && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
@@ -280,7 +277,7 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
             </Card>
         )}
 
-        {activeTab === "farmer-invoice" && (
+        {activeSubModule === "farmer-invoice" && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
@@ -368,7 +365,7 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
             </Card>
         )}
 
-        {activeTab === "manual-invoice" && (
+        {activeSubModule === "manual-invoice" && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>
