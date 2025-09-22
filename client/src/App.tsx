@@ -12,6 +12,7 @@ import InventoryModule from "@/components/InventoryModule";
 import BillDeskModule from "@/components/BillDeskModule";
 import FarmerInvoiceModule from "@/components/FarmerInvoiceModule";
 import AccountingModule from "@/components/AccountingModule";
+import LedgerModule from "@/components/LedgerModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -185,6 +186,9 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
     
     case "accounting":
       return <AccountingModule currentFY={currentFY} onFYChange={onFYChange} />;
+    
+    case "ledger":
+      return <LedgerModule currentFY={currentFY} onFYChange={onFYChange} />;
     
     case "transactions":
       return (

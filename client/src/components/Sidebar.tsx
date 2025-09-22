@@ -15,7 +15,8 @@ import {
   Plus,
   AlertTriangle,
   Scale,
-  Receipt
+  Receipt,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,7 @@ const menuItems = [
   { id: "bill-desk", label: "Bill Desk", icon: Receipt },
   { id: "farmer-invoice", label: "Farmer Invoice", icon: FileText },
   { id: "accounting", label: "Accounting", icon: DollarSign },
+  { id: "ledger", label: "Ledger Module", icon: BookOpen },
   { id: "reports", label: "Reports", icon: BarChart3 },
   { id: "analytics", label: "Analytics", icon: TrendingUp },
   { id: "settings", label: "Settings", icon: Settings },
