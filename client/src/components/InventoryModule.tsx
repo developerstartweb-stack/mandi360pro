@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 interface InventoryModuleProps {
   currentFY: string;
   onFYChange?: (fy: string) => void;
+  activeSubModule?: string;
 }
 
 // Form schemas for validation - matching backend decimal/timestamp expectations
@@ -60,8 +61,7 @@ const weightSlipFormSchema = z.object({
   customFields: z.any().optional(), // JSON field - can be any value
 });
 
-export default function InventoryModule({ currentFY, onFYChange }: InventoryModuleProps) {
-  const [activeTab, setActiveTab] = useState("lot-entry");
+export default function InventoryModule({ currentFY, onFYChange, activeSubModule = "lot-entry" }: InventoryModuleProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -79,7 +79,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
     },
     onSuccess: (newData) => {
       // Update global state with new inventory data
-      if (activeTab === "lot-entry") {
+      if (activeSubModule === "lot-entry") {
         const currentLots = state.activeData.lots || [];
         updateActiveData("lots", [...currentLots, newData]);
       }
@@ -89,7 +89,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
       queryClient.invalidateQueries({ queryKey: [getApiEndpoint(), currentFY] });
       toast({
         title: "Success",
-        description: `${activeTab.replace('-', ' ')} created successfully`,
+        description: `${activeSubModule.replace('-', ' ')} created successfully`,
       });
     },
     onError: (error: any) => {
@@ -114,7 +114,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
       queryClient.invalidateQueries({ queryKey: [getApiEndpoint(), currentFY] });
       toast({
         title: "Success",
-        description: `${activeTab.replace('-', ' ')} updated successfully`,
+        description: `${activeSubModule.replace('-', ' ')} updated successfully`,
       });
     },
     onError: (error: any) => {
@@ -139,7 +139,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
       queryClient.invalidateQueries({ queryKey: [getApiEndpoint(), currentFY] });
       toast({
         title: "Success",
-        description: `${activeTab.replace('-', ' ')} deleted successfully`,
+        description: `${activeSubModule.replace('-', ' ')} deleted successfully`,
       });
     },
     onError: (error: any) => {
@@ -153,7 +153,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
 
   // Helper functions
   const getApiEndpoint = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "lot-entry": return "/api/inventory/lot-entry";
       case "godown-awak": return "/api/inventory/godown-awak";
       case "damage": return "/api/inventory/damage";
@@ -167,7 +167,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
   };
 
   const getFormSchema = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "lot-entry": return lotEntryFormSchema;
       case "godown-awak": return godownAwakFormSchema;
       case "damage": return damageFormSchema;
@@ -206,7 +206,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
 
   // Get current data based on active tab
   const getCurrentData = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "lot-entry": return filteredLots;
       case "godown-awak": return godownAwaks;
       case "damage": return damages;
@@ -261,7 +261,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [activeTab, showForm, getCurrentData]);
+  }, [activeSubModule, showForm, getCurrentData]);
 
   const handleAdd = () => {
     setEditingItem(null);
@@ -305,7 +305,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
     } else {
       form.reset({});
     }
-  }, [editingItem, form, activeTab]);
+  }, [editingItem, form, activeSubModule]);
 
   const onSubmit = (data: any) => {
     if (editingItem) {
@@ -317,7 +317,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
 
 
   const isLoading = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "lot-entry": return lotsLoading;
       case "godown-awak": return godownAwaksLoading;
       case "damage": return damagesLoading;
@@ -327,7 +327,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
   };
 
   const getTableColumns = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "lot-entry":
         return [
           { key: "lotId", label: "Lot ID", width: "w-32" },
@@ -382,7 +382,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
     if (!data || data.length === 0) {
       return (
         <div className="text-center py-12 text-muted-foreground">
-          <div className="text-lg mb-2">No {activeTab.replace('-', ' ')} records found</div>
+          <div className="text-lg mb-2">No {activeSubModule.replace('-', ' ')} records found</div>
           <p className="text-sm">Click the Add button to create your first record</p>
         </div>
       );
@@ -493,7 +493,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
 
       {/* Sub-Module Navigation */}
       <div className="mb-6">
-        <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-inventory-submodule">
+        <Select value={activeSubModule} onValueChange={setActiveTab} data-testid="select-inventory-submodule">
           <SelectTrigger className="w-[250px]">
             <SelectValue />
           </SelectTrigger>
@@ -530,10 +530,10 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
       <Card className="space-y-4">
         <CardHeader>
           <CardTitle>
-            {activeTab === "lot-entry" && "Lot Entry Records"}
-            {activeTab === "godown-awak" && "Godown Awak Records"}
-            {activeTab === "damage" && "Damage Records"}
-            {activeTab === "weight-slip" && "Weight Slip Records"}
+            {activeSubModule === "lot-entry" && "Lot Entry Records"}
+            {activeSubModule === "godown-awak" && "Godown Awak Records"}
+            {activeSubModule === "damage" && "Damage Records"}
+            {activeSubModule === "weight-slip" && "Weight Slip Records"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -546,19 +546,19 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-inventory-form">
           <DialogHeader>
             <DialogTitle data-testid="text-form-title">
-              {editingItem ? "Edit" : "Add"} {activeTab.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              {editingItem ? "Edit" : "Add"} {activeSubModule.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </DialogTitle>
             <DialogDescription data-testid="text-form-description">
               {editingItem 
-                ? `Update the ${activeTab.replace('-', ' ')} information below.`
-                : `Enter the details to create a new ${activeTab.replace('-', ' ')}.`
+                ? `Update the ${activeSubModule.replace('-', ' ')} information below.`
+                : `Enter the details to create a new ${activeSubModule.replace('-', ' ')}.`
               }
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="py-4 space-y-4">
               {/* Dynamic form fields based on active tab */}
-              {activeTab === "lot-entry" && (
+              {activeSubModule === "lot-entry" && (
                 <>
                   <FormField
                     control={form.control}
@@ -615,7 +615,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
                 </>
               )}
               
-              {activeTab === "godown-awak" && (
+              {activeSubModule === "godown-awak" && (
                 <>
                   <FormField
                     control={form.control}
@@ -646,7 +646,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
                 </>
               )}
               
-              {activeTab === "damage" && (
+              {activeSubModule === "damage" && (
                 <>
                   <FormField
                     control={form.control}
@@ -690,7 +690,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
                 </>
               )}
               
-              {activeTab === "weight-slip" && (
+              {activeSubModule === "weight-slip" && (
                 <>
                   <FormField
                     control={form.control}
@@ -763,7 +763,7 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
           <AlertDialogHeader>
             <AlertDialogTitle data-testid="text-delete-title">Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription data-testid="text-delete-description">
-              Are you sure you want to delete this {activeTab.replace('-', ' ')}? This action cannot be undone.
+              Are you sure you want to delete this {activeSubModule.replace('-', ' ')}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

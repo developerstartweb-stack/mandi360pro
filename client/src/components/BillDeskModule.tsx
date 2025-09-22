@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 interface BillDeskModuleProps {
   currentFY: string;
   onFYChange?: (fy: string) => void;
+  activeSubModule?: string;
 }
 
 // Form schemas for validation - Bill Desk specific fields
@@ -93,8 +94,7 @@ const paymentReceiptFormSchema = z.object({
   customFields: z.any().optional(), // JSON field - can be any value
 });
 
-export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModuleProps) {
-  const [activeTab, setActiveTab] = useState("customer-billing");
+export default function BillDeskModule({ currentFY, onFYChange, activeSubModule = "customer-billing" }: BillDeskModuleProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -153,7 +153,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       setShowForm(false);
       setEditingItem(null);
       // Invalidate queries for all relevant endpoints
-      if (activeTab === "payment-receipts") {
+      if (activeSubModule === "payment-receipts") {
         queryClient.invalidateQueries({ queryKey: ["/api/billdesk/customer-receipt", currentFY] });
         queryClient.invalidateQueries({ queryKey: ["/api/billdesk/other-receipt", currentFY] });
       } else {
@@ -161,7 +161,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       }
       toast({
         title: "Success",
-        description: `${activeTab.replace('-', ' ')} created successfully`,
+        description: `${activeSubModule.replace('-', ' ')} created successfully`,
       });
     },
     onError: (error: any) => {
@@ -183,7 +183,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       setShowForm(false);
       setEditingItem(null);
       // Invalidate queries for all relevant endpoints
-      if (activeTab === "payment-receipts") {
+      if (activeSubModule === "payment-receipts") {
         queryClient.invalidateQueries({ queryKey: ["/api/billdesk/customer-receipt", currentFY] });
         queryClient.invalidateQueries({ queryKey: ["/api/billdesk/other-receipt", currentFY] });
       } else {
@@ -191,7 +191,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       }
       toast({
         title: "Success",
-        description: `${activeTab.replace('-', ' ')} updated successfully`,
+        description: `${activeSubModule.replace('-', ' ')} updated successfully`,
       });
     },
     onError: (error: any) => {
@@ -215,7 +215,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       setShowDeleteDialog(false);
       setItemToDelete(null);
       // Invalidate queries for all relevant endpoints
-      if (activeTab === "payment-receipts") {
+      if (activeSubModule === "payment-receipts") {
         queryClient.invalidateQueries({ queryKey: ["/api/billdesk/customer-receipt", currentFY] });
         queryClient.invalidateQueries({ queryKey: ["/api/billdesk/other-receipt", currentFY] });
       } else {
@@ -223,7 +223,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       }
       toast({
         title: "Success",
-        description: `${activeTab.replace('-', ' ')} deleted successfully`,
+        description: `${activeSubModule.replace('-', ' ')} deleted successfully`,
       });
     },
     onError: (error: any) => {
@@ -237,7 +237,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
 
   // Helper functions
   const getApiEndpoint = (receiptType?: string) => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "customer-billing": return "/api/billdesk/customer-billing";
       case "khata-billing": return "/api/billdesk/khata-billing";
       case "payment-receipts": 
@@ -252,7 +252,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
   };
 
   const getFormSchema = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "customer-billing": return customerBillingFormSchema;
       case "khata-billing": return khataBillingFormSchema;
       case "payment-receipts": return paymentReceiptFormSchema;
@@ -280,7 +280,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       if (!response.ok) throw new Error('Failed to fetch customer billings');
       return response.json();
     },
-    enabled: activeTab === 'customer-billing'
+    enabled: activeSubModule === 'customer-billing'
   });
 
   const { data: khataBillings = [], isLoading: khataBillingsLoading } = useQuery({
@@ -293,7 +293,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       if (!response.ok) throw new Error('Failed to fetch khata billings');
       return response.json();
     },
-    enabled: activeTab === 'khata-billing'
+    enabled: activeSubModule === 'khata-billing'
   });
 
   const { data: customerReceipts = [], isLoading: customerReceiptsLoading } = useQuery({
@@ -306,7 +306,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       if (!response.ok) throw new Error('Failed to fetch customer receipts');
       return response.json();
     },
-    enabled: activeTab === 'payment-receipts'
+    enabled: activeSubModule === 'payment-receipts'
   });
 
   const { data: otherReceipts = [], isLoading: otherReceiptsLoading } = useQuery({
@@ -319,12 +319,12 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       if (!response.ok) throw new Error('Failed to fetch other receipts');
       return response.json();
     },
-    enabled: activeTab === 'payment-receipts'
+    enabled: activeSubModule === 'payment-receipts'
   });
 
   // Get current data based on active tab
   const getCurrentData = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "customer-billing": return customerBillings;
       case "khata-billing": return khataBillings;
       case "payment-receipts": return [
@@ -336,7 +336,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
   };
 
   const getCurrentLoading = () => {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "customer-billing": return customerBillingsLoading;
       case "khata-billing": return khataBillingsLoading;
       case "payment-receipts": return customerReceiptsLoading || otherReceiptsLoading;
@@ -351,7 +351,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
   });
 
   function getDefaultFormValues() {
-    switch (activeTab) {
+    switch (activeSubModule) {
       case "customer-billing":
         return {
           customerName: "",
@@ -484,7 +484,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
     form.reset(getDefaultFormValues());
     setEditingItem(null);
     setShowForm(false);
-  }, [activeTab]);
+  }, [activeSubModule]);
 
   return (
     <div className="space-y-6">
@@ -508,14 +508,14 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
           </div>
           <Button onClick={handleCreateNew} data-testid="button-create-new">
             <Plus className="h-4 w-4 mr-2" />
-            New {activeTab.replace('-', ' ')}
+            New {activeSubModule.replace('-', ' ')}
           </Button>
         </div>
       </div>
 
       {/* Sub-Module Navigation */}
       <div className="mb-6">
-        <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-billdesk-submodule">
+        <Select value={activeSubModule} onValueChange={setActiveTab} data-testid="select-billdesk-submodule">
           <SelectTrigger className="w-[250px]">
             <SelectValue />
           </SelectTrigger>
@@ -543,7 +543,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       </div>
 
       {/* Content based on selected sub-module */}
-      {activeTab === "customer-billing" && (
+      {activeSubModule === "customer-billing" && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -620,7 +620,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
         </div>
       )}
 
-      {activeTab === "khata-billing" && (
+      {activeSubModule === "khata-billing" && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -695,7 +695,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
         </div>
       )}
 
-      {activeTab === "khata-billing" && (
+      {activeSubModule === "khata-billing" && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -770,7 +770,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
         </div>
       )}
 
-      {activeTab === "payment-receipts" && (
+      {activeSubModule === "payment-receipts" && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -850,17 +850,17 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingItem ? "Edit" : "Create"} {activeTab.replace('-', ' ')}
+              {editingItem ? "Edit" : "Create"} {activeSubModule.replace('-', ' ')}
             </DialogTitle>
             <DialogDescription>
               Fill in the details below. Press Ctrl+S to save or Escape to cancel.
             </DialogDescription>
           </DialogHeader>
 
-          <div key={activeTab}>
+          <div key={activeSubModule}>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {activeTab === "customer-billing" && (
+              {activeSubModule === "customer-billing" && (
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -1008,7 +1008,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
                 </div>
               )}
 
-              {activeTab === "khata-billing" && (
+              {activeSubModule === "khata-billing" && (
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -1106,7 +1106,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
                 </div>
               )}
 
-              {activeTab === "payment-receipts" && (
+              {activeSubModule === "payment-receipts" && (
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -1222,7 +1222,7 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the {activeTab.replace('-', ' ')}.
+              This action cannot be undone. This will permanently delete the {activeSubModule.replace('-', ' ')}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

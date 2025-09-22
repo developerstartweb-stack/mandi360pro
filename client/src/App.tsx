@@ -59,7 +59,46 @@ function MainContent({ activeTab }: { activeTab: string }) {
     );
   }
 
-  switch (activeTab) {
+  // Helper function to determine which module to render based on sub-module activeTab
+  const getModuleFromSubTab = (subTab: string) => {
+    // Master Data sub-modules
+    if (['account-master', 'product-master', 'product-expenses', 'place-master'].includes(subTab)) {
+      return 'master-data';
+    }
+    // Inventory sub-modules
+    if (['lot-entry', 'godown-awak', 'damage', 'weight-slip'].includes(subTab)) {
+      return 'inventory';
+    }
+    // Bill Desk sub-modules
+    if (['customer-billing', 'khata-billing', 'payment-receipts'].includes(subTab)) {
+      return 'bill-desk';
+    }
+    // Farmer Invoice sub-modules
+    if (['dhada-book', 'farmer-invoice-sub', 'manual-invoice'].includes(subTab)) {
+      return 'farmer-invoice';
+    }
+    // Ledger sub-modules
+    if (['uplag', 'khata', 'farmer-transport', 'income', 'expense', 'bank-deposit'].includes(subTab)) {
+      return 'ledger';
+    }
+    // Reports sub-modules
+    if (['daily-summary', 'product-wise', 'account-wise', 'financial-overview', 'inventory-status', 'outstanding-report'].includes(subTab)) {
+      return 'reports';
+    }
+    // WhatsApp sub-modules
+    if (['messages', 'templates', 'whatsapp-settings'].includes(subTab)) {
+      return 'whatsapp';
+    }
+    // Settings sub-modules
+    if (['company-profile', 'default-expenses', 'printing-settings', 'module-settings'].includes(subTab)) {
+      return 'settings';
+    }
+    return subTab; // Return the tab itself for main modules without sub-modules
+  };
+
+  const currentModule = getModuleFromSubTab(activeTab);
+
+  switch (currentModule) {
     case "dashboard":
       return <DashboardModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
@@ -91,31 +130,31 @@ function MainContent({ activeTab }: { activeTab: string }) {
       );
     
     case "master-data":
-      return <MasterDataModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <MasterDataModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
     
     case "inventory":
-      return <InventoryModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <InventoryModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
     
     case "bill-desk":
-      return <BillDeskModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <BillDeskModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
     
     case "farmer-invoice":
-      return <FarmerInvoiceModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <FarmerInvoiceModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
     
     case "accounting":
       return <AccountingModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
     
     case "ledger":
-      return <LedgerModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <LedgerModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
     
     case "reports":
-      return <ReportsModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <ReportsModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
     
     case "settings":
-      return <SettingsModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <SettingsModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
     
     case "whatsapp":
-      return <WhatsAppModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <WhatsAppModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
 
     case "accounts":
       return (
