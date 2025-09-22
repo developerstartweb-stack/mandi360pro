@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -492,71 +491,65 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
         </CardContent>
       </Card>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} data-testid="tabs-inventory">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="lot-entry" className="flex items-center space-x-2" data-testid="tab-lot-entry">
-            {getTabIcon("lot-entry")}
-            <span>Lot Entry</span>
-          </TabsTrigger>
-          <TabsTrigger value="godown-awak" className="flex items-center space-x-2" data-testid="tab-godown-awak">
-            {getTabIcon("godown-awak")}
-            <span>Godown Awak</span>
-          </TabsTrigger>
-          <TabsTrigger value="damage" className="flex items-center space-x-2" data-testid="tab-damage">
-            {getTabIcon("damage")}
-            <span>Damage</span>
-          </TabsTrigger>
-          <TabsTrigger value="weight-slip" className="flex items-center space-x-2" data-testid="tab-weight-slip">
-            {getTabIcon("weight-slip")}
-            <span>Weight Slip</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Sub-Module Navigation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <CardTitle className="text-lg">Sub-Module</CardTitle>
+                <p className="text-sm text-muted-foreground">Select an inventory management function</p>
+              </div>
+              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-inventory-submodule">
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lot-entry">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("lot-entry")}
+                      <span>Lot Entry</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="godown-awak">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("godown-awak")}
+                      <span>Godown Awak</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="damage">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("damage")}
+                      <span>Damage</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="weight-slip">
+                    <div className="flex items-center space-x-2">
+                      {getTabIcon("weight-slip")}
+                      <span>Weight Slip</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
 
-        <TabsContent value="lot-entry" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Lot Entry Records</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderTableView()}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="godown-awak" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Godown Awak Records</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderTableView()}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="damage" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Damage Records</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderTableView()}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="weight-slip" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Weight Slip Records</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderTableView()}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Content based on selected sub-module */}
+      <Card className="space-y-4">
+        <CardHeader>
+          <CardTitle>
+            {activeTab === "lot-entry" && "Lot Entry Records"}
+            {activeTab === "godown-awak" && "Godown Awak Records"}
+            {activeTab === "damage" && "Damage Records"}
+            {activeTab === "weight-slip" && "Weight Slip Records"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {renderTableView()}
+        </CardContent>
+      </Card>
 
       {/* Form Dialog - Full Screen */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
