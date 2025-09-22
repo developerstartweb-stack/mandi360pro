@@ -132,7 +132,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
     defaultValues: {
       productId: initialData?.productId || "",
       placeId: initialData?.placeId || "",
-      arrivingDate: initialData?.arrivingDate || "",
+      arrivingDate: initialData?.arrivingDate || new Date().toISOString().split('T')[0],
       totalQuantity: initialData?.totalQuantity || "",
       totalWeight: initialData?.totalWeight || "",
       freight: initialData?.freight || "",
@@ -296,6 +296,25 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               
+              {/* Arriving Date - Top Priority */}
+              <FormField
+                control={form.control}
+                name="arrivingDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Arriving Date *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        data-testid="input-arriving-date"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Basic Lot Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -426,23 +445,6 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="arrivingDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Arriving Date *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          data-testid="input-arriving-date"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
