@@ -475,10 +475,10 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
             <div>
               <CardTitle className="text-2xl font-display text-primary flex items-center gap-2">
                 <Filter className="h-6 w-6" />
-                Inventory Module
+                {getPageInfo().title}
               </CardTitle>
               <p className="text-muted-foreground">
-                Manage lot entries, godown awak, damage records, and weight slips for FY {currentFY}
+                {getPageInfo().description} for FY {currentFY}
               </p>
             </div>
             <div className="flex items-center gap-3">
