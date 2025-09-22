@@ -1,6 +1,5 @@
-import { Bell, Search, User, Menu } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,11 +18,6 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const handleSearch = () => {
-    console.log("Search triggered:", searchQuery);
-  };
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-background">
@@ -49,20 +43,6 @@ export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderPro
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="hidden sm:flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search lots, accounts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-10 w-64"
-              data-testid="input-search"
-            />
-          </div>
-        </div>
 
         {/* FY Selector */}
         <div className="flex items-center gap-2">
@@ -78,17 +58,17 @@ export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderPro
           </Select>
         </div>
 
-        {/* Notifications */}
+        {/* Reminders & Notifications Bell */}
         <Button
           variant="ghost"
           size="icon"
           className="relative"
-          data-testid="button-notifications"
-          onClick={() => console.log("Notifications clicked")}
+          data-testid="button-reminders-notifications"
+          onClick={() => console.log("Reminders and notifications clicked")}
         >
           <Bell className="h-5 w-5" />
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs">
-            3
+          <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-destructive">
+            5
           </Badge>
         </Button>
 
