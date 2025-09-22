@@ -594,15 +594,29 @@ export class MemStorage implements IStorage {
       initials = cleanName.substring(0, 2).toUpperCase();
     }
     
-    // Get count of accounts with same type and initials for sequence
-    const accounts = Array.from(this.accounts.values());
+    // Generate unique ID by checking for existence and incrementing
     const prefix = `${typePrefix}-${initials}`;
-    const matchingAccounts = accounts.filter(account => 
-      account.accountId?.startsWith(prefix) && account.financialYear === financialYear
-    );
+    let sequenceNumber = 1;
+    let candidateId = `${prefix}-${String(sequenceNumber).padStart(3, '0')}`;
     
-    const nextNumber = String(matchingAccounts.length + 1).padStart(3, '0');
-    return `${prefix}-${nextNumber}`;
+    // Keep incrementing until we find a unique ID
+    while (true) {
+      const existing = Array.from(this.accounts.values()).find(account => 
+        account.accountId === candidateId && account.financialYear === financialYear
+      );
+      
+      if (!existing) {
+        return candidateId;
+      }
+      
+      sequenceNumber++;
+      candidateId = `${prefix}-${String(sequenceNumber).padStart(3, '0')}`;
+      
+      // Safety check to prevent infinite loop
+      if (sequenceNumber > 999) {
+        throw new Error(`Cannot generate unique account ID for prefix ${prefix} - too many accounts`);
+      }
+    }
   }
 
   // Product Master operations
@@ -2956,16 +2970,31 @@ export class DatabaseStorage implements IStorage {
       initials = cleanName.substring(0, 2).toUpperCase();
     }
     
-    // Get count of accounts with same type and initials for sequence
+    // Generate unique ID by checking for existence and incrementing
     const prefix = `${typePrefix}-${initials}`;
-    const accounts = await db.select().from(accountMaster)
-      .where(and(
-        like(accountMaster.accountId, `${prefix}%`),
-        eq(accountMaster.financialYear, financialYear)
-      ));
+    let sequenceNumber = 1;
+    let candidateId = `${prefix}-${String(sequenceNumber).padStart(3, '0')}`;
     
-    const nextNumber = String(accounts.length + 1).padStart(3, '0');
-    return `${prefix}-${nextNumber}`;
+    // Keep incrementing until we find a unique ID
+    while (true) {
+      const existing = await db.select().from(accountMaster)
+        .where(and(
+          eq(accountMaster.accountId, candidateId),
+          eq(accountMaster.financialYear, financialYear)
+        ));
+      
+      if (existing.length === 0) {
+        return candidateId;
+      }
+      
+      sequenceNumber++;
+      candidateId = `${prefix}-${String(sequenceNumber).padStart(3, '0')}`;
+      
+      // Safety check to prevent infinite loop
+      if (sequenceNumber > 999) {
+        throw new Error(`Cannot generate unique account ID for prefix ${prefix} - too many accounts`);
+      }
+    }
   }
 
   // Product Master operations
