@@ -430,20 +430,62 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Place *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-place">
-                            <SelectValue placeholder="Select place" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {places.map((place: any) => (
-                            <SelectItem key={place.id} value={place.id}>
-                              {place.placeName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                              data-testid="select-place"
+                            >
+                              {field.value
+                                ? places.find((place: any) => place.id === field.value)?.placeName || "Select place"
+                                : "Select place"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search places..." />
+                            <CommandList>
+                              <CommandEmpty>
+                                {places.length === 0 
+                                  ? "No places found. Please create places in Place Master first."
+                                  : "No places match your search."
+                                }
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {places.map((place: any) => (
+                                  <CommandItem
+                                    key={place.id}
+                                    value={`${place.placeName} ${place.placeCode || ''}`}
+                                    onSelect={() => {
+                                      field.onChange(place.id);
+                                    }}
+                                    data-testid={`option-place-${place.id}`}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        place.id === field.value ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    />
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{place.placeName}</span>
+                                      {place.placeCode && (
+                                        <span className="text-sm text-muted-foreground">
+                                          Code: {place.placeCode}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
