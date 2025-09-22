@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import ViewDetailsModal from "@/components/ViewDetailsModal";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,6 +102,8 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
   const [itemToDelete, setItemToDelete] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingItem, setViewingItem] = useState<any>(null);
   const { toast } = useToast();
   const { state, updateActiveData } = useGlobalState();
 
@@ -449,10 +452,8 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
 
   // Handle view
   const handleView = (item: any) => {
-    toast({
-      title: "View Item",
-      description: `Viewing ${item.billNo || item.receiptNo} details`,
-    });
+    setViewingItem(item);
+    setShowViewModal(true);
   };
 
   // Handle edit
@@ -1251,6 +1252,16 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View Details Modal */}
+      <ViewDetailsModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        item={viewingItem}
+        itemType={
+          activeSubModule === "customer-billing" || activeSubModule === "khata-billing" ? "billing" : "receipt"
+        }
+      />
     </div>
   );
 }

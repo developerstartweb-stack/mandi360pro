@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import ViewDetailsModal from "@/components/ViewDetailsModal";
 import { 
   Plus, 
   Search, 
@@ -91,6 +92,8 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
   const [editingItem, setEditingItem] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<any>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingItem, setViewingItem] = useState<any>(null);
 
   // Fetch data directly from API
   const { data: accounts = [], isLoading: accountsLoading } = useQuery({
@@ -333,11 +336,8 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
   };
 
   const handleView = (item: any) => {
-    // For now, just show a toast with item details
-    toast({
-      title: "View Item",
-      description: `Viewing ${item.name || item.expenseName} details`,
-    });
+    setViewingItem(item);
+    setShowViewModal(true);
   };
 
   const handleEdit = (item: any) => {
@@ -794,6 +794,19 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View Details Modal */}
+      <ViewDetailsModal
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        item={viewingItem}
+        itemType={
+          activeSubModule === "account-master" ? "account" :
+          activeSubModule === "product-master" ? "product" :
+          activeSubModule === "product-expenses" ? "expense" :
+          activeSubModule === "place-master" ? "place" : "account"
+        }
+      />
 
       {/* Keyboard shortcuts hint */}
       <div className="text-xs text-muted-foreground text-center space-x-4 py-4 border-t">
