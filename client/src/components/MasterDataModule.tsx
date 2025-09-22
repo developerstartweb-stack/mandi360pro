@@ -134,7 +134,8 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
                       activeTab === "products" ? "products" :
                       activeTab === "expenses" ? "expenses" : "places";
       
-      const currentData = state.masterData[dataType as keyof typeof state.masterData] || [];
+      const currentData = Array.isArray(state.masterData[dataType as keyof typeof state.masterData]) ? 
+        state.masterData[dataType as keyof typeof state.masterData] as any[] : [];
       updateMasterData(dataType as keyof typeof state.masterData, [...currentData, newData]);
       
       queryClient.invalidateQueries({ queryKey: [`/api/${activeTab}`] });
