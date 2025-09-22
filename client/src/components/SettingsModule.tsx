@@ -737,60 +737,61 @@ function ModuleSettingsTable({ items, selectedRowId, onEdit, onDelete, onRowSele
       </div>
 
       <div className="rounded-md border bg-white dark:bg-gray-800/50">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Module Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Fields Count</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.length === 0 ? (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={4} className="text-center text-gray-500 py-8">
-                No module settings found. Click "Add New" to create one.
-              </TableCell>
+              <TableHead>Module Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Fields Count</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ) : (
-            items.map((item) => (
-              <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                <TableCell className="font-medium" data-testid={`text-module-name-${item.id}`}>{item.moduleName}</TableCell>
-                <TableCell data-testid={`text-module-status-${item.id}`}>
-                  <Badge variant={item.isActive ? "default" : "secondary"}>
-                    {item.isActive ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell data-testid={`text-module-fields-${item.id}`}>
-                  {item.moduleFields && typeof item.moduleFields === 'object' ? Object.keys(item.moduleFields).length : 0} fields
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit(item)}
-                      data-testid={`button-edit-${item.id}`}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(item.id, "modules")}
-                      className="text-red-600 hover:text-red-700"
-                      data-testid={`button-delete-${item.id}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+          </TableHeader>
+          <TableBody>
+            {items.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-gray-500 py-8">
+                  No module settings found. Click "Add New" to create one.
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              items.map((item) => (
+                <TableRow key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <TableCell className="font-medium" data-testid={`text-module-name-${item.id}`}>{item.moduleName}</TableCell>
+                  <TableCell data-testid={`text-module-status-${item.id}`}>
+                    <Badge variant={item.isActive ? "default" : "secondary"}>
+                      {item.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell data-testid={`text-module-fields-${item.id}`}>
+                    {item.moduleFields && typeof item.moduleFields === 'object' ? Object.keys(item.moduleFields).length : 0} fields
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(item)}
+                        data-testid={`button-edit-${item.id}`}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(item.id, "modules")}
+                        className="text-red-600 hover:text-red-700"
+                        data-testid={`button-delete-${item.id}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
