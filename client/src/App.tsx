@@ -13,6 +13,7 @@ import BillDeskModule from "@/components/BillDeskModule";
 import FarmerInvoiceModule from "@/components/FarmerInvoiceModule";
 import AccountingModule from "@/components/AccountingModule";
 import LedgerModule from "@/components/LedgerModule";
+import ReportsModule from "@/components/ReportsModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -190,6 +191,13 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
     case "ledger":
       return <LedgerModule currentFY={currentFY} onFYChange={onFYChange} />;
     
+    case "reports":
+      return (
+        <div className="p-6">
+          <ReportsModule />
+        </div>
+      );
+    
     case "transactions":
       return (
         <div className="p-6 space-y-6">
@@ -217,57 +225,6 @@ function MainContent({ activeTab, currentFY, onFYChange }: { activeTab: string; 
         </div>
       );
     
-    case "reports":
-      return (
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-display font-bold">Reports & Analytics</h1>
-              <p className="text-muted-foreground">Financial Year {currentFY} Reports</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="gap-2" data-testid="button-export-csv">
-                <FileText className="h-4 w-4" />
-                Export CSV
-              </Button>
-              <Button variant="outline" className="gap-2" data-testid="button-export-json">
-                <FileText className="h-4 w-4" />
-                Export JSON
-              </Button>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Revenue Analysis
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
-                  Revenue charts and analysis will be implemented here
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Product Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
-                  Product performance metrics will be implemented here
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      );
     
     case "settings":
       return (

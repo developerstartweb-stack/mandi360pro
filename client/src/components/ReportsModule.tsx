@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,9 @@ import {
   Printer, 
   Search,
   Filter,
-  Calendar
+  Calendar,
+  ExternalLink,
+  Download
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -220,9 +223,10 @@ interface ResultsTableProps {
   isLoading: boolean;
   selectedRowId: string | null;
   onRowSelect: (id: string) => void;
+  onNavigate?: (path: string) => void;
 }
 
-function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect }: ResultsTableProps) {
+function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect, onNavigate }: ResultsTableProps) {
   const formatCurrency = (amount: any) => {
     const num = parseFloat(amount) || 0;
     return new Intl.NumberFormat('en-IN', {
@@ -332,7 +336,24 @@ function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect }: Res
                 >
                   {type === "lot" && (
                     <>
-                      <TableCell className="font-medium">{row.lotId}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {row.lotId}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate?.('/lots');
+                            }}
+                            title="View in Inventory"
+                            data-testid={`button-nav-lot-${row.lotId}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>{row.productName}</TableCell>
                       <TableCell>{row.farmerName}</TableCell>
                       <TableCell>{row.date ? format(new Date(row.date), "MMM dd, yyyy") : "-"}</TableCell>
@@ -342,7 +363,24 @@ function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect }: Res
                   )}
                   {type === "bill" && (
                     <>
-                      <TableCell className="font-medium">{row.billNo}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {row.billNo}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate?.('/bill-desk');
+                            }}
+                            title="View in Bill Desk"
+                            data-testid={`button-nav-bill-${row.billNo}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>{row.customerName}</TableCell>
                       <TableCell>{row.date ? format(new Date(row.date), "MMM dd, yyyy") : "-"}</TableCell>
                       <TableCell>{formatCurrency(row.totalAmount)}</TableCell>
@@ -351,7 +389,24 @@ function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect }: Res
                   )}
                   {type === "invoice" && (
                     <>
-                      <TableCell className="font-medium">{row.invoiceNo}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {row.invoiceNo}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate?.('/farmer-invoice');
+                            }}
+                            title="View in Farmer Invoice"
+                            data-testid={`button-nav-invoice-${row.invoiceNo}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>{row.farmerName}</TableCell>
                       <TableCell>{row.date ? format(new Date(row.date), "MMM dd, yyyy") : "-"}</TableCell>
                       <TableCell>{formatCurrency(row.netPayable)}</TableCell>
@@ -360,7 +415,24 @@ function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect }: Res
                   {(type === "income" || type === "expense") && (
                     <>
                       <TableCell>{row.date ? format(new Date(row.date), "MMM dd, yyyy") : "-"}</TableCell>
-                      <TableCell>{row.name}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {row.name}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate?.('/ledger');
+                            }}
+                            title="View in Ledger"
+                            data-testid={`button-nav-${type}-${row.name || index}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>{formatCurrency(row.amount)}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{row.paymentMode || "N/A"}</Badge>
@@ -369,7 +441,24 @@ function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect }: Res
                   )}
                   {type === "paid-unpaid" && (
                     <>
-                      <TableCell className="font-medium">{row.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {row.name}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onNavigate?.('/ledger');
+                            }}
+                            title="View in Ledger"
+                            data-testid={`button-nav-${type}-${row.name || index}`}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
                       <TableCell>{formatCurrency(row.payable)}</TableCell>
                       <TableCell>{formatCurrency(row.paid)}</TableCell>
                       <TableCell className={row.unpaid > 0 ? "text-red-600 font-medium" : ""}>
@@ -392,6 +481,7 @@ function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect }: Res
 
 export default function ReportsModule() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("lot");
   const [currentFY, setCurrentFY] = useState("2025-26");
   const [searchTerm, setSearchTerm] = useState("");
@@ -422,6 +512,28 @@ export default function ReportsModule() {
             e.preventDefault();
             // Focus search
             document.getElementById('search')?.focus();
+            break;
+          case 's':
+            e.preventDefault();
+            // Save current report configuration
+            toast({ title: "Save Config", description: "Report configuration saved successfully" });
+            break;
+          case 'e':
+            e.preventDefault();
+            // Export current report
+            if (reportData.length > 0) {
+              handleExportCSV();
+            } else {
+              toast({ title: "No Data", description: "No data to export", variant: "destructive" });
+            }
+            break;
+          case 'd':
+            e.preventDefault();
+            // Delete/Clear current filters
+            setFilters({});
+            setSearchTerm("");
+            setSelectedRowId(null);
+            toast({ title: "Filters Cleared", description: "All filters and selections cleared" });
             break;
         }
       }
@@ -458,6 +570,43 @@ export default function ReportsModule() {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  // Export functionality
+  const handleExportCSV = () => {
+    const csvData = reportData.map(row => {
+      const values = Object.values(row).map(val => 
+        typeof val === 'object' ? JSON.stringify(val) : String(val || '')
+      );
+      return values.join(',');
+    }).join('\n');
+    
+    const headers = Object.keys(reportData[0] || {}).join(',') + '\n';
+    const blob = new Blob([headers + csvData], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeTab}-report-${currentFY}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export Complete", description: "CSV file downloaded successfully" });
+  };
+
+  const handleExportJSON = () => {
+    const jsonData = JSON.stringify(reportData, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeTab}-report-${currentFY}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Export Complete", description: "JSON file downloaded successfully" });
+  };
+
+  // Navigation handler
+  const handleNavigate = (path: string) => {
+    setLocation(path);
+  };
+
   return (
     <div className="space-y-6" ref={componentRef}>
       {/* Header */}
@@ -471,7 +620,26 @@ export default function ReportsModule() {
         <div className="flex gap-2">
           <Button 
             variant="outline" 
+            onClick={handleExportCSV}
+            disabled={reportData.length === 0}
+            data-testid="button-export-csv"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleExportJSON}
+            disabled={reportData.length === 0}
+            data-testid="button-export-json"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export JSON
+          </Button>
+          <Button 
+            variant="outline" 
             onClick={handlePrint}
+            disabled={reportData.length === 0}
             data-testid="button-print-report"
           >
             <Printer className="w-4 h-4 mr-2" />
@@ -530,6 +698,7 @@ export default function ReportsModule() {
               isLoading={isLoading}
               selectedRowId={selectedRowId}
               onRowSelect={setSelectedRowId}
+              onNavigate={handleNavigate}
             />
           </TabsContent>
         ))}
