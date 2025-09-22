@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, json, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, decimal, boolean, json, timestamp, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1480,3 +1480,48 @@ export type UpdateWhatsappTemplates = z.infer<typeof updateWhatsappTemplatesSche
 export type WhatsappSettings = typeof whatsappSettings.$inferSelect;
 export type InsertWhatsappSettings = z.infer<typeof insertWhatsappSettingsSchema>;
 export type UpdateWhatsappSettings = z.infer<typeof updateWhatsappSettingsSchema>;
+
+// Sales Transactions Table - For tracking historical sales data to calculate average rates
+export const salesTransactions = pgTable("sales_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  date: timestamp("date").notNull().default(sql`now()`),
+  productId: varchar("product_id", { length: 50 }).notNull(), // Reference to Product Master
+  quality: varchar("quality", { length: 10 }).notNull(), // A, B, C
+  unitRate: decimal("unit_rate", { precision: 12, scale: 2 }).notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),
+  buyerAccountId: varchar("buyer_account_id", { length: 50 }), // Reference to Account Master
+  source: varchar("source", { length: 50 }).notNull(), // "billing", "invoice", "manual", etc.
+  sourceId: varchar("source_id", { length: 50 }).notNull(), // ID of the source record
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  // Composite index for fast rate calculations
+  rateCalculationIndex: index("idx_sales_transactions_rate_calc").on(
+    table.financialYear, 
+    table.productId, 
+    table.quality, 
+    table.date
+  ),
+}));
+
+// Sales Transactions Schema Validations
+export const insertSalesTransactionsSchema = createInsertSchema(salesTransactions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  productId: z.string().min(1, "Product ID is required"),
+  quality: z.enum(["A", "B", "C"]),
+  unitRate: z.number().min(0, "Unit rate must be 0 or greater"),
+  quantity: z.number().min(0.01, "Quantity must be greater than 0"),
+  source: z.string().min(1, "Source is required"),
+  sourceId: z.string().min(1, "Source ID is required"),
+});
+
+export const updateSalesTransactionsSchema = insertSalesTransactionsSchema.partial();
+
+// Sales Transactions Types
+export type SalesTransactions = typeof salesTransactions.$inferSelect;
+export type InsertSalesTransactions = z.infer<typeof insertSalesTransactionsSchema>;
+export type UpdateSalesTransactions = z.infer<typeof updateSalesTransactionsSchema>;
