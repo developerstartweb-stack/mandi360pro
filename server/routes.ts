@@ -14,6 +14,7 @@ import {
   updateLotEntrySchema,
   insertLotEntrySubFieldsSchema,
   updateLotEntrySubFieldsSchema,
+  createLotWithSubFieldsSchema,
   insertGodownAwakSchema,
   updateGodownAwakSchema,
   insertDamageSchema,
@@ -362,6 +363,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete lot entry" });
+    }
+  });
+
+  // Composite endpoint for creating lot with sub-fields
+  app.post("/api/inventory/lot-entry/with-sub-fields", async (req, res) => {
+    try {
+      const validatedData = createLotWithSubFieldsSchema.parse(req.body);
+      const result = await storage.createLotWithSubFields(validatedData.lot, validatedData.subFields);
+      res.status(201).json(result);
+    } catch (error: any) {
+      console.error('Lot creation with sub-fields error:', error);
+      
+      // Handle duplicate key constraints with user-friendly messages
+      if (error.message?.includes('duplicate key') || error.code === '23505') {
+        res.status(400).json({ error: 'Lot ID already exists. Please try again.' });
+      } else {
+        res.status(400).json({ error: error.message || "Invalid lot entry data" });
+      }
     }
   });
 
