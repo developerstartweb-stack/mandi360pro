@@ -157,7 +157,7 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, selectedRowId, getSelectedRow, uplagLedgers, khataLedgers, farmerTransportLedgers, incomeLedgers, expenseLedgers, bankDepositLedgers]);
+  }, [activeTab, selectedRowId, getSelectedRow]);
 
   // Clear selection when switching tabs
   useEffect(() => {
