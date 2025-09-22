@@ -644,71 +644,90 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                           )}
                         </div>
                         
-                        {/* Farmer Account Selection */}
-                        <FormField
-                          control={form.control}
-                          name={`subFields.${farmerIndex}.accountId`}
-                          render={({ field: accountField }) => (
-                            <FormItem>
-                              <FormLabel>Farmer Account *</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      role="combobox"
-                                      className={`w-full justify-between ${!accountField.value && "text-muted-foreground"}`}
-                                      data-testid={`select-farmer-${farmerIndex}`}
-                                    >
-                                      {accountField.value
-                                        ? farmers.find((farmer: any) => farmer.id === accountField.value)?.name || "Select farmer"
-                                        : "Select farmer"}
-                                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0">
-                                  <Command>
-                                    <CommandInput placeholder="Search farmers..." />
-                                    <CommandList>
-                                      <CommandEmpty>
-                                        {farmers.length === 0 
-                                          ? "No farmer accounts found. Please create Farmer type accounts in Account Master first."
-                                          : "No farmers match your search."
-                                        }
-                                      </CommandEmpty>
-                                      <CommandGroup>
-                                        {farmers.map((farmer: any) => (
-                                          <CommandItem
-                                            key={farmer.id}
-                                            value={`${farmer.name} ${farmer.accountId}`}
-                                            onSelect={() => {
-                                              accountField.onChange(farmer.id);
-                                            }}
-                                            data-testid={`option-farmer-${farmer.id}`}
-                                          >
-                                            <Check
-                                              className={`mr-2 h-4 w-4 ${
-                                                farmer.id === accountField.value ? "opacity-100" : "opacity-0"
-                                              }`}
-                                            />
-                                            <div className="flex flex-col">
-                                              <span className="font-medium">{farmer.name}</span>
-                                              <span className="text-sm text-muted-foreground">
-                                                {farmer.accountId} • Farmer
-                                              </span>
-                                            </div>
-                                          </CommandItem>
-                                        ))}
-                                      </CommandGroup>
-                                    </CommandList>
-                                  </Command>
-                                </PopoverContent>
-                              </Popover>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {/* Farmer Account and Product Selection */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`subFields.${farmerIndex}.accountId`}
+                            render={({ field: accountField }) => (
+                              <FormItem>
+                                <FormLabel>Farmer Account *</FormLabel>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <FormControl>
+                                      <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        className={`w-full justify-between ${!accountField.value && "text-muted-foreground"}`}
+                                        data-testid={`select-farmer-${farmerIndex}`}
+                                      >
+                                        {accountField.value
+                                          ? farmers.find((farmer: any) => farmer.id === accountField.value)?.name || "Select farmer"
+                                          : "Select farmer"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                      </Button>
+                                    </FormControl>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-full p-0">
+                                    <Command>
+                                      <CommandInput placeholder="Search farmers..." />
+                                      <CommandList>
+                                        <CommandEmpty>
+                                          {farmers.length === 0 
+                                            ? "No farmer accounts found. Please create Farmer type accounts in Account Master first."
+                                            : "No farmers match your search."
+                                          }
+                                        </CommandEmpty>
+                                        <CommandGroup>
+                                          {farmers.map((farmer: any) => (
+                                            <CommandItem
+                                              key={farmer.id}
+                                              value={`${farmer.name} ${farmer.accountId}`}
+                                              onSelect={() => {
+                                                accountField.onChange(farmer.id);
+                                              }}
+                                              data-testid={`option-farmer-${farmer.id}`}
+                                            >
+                                              <Check
+                                                className={`mr-2 h-4 w-4 ${
+                                                  farmer.id === accountField.value ? "opacity-100" : "opacity-0"
+                                                }`}
+                                              />
+                                              <div className="flex flex-col">
+                                                <span className="font-medium">{farmer.name}</span>
+                                                <span className="text-sm text-muted-foreground">
+                                                  {farmer.accountId} • Farmer
+                                                </span>
+                                              </div>
+                                            </CommandItem>
+                                          ))}
+                                        </CommandGroup>
+                                      </CommandList>
+                                    </Command>
+                                  </PopoverContent>
+                                </Popover>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* Product Field for Farmer Lot */}
+                          <FormItem>
+                            <FormLabel>Product</FormLabel>
+                            <FormControl>
+                              <Input
+                                value={selectedProduct?.name || ''}
+                                disabled
+                                placeholder="Auto-selected from main product"
+                                data-testid={`input-farmer-product-${farmerIndex}`}
+                                className="bg-muted"
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">
+                              Inherited from main lot product
+                            </p>
+                          </FormItem>
+                        </div>
                       </CardHeader>
 
                       <CardContent className="pt-0">
