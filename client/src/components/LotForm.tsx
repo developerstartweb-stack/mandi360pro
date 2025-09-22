@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package, Check, ChevronsUpDown, AlertCircle } from "lucide-react";
+import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package, Check, ChevronsUpDown, AlertCircle, RefreshCw } from "lucide-react";
 
 // Form validation schema
 const lotSubFieldSchema = z.object({
@@ -61,6 +61,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
   const { toast } = useToast();
   const [showCalculations, setShowCalculations] = useState(false);
   const [showTransportDetails, setShowTransportDetails] = useState(false);
+  const [loadingRates, setLoadingRates] = useState<Set<number>>(new Set());
 
   // Fetch master data
   const { data: products = [] } = useQuery({
@@ -81,6 +82,44 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
   // Filter accounts by type
   const farmers = accounts.filter((acc: any) => acc.type === 'F' || acc.type === 'Farmer');
   const transporters = accounts.filter((acc: any) => acc.type === 'T' || acc.type === 'Transport'); // Support both 'T' and 'Transport'
+
+  // Function to fetch average rate
+  const fetchAverageRate = async (productId: string, quality: string, index: number) => {
+    if (!productId || !quality) return;
+    
+    setLoadingRates(prev => new Set(prev).add(index));
+    
+    try {
+      const response = await fetch(`/api/rates/average?productId=${productId}&quality=${quality}&financialYear=${currentFY}&days=30`);
+      const data = await response.json();
+      
+      if (data.avgRate !== null) {
+        form.setValue(`subFields.${index}.averageRate`, data.avgRate.toString());
+        toast({
+          title: "Rate Updated",
+          description: `Auto-populated rate: ₹${data.avgRate} (based on ${data.count} recent transactions)`,
+        });
+      } else {
+        toast({
+          title: "No Historical Data",
+          description: "No recent sales data found for this product and quality combination.",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching rate:', error);
+      toast({
+        title: "Rate Fetch Failed",
+        description: "Could not fetch historical rate. Please enter manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingRates(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
+    }
+  };
 
   const form = useForm<LotFormData>({
     resolver: zodResolver(lotFormSchema),
@@ -594,7 +633,13 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Quality</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={(value) => {
+                                  field.onChange(value);
+                                  const productId = form.getValues('productId');
+                                  if (productId && value) {
+                                    fetchAverageRate(productId, value, index);
+                                  }
+                                }} defaultValue={field.value}>
                                   <FormControl>
                                     <SelectTrigger data-testid={`select-quality-${index}`}>
                                       <SelectValue placeholder="Select quality" />
@@ -616,14 +661,47 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                             name={`subFields.${index}.averageRate`}
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Average Rate (₹)</FormLabel>
+                                <FormLabel className="flex items-center gap-2">
+                                  Average Rate (₹)
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => {
+                                      const productId = form.getValues('productId');
+                                      const quality = form.getValues(`subFields.${index}.quality`);
+                                      if (productId && quality) {
+                                        fetchAverageRate(productId, quality, index);
+                                      } else {
+                                        toast({
+                                          title: "Missing Data",
+                                          description: "Please select product and quality first.",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                    disabled={loadingRates.has(index)}
+                                    data-testid={`button-refresh-rate-${index}`}
+                                  >
+                                    <RefreshCw className={`h-3 w-3 ${loadingRates.has(index) ? 'animate-spin' : ''}`} />
+                                  </Button>
+                                </FormLabel>
                                 <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Enter rate"
-                                    data-testid={`input-rate-${index}`}
-                                    {...field}
-                                  />
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      placeholder="Enter rate"
+                                      data-testid={`input-rate-${index}`}
+                                      disabled={loadingRates.has(index)}
+                                      {...field}
+                                    />
+                                    {loadingRates.has(index) && (
+                                      <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                                        <RefreshCw className="h-4 w-4 animate-spin" />
+                                      </div>
+                                    )}
+                                  </div>
                                 </FormControl>
                                 {enhancedSubFields[index]?.calculatedFreight && (
                                   <p className="text-xs text-muted-foreground">
