@@ -376,14 +376,14 @@ export default function AccountingModule({ currentFY, onFYChange }: AccountingMo
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {rojmels.length === 0 ? (
+                        {!rojmels || rojmels.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                               No rojmels found
                             </TableCell>
                           </TableRow>
                         ) : (
-                          rojmels.map((rojmel) => (
+                          (rojmels || []).map((rojmel) => (
                             <TableRow key={rojmel.id} data-testid={`row-rojmel-${rojmel.id}`}>
                               <TableCell className="font-medium">{rojmel.rojmelId}</TableCell>
                               <TableCell>{rojmel.rojmelDate ? format(new Date(rojmel.rojmelDate), "MMM dd, yyyy") : "-"}</TableCell>

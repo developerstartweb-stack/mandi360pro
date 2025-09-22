@@ -890,3 +890,272 @@ export const updateBalanceSheetSchema = createInsertSchema(balanceSheet, {
 export type InsertBalanceSheet = z.infer<typeof insertBalanceSheetSchema>;
 export type UpdateBalanceSheet = z.infer<typeof updateBalanceSheetSchema>;
 export type BalanceSheet = typeof balanceSheet.$inferSelect;
+
+// Ledger Module Tables
+
+// Uplag (Balance) Ledger Table
+export const uplagLedger = pgTable("uplag_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ledgerId: varchar("ledger_id", { length: 50 }).notNull(), // Auto-generated like "UPL-0001"
+  date: timestamp("date").notNull(),
+  customerId: varchar("customer_id", { length: 50 }).notNull(), // Reference to Account Master
+  customerName: text("customer_name").notNull(), // Searchable customer name
+  openingBalance: decimal("opening_balance", { precision: 12, scale: 2 }).default('0'),
+  paymentReceived: decimal("payment_received", { precision: 12, scale: 2 }).default('0'),
+  totalBalance: decimal("total_balance", { precision: 12, scale: 2 }).notNull(), // Auto: openingBalance + paymentReceived
+  billNumbers: json("bill_numbers"), // JSON array of past 3 bill numbers with links
+  note: text("note"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxUplagLedgerFyLedgerId: uniqueIndex("ux_uplag_ledger_fy_ledgerid").on(table.financialYear, table.ledgerId),
+}));
+
+// Khata Ledger Table (Same structure as Uplag)
+export const khataLedger = pgTable("khata_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ledgerId: varchar("ledger_id", { length: 50 }).notNull(), // Auto-generated like "KHA-0001"
+  date: timestamp("date").notNull(),
+  customerId: varchar("customer_id", { length: 50 }).notNull(), // Reference to Account Master
+  customerName: text("customer_name").notNull(), // Searchable customer name
+  openingBalance: decimal("opening_balance", { precision: 12, scale: 2 }).default('0'),
+  paymentReceived: decimal("payment_received", { precision: 12, scale: 2 }).default('0'),
+  totalBalance: decimal("total_balance", { precision: 12, scale: 2 }).notNull(), // Auto: openingBalance + paymentReceived
+  billNumbers: json("bill_numbers"), // JSON array of past 3 bill numbers with links
+  note: text("note"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxKhataLedgerFyLedgerId: uniqueIndex("ux_khata_ledger_fy_ledgerid").on(table.financialYear, table.ledgerId),
+}));
+
+// Farmer/Transport Ledger Table
+export const farmerTransportLedger = pgTable("farmer_transport_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ledgerId: varchar("ledger_id", { length: 50 }).notNull(), // Auto-generated like "FTL-0001"
+  date: timestamp("date").notNull(),
+  customerId: varchar("customer_id", { length: 50 }).notNull(), // Reference to Account Master
+  customerName: text("customer_name").notNull(), // Searchable customer name
+  invoiceId: varchar("invoice_id", { length: 50 }), // Link to Farmer Invoice
+  invoiceGenerateDate: timestamp("invoice_generate_date"),
+  productName: text("product_name"),
+  quantity: decimal("quantity", { precision: 12, scale: 2 }),
+  transportDetails: text("transport_details"),
+  farmerInvoiceGrossAmount: decimal("farmer_invoice_gross_amount", { precision: 12, scale: 2 }).default('0'),
+  expenses: decimal("expenses", { precision: 12, scale: 2 }).default('0'),
+  netAmount: decimal("net_amount", { precision: 12, scale: 2 }).notNull(), // Auto: grossAmount - expenses
+  advance: decimal("advance", { precision: 12, scale: 2 }).default('0'),
+  amountPayable: decimal("amount_payable", { precision: 12, scale: 2 }).notNull(), // Auto: netAmount - advance
+  balanceRemaining: decimal("balance_remaining", { precision: 12, scale: 2 }).notNull(), // Auto: running balance
+  paymentMode: varchar("payment_mode", { length: 20 }).default('cash'), // cash, bank, upi, cheque
+  note: text("note"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxFarmerTransportLedgerFyLedgerId: uniqueIndex("ux_farmer_transport_ledger_fy_ledgerid").on(table.financialYear, table.ledgerId),
+}));
+
+// Income Ledger Table
+export const incomeLedger = pgTable("income_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ledgerId: varchar("ledger_id", { length: 50 }).notNull(), // Auto-generated like "INC-0001"
+  date: timestamp("date").notNull(),
+  incomeSource: text("income_source").notNull(), // Source of income
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  runningBalance: decimal("running_balance", { precision: 12, scale: 2 }).notNull(), // Auto calculated
+  receiptId: varchar("receipt_id", { length: 50 }), // Link to Income/Expense Receipt
+  paymentMode: varchar("payment_mode", { length: 20 }).notNull(), // cash, bank, upi, cheque
+  description: text("description"),
+  note: text("note"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxIncomeLedgerFyLedgerId: uniqueIndex("ux_income_ledger_fy_ledgerid").on(table.financialYear, table.ledgerId),
+}));
+
+// Expense Ledger Table
+export const expenseLedger = pgTable("expense_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ledgerId: varchar("ledger_id", { length: 50 }).notNull(), // Auto-generated like "EXP-0001"
+  date: timestamp("date").notNull(),
+  expenseCategory: text("expense_category").notNull(), // Category of expense
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  runningBalance: decimal("running_balance", { precision: 12, scale: 2 }).notNull(), // Auto calculated
+  receiptId: varchar("receipt_id", { length: 50 }), // Link to Income/Expense Receipt
+  paymentMode: varchar("payment_mode", { length: 20 }).notNull(), // cash, bank, upi, cheque
+  description: text("description"),
+  note: text("note"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxExpenseLedgerFyLedgerId: uniqueIndex("ux_expense_ledger_fy_ledgerid").on(table.financialYear, table.ledgerId),
+}));
+
+// Bank Deposit Ledger Table
+export const bankDepositLedger = pgTable("bank_deposit_ledger", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ledgerId: varchar("ledger_id", { length: 50 }).notNull(), // Auto-generated like "BDL-0001"
+  date: timestamp("date").notNull(),
+  bankName: text("bank_name").notNull(),
+  accountNumber: varchar("account_number", { length: 50 }),
+  depositAmount: decimal("deposit_amount", { precision: 12, scale: 2 }).notNull(),
+  runningBalance: decimal("running_balance", { precision: 12, scale: 2 }).notNull(), // Auto calculated
+  receiptId: varchar("receipt_id", { length: 50 }), // Link to Bank Deposit Receipt
+  transactionType: varchar("transaction_type", { length: 20 }).default('deposit'), // deposit, withdrawal
+  cashBreakdown: json("cash_breakdown"), // JSON for denomination details
+  description: text("description"),
+  note: text("note"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxBankDepositLedgerFyLedgerId: uniqueIndex("ux_bank_deposit_ledger_fy_ledgerid").on(table.financialYear, table.ledgerId),
+}));
+
+
+// Schema validations for Uplag Ledger
+export const insertUplagLedgerSchema = createInsertSchema(uplagLedger, {
+  date: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateUplagLedgerSchema = createInsertSchema(uplagLedger, {
+  date: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  ledgerId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertUplagLedger = z.infer<typeof insertUplagLedgerSchema>;
+export type UpdateUplagLedger = z.infer<typeof updateUplagLedgerSchema>;
+export type UplagLedger = typeof uplagLedger.$inferSelect;
+
+// Schema validations for Khata Ledger
+export const insertKhataLedgerSchema = createInsertSchema(khataLedger, {
+  date: z.coerce.date(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateKhataLedgerSchema = createInsertSchema(khataLedger, {
+  date: z.coerce.date(),
+}).partial().omit({
+  id: true,
+  ledgerId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertKhataLedger = z.infer<typeof insertKhataLedgerSchema>;
+export type UpdateKhataLedger = z.infer<typeof updateKhataLedgerSchema>;
+export type KhataLedger = typeof khataLedger.$inferSelect;
+
+// Schema validations for Farmer/Transport Ledger
+export const insertFarmerTransportLedgerSchema = createInsertSchema(farmerTransportLedger, {
+  date: z.coerce.date(),
+  invoiceGenerateDate: z.coerce.date().optional(),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateFarmerTransportLedgerSchema = createInsertSchema(farmerTransportLedger, {
+  date: z.coerce.date(),
+  invoiceGenerateDate: z.coerce.date().optional(),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).partial().omit({
+  id: true,
+  ledgerId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertFarmerTransportLedger = z.infer<typeof insertFarmerTransportLedgerSchema>;
+export type UpdateFarmerTransportLedger = z.infer<typeof updateFarmerTransportLedgerSchema>;
+export type FarmerTransportLedger = typeof farmerTransportLedger.$inferSelect;
+
+// Schema validations for Income Ledger
+export const insertIncomeLedgerSchema = createInsertSchema(incomeLedger, {
+  date: z.coerce.date(),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateIncomeLedgerSchema = createInsertSchema(incomeLedger, {
+  date: z.coerce.date(),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).partial().omit({
+  id: true,
+  ledgerId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertIncomeLedger = z.infer<typeof insertIncomeLedgerSchema>;
+export type UpdateIncomeLedger = z.infer<typeof updateIncomeLedgerSchema>;
+export type IncomeLedger = typeof incomeLedger.$inferSelect;
+
+// Schema validations for Expense Ledger
+export const insertExpenseLedgerSchema = createInsertSchema(expenseLedger, {
+  date: z.coerce.date(),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateExpenseLedgerSchema = createInsertSchema(expenseLedger, {
+  date: z.coerce.date(),
+  paymentMode: z.enum(["cash", "bank", "upi", "cheque"]),
+}).partial().omit({
+  id: true,
+  ledgerId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertExpenseLedger = z.infer<typeof insertExpenseLedgerSchema>;
+export type UpdateExpenseLedger = z.infer<typeof updateExpenseLedgerSchema>;
+export type ExpenseLedger = typeof expenseLedger.$inferSelect;
+
+// Schema validations for Bank Deposit Ledger
+export const insertBankDepositLedgerSchema = createInsertSchema(bankDepositLedger, {
+  date: z.coerce.date(),
+  transactionType: z.enum(["deposit", "withdrawal"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateBankDepositLedgerSchema = createInsertSchema(bankDepositLedger, {
+  date: z.coerce.date(),
+  transactionType: z.enum(["deposit", "withdrawal"]),
+}).partial().omit({
+  id: true,
+  ledgerId: true, // Don't allow updating auto-generated ID
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBankDepositLedger = z.infer<typeof insertBankDepositLedgerSchema>;
+export type UpdateBankDepositLedger = z.infer<typeof updateBankDepositLedgerSchema>;
+export type BankDepositLedger = typeof bankDepositLedger.$inferSelect;
