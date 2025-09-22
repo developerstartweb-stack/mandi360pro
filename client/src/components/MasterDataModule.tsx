@@ -123,16 +123,16 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
   });
 
   // Apply client-side search filtering
-  const filteredAccounts = searchTerm ? accounts.filter(acc => 
+  const filteredAccounts = searchTerm ? accounts.filter((acc: any) => 
     acc.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     acc.type?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : accounts;
 
-  const filteredProducts = searchTerm ? products.filter(prod => 
+  const filteredProducts = searchTerm ? products.filter((prod: any) => 
     prod.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : products;
 
-  const filteredPlaces = searchTerm ? places.filter(place => 
+  const filteredPlaces = searchTerm ? places.filter((place: any) => 
     place.name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) : places;
 
@@ -865,30 +865,75 @@ function FormDialog({
     }
   };
 
-  const form = useForm({
-    resolver: zodResolver(getFormSchema()),
-    defaultValues: editingItem || {
+  const getDefaultValues = () => {
+    const baseDefaults = {
       financialYear: currentFY,
       active: true,
       openingBalance: "0",
       creditLimit: "0", 
       creditTime: "0"
+    };
+
+    switch (activeSubModule) {
+      case "account-master":
+        return {
+          ...baseDefaults,
+          type: "",
+          name: "",
+          mobile: "",
+          address: "",
+          placeId: "",
+          bankDetails: {},
+          remarks: "",
+          customFields: {}
+        };
+      case "product-master":
+        return {
+          ...baseDefaults,
+          name: "",
+          unit: "",
+          description: "",
+          customFields: {}
+        };
+      case "product-expenses":
+        return {
+          ...baseDefaults,
+          expenseName: "",
+          productId: "",
+          linkedTo: "",
+          expenseType: "",
+          value: "0",
+          customFields: {}
+        };
+      case "place-master":
+        return {
+          ...baseDefaults,
+          name: "",
+          description: "",
+          customFields: {}
+        };
+      default:
+        return baseDefaults;
     }
+  };
+
+  const form = useForm({
+    resolver: zodResolver(getFormSchema()),
+    defaultValues: getDefaultValues()
   });
 
   useEffect(() => {
     if (editingItem) {
-      form.reset(editingItem);
+      // Ensure all fields have proper defaults to prevent controlled/uncontrolled warnings
+      const itemWithDefaults = {
+        ...getDefaultValues(),
+        ...editingItem
+      };
+      form.reset(itemWithDefaults);
     } else {
-      form.reset({
-        financialYear: currentFY,
-        active: true,
-        openingBalance: "0",
-        creditLimit: "0",
-        creditTime: "0"
-      });
+      form.reset(getDefaultValues());
     }
-  }, [editingItem, currentFY, form]);
+  }, [editingItem, currentFY, activeSubModule]);
 
   const onSubmit = (data: any) => {
     if (editingItem) {
