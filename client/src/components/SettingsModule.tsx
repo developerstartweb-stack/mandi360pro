@@ -316,7 +316,7 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
                   <p className="text-sm text-muted-foreground">Select a settings category</p>
                 </div>
                 <Select value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTab)} data-testid="select-settings-submodule">
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-[250px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
