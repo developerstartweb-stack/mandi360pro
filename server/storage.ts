@@ -61,6 +61,24 @@ import {
   type BalanceSheet,
   type InsertBalanceSheet,
   type UpdateBalanceSheet,
+  type UplagLedger,
+  type InsertUplagLedger,
+  type UpdateUplagLedger,
+  type KhataLedger,
+  type InsertKhataLedger,
+  type UpdateKhataLedger,
+  type FarmerTransportLedger,
+  type InsertFarmerTransportLedger,
+  type UpdateFarmerTransportLedger,
+  type IncomeLedger,
+  type InsertIncomeLedger,
+  type UpdateIncomeLedger,
+  type ExpenseLedger,
+  type InsertExpenseLedger,
+  type UpdateExpenseLedger,
+  type BankDepositLedger,
+  type InsertBankDepositLedger,
+  type UpdateBankDepositLedger,
   users,
   accountMaster,
   productMaster,
@@ -81,7 +99,13 @@ import {
   rojmel,
   incomeExpenseReceipt,
   bankDepositReceipt,
-  balanceSheet
+  balanceSheet,
+  uplagLedger,
+  khataLedger,
+  farmerTransportLedger,
+  incomeLedger,
+  expenseLedger,
+  bankDepositLedger
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -252,6 +276,54 @@ export interface IStorage {
   updateBalanceSheet(id: string, sheet: UpdateBalanceSheet): Promise<BalanceSheet>;
   deleteBalanceSheet(id: string): Promise<boolean>;
   generateBalanceSheetId(financialYear: string): Promise<string>;
+  
+  // Ledger Module operations - Uplag (Balance) Ledger
+  getUplagLedgers(financialYear: string, searchTerm?: string): Promise<UplagLedger[]>;
+  getUplagLedger(id: string): Promise<UplagLedger | undefined>;
+  createUplagLedger(ledger: InsertUplagLedger): Promise<UplagLedger>;
+  updateUplagLedger(id: string, ledger: UpdateUplagLedger): Promise<UplagLedger>;
+  deleteUplagLedger(id: string): Promise<boolean>;
+  generateUplagLedgerId(financialYear: string): Promise<string>;
+  
+  // Ledger Module operations - Khata Ledger
+  getKhataLedgers(financialYear: string, searchTerm?: string): Promise<KhataLedger[]>;
+  getKhataLedger(id: string): Promise<KhataLedger | undefined>;
+  createKhataLedger(ledger: InsertKhataLedger): Promise<KhataLedger>;
+  updateKhataLedger(id: string, ledger: UpdateKhataLedger): Promise<KhataLedger>;
+  deleteKhataLedger(id: string): Promise<boolean>;
+  generateKhataLedgerId(financialYear: string): Promise<string>;
+  
+  // Ledger Module operations - Farmer/Transport Ledger
+  getFarmerTransportLedgers(financialYear: string, searchTerm?: string): Promise<FarmerTransportLedger[]>;
+  getFarmerTransportLedger(id: string): Promise<FarmerTransportLedger | undefined>;
+  createFarmerTransportLedger(ledger: InsertFarmerTransportLedger): Promise<FarmerTransportLedger>;
+  updateFarmerTransportLedger(id: string, ledger: UpdateFarmerTransportLedger): Promise<FarmerTransportLedger>;
+  deleteFarmerTransportLedger(id: string): Promise<boolean>;
+  generateFarmerTransportLedgerId(financialYear: string): Promise<string>;
+  
+  // Ledger Module operations - Income Ledger
+  getIncomeLedgers(financialYear: string, searchTerm?: string): Promise<IncomeLedger[]>;
+  getIncomeLedger(id: string): Promise<IncomeLedger | undefined>;
+  createIncomeLedger(ledger: InsertIncomeLedger): Promise<IncomeLedger>;
+  updateIncomeLedger(id: string, ledger: UpdateIncomeLedger): Promise<IncomeLedger>;
+  deleteIncomeLedger(id: string): Promise<boolean>;
+  generateIncomeLedgerId(financialYear: string): Promise<string>;
+  
+  // Ledger Module operations - Expense Ledger
+  getExpenseLedgers(financialYear: string, searchTerm?: string): Promise<ExpenseLedger[]>;
+  getExpenseLedger(id: string): Promise<ExpenseLedger | undefined>;
+  createExpenseLedger(ledger: InsertExpenseLedger): Promise<ExpenseLedger>;
+  updateExpenseLedger(id: string, ledger: UpdateExpenseLedger): Promise<ExpenseLedger>;
+  deleteExpenseLedger(id: string): Promise<boolean>;
+  generateExpenseLedgerId(financialYear: string): Promise<string>;
+  
+  // Ledger Module operations - Bank Deposit Ledger
+  getBankDepositLedgers(financialYear: string, searchTerm?: string): Promise<BankDepositLedger[]>;
+  getBankDepositLedger(id: string): Promise<BankDepositLedger | undefined>;
+  createBankDepositLedger(ledger: InsertBankDepositLedger): Promise<BankDepositLedger>;
+  updateBankDepositLedger(id: string, ledger: UpdateBankDepositLedger): Promise<BankDepositLedger>;
+  deleteBankDepositLedger(id: string): Promise<boolean>;
+  generateBankDepositLedgerId(financialYear: string): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -276,6 +348,12 @@ export class MemStorage implements IStorage {
   private incomeExpenseReceipts: Map<string, IncomeExpenseReceipt>;
   private bankDepositReceipts: Map<string, BankDepositReceipt>;
   private balanceSheets: Map<string, BalanceSheet>;
+  private uplagLedgers: Map<string, UplagLedger>;
+  private khataLedgers: Map<string, KhataLedger>;
+  private farmerTransportLedgers: Map<string, FarmerTransportLedger>;
+  private incomeLedgers: Map<string, IncomeLedger>;
+  private expenseLedgers: Map<string, ExpenseLedger>;
+  private bankDepositLedgers: Map<string, BankDepositLedger>;
 
   constructor() {
     this.users = new Map();
@@ -299,6 +377,12 @@ export class MemStorage implements IStorage {
     this.incomeExpenseReceipts = new Map();
     this.bankDepositReceipts = new Map();
     this.balanceSheets = new Map();
+    this.uplagLedgers = new Map();
+    this.khataLedgers = new Map();
+    this.farmerTransportLedgers = new Map();
+    this.incomeLedgers = new Map();
+    this.expenseLedgers = new Map();
+    this.bankDepositLedgers = new Map();
   }
 
   // User operations
@@ -1716,6 +1800,526 @@ export class MemStorage implements IStorage {
     const nextNumber = String(sheets.length + 1).padStart(3, '0');
     return `BS-${nextNumber}`;
   }
+
+  // Ledger Module operations - Uplag (Balance) Ledger
+  async getUplagLedgers(financialYear: string, searchTerm?: string): Promise<UplagLedger[]> {
+    let ledgers = Array.from(this.uplagLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      ledgers = ledgers.filter(ledger => 
+        ledger.customerName.toLowerCase().includes(term) ||
+        ledger.ledgerId.toLowerCase().includes(term)
+      );
+    }
+    
+    return ledgers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getUplagLedger(id: string): Promise<UplagLedger | undefined> {
+    return this.uplagLedgers.get(id);
+  }
+
+  async createUplagLedger(ledger: InsertUplagLedger): Promise<UplagLedger> {
+    const id = randomUUID();
+    const ledgerId = await this.generateUplagLedgerId(ledger.financialYear);
+    
+    // Calculate total balance
+    const totalBalance = (parseFloat(ledger.openingBalance?.toString() || '0') + 
+                         parseFloat(ledger.paymentReceived?.toString() || '0')).toFixed(2);
+    
+    const newLedger: UplagLedger = {
+      id,
+      ledgerId,
+      date: new Date(ledger.date),
+      customerId: ledger.customerId,
+      customerName: ledger.customerName,
+      openingBalance: ledger.openingBalance || '0',
+      paymentReceived: ledger.paymentReceived || '0',
+      totalBalance,
+      billNumbers: ledger.billNumbers || null,
+      note: ledger.note || null,
+      financialYear: ledger.financialYear,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.uplagLedgers.set(id, newLedger);
+    return newLedger;
+  }
+
+  async updateUplagLedger(id: string, ledger: UpdateUplagLedger): Promise<UplagLedger> {
+    const existing = this.uplagLedgers.get(id);
+    if (!existing) {
+      throw new Error(`Uplag ledger with id ${id} not found`);
+    }
+
+    // Recalculate total balance if amounts changed
+    const openingBalance = ledger.openingBalance ?? existing.openingBalance;
+    const paymentReceived = ledger.paymentReceived ?? existing.paymentReceived;
+    const totalBalance = (parseFloat(openingBalance.toString()) + 
+                         parseFloat(paymentReceived.toString())).toFixed(2);
+
+    const updated: UplagLedger = {
+      ...existing,
+      ...ledger,
+      totalBalance,
+      updatedAt: new Date(),
+    };
+    
+    this.uplagLedgers.set(id, updated);
+    return updated;
+  }
+
+  async deleteUplagLedger(id: string): Promise<boolean> {
+    return this.uplagLedgers.delete(id);
+  }
+
+  async generateUplagLedgerId(financialYear: string): Promise<string> {
+    const ledgers = Array.from(this.uplagLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    const nextNumber = String(ledgers.length + 1).padStart(4, '0');
+    return `UPL-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Khata Ledger  
+  async getKhataLedgers(financialYear: string, searchTerm?: string): Promise<KhataLedger[]> {
+    let ledgers = Array.from(this.khataLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      ledgers = ledgers.filter(ledger => 
+        ledger.customerName.toLowerCase().includes(term) ||
+        ledger.ledgerId.toLowerCase().includes(term)
+      );
+    }
+    
+    return ledgers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getKhataLedger(id: string): Promise<KhataLedger | undefined> {
+    return this.khataLedgers.get(id);
+  }
+
+  async createKhataLedger(ledger: InsertKhataLedger): Promise<KhataLedger> {
+    const id = randomUUID();
+    const ledgerId = await this.generateKhataLedgerId(ledger.financialYear);
+    
+    // Calculate total balance
+    const totalBalance = (parseFloat(ledger.openingBalance?.toString() || '0') + 
+                         parseFloat(ledger.paymentReceived?.toString() || '0')).toFixed(2);
+    
+    const newLedger: KhataLedger = {
+      id,
+      ledgerId,
+      date: new Date(ledger.date),
+      customerId: ledger.customerId,
+      customerName: ledger.customerName,
+      openingBalance: ledger.openingBalance || '0',
+      paymentReceived: ledger.paymentReceived || '0',
+      totalBalance,
+      billNumbers: ledger.billNumbers || null,
+      note: ledger.note || null,
+      financialYear: ledger.financialYear,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.khataLedgers.set(id, newLedger);
+    return newLedger;
+  }
+
+  async updateKhataLedger(id: string, ledger: UpdateKhataLedger): Promise<KhataLedger> {
+    const existing = this.khataLedgers.get(id);
+    if (!existing) {
+      throw new Error(`Khata ledger with id ${id} not found`);
+    }
+
+    // Recalculate total balance if amounts changed
+    const openingBalance = ledger.openingBalance ?? existing.openingBalance;
+    const paymentReceived = ledger.paymentReceived ?? existing.paymentReceived;
+    const totalBalance = (parseFloat(openingBalance.toString()) + 
+                         parseFloat(paymentReceived.toString())).toFixed(2);
+
+    const updated: KhataLedger = {
+      ...existing,
+      ...ledger,
+      totalBalance,
+      updatedAt: new Date(),
+    };
+    
+    this.khataLedgers.set(id, updated);
+    return updated;
+  }
+
+  async deleteKhataLedger(id: string): Promise<boolean> {
+    return this.khataLedgers.delete(id);
+  }
+
+  async generateKhataLedgerId(financialYear: string): Promise<string> {
+    const ledgers = Array.from(this.khataLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    const nextNumber = String(ledgers.length + 1).padStart(4, '0');
+    return `KHA-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Farmer/Transport Ledger
+  async getFarmerTransportLedgers(financialYear: string, searchTerm?: string): Promise<FarmerTransportLedger[]> {
+    let ledgers = Array.from(this.farmerTransportLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      ledgers = ledgers.filter(ledger => 
+        ledger.customerName.toLowerCase().includes(term) ||
+        ledger.ledgerId.toLowerCase().includes(term) ||
+        (ledger.productName && ledger.productName.toLowerCase().includes(term))
+      );
+    }
+    
+    return ledgers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getFarmerTransportLedger(id: string): Promise<FarmerTransportLedger | undefined> {
+    return this.farmerTransportLedgers.get(id);
+  }
+
+  async createFarmerTransportLedger(ledger: InsertFarmerTransportLedger): Promise<FarmerTransportLedger> {
+    const id = randomUUID();
+    const ledgerId = await this.generateFarmerTransportLedgerId(ledger.financialYear);
+    
+    // Calculate auto fields
+    const grossAmount = parseFloat(ledger.farmerInvoiceGrossAmount?.toString() || '0');
+    const expenses = parseFloat(ledger.expenses?.toString() || '0');
+    const advance = parseFloat(ledger.advance?.toString() || '0');
+    
+    const netAmount = (grossAmount - expenses).toFixed(2);
+    const amountPayable = (parseFloat(netAmount) - advance).toFixed(2);
+    
+    // For balance remaining, this would be calculated based on running balance logic
+    const balanceRemaining = amountPayable; // Simplified for now
+    
+    const newLedger: FarmerTransportLedger = {
+      id,
+      ledgerId,
+      date: new Date(ledger.date),
+      customerId: ledger.customerId,
+      customerName: ledger.customerName,
+      invoiceId: ledger.invoiceId || null,
+      invoiceGenerateDate: ledger.invoiceGenerateDate ? new Date(ledger.invoiceGenerateDate) : null,
+      productName: ledger.productName || null,
+      quantity: ledger.quantity || null,
+      transportDetails: ledger.transportDetails || null,
+      farmerInvoiceGrossAmount: ledger.farmerInvoiceGrossAmount || '0',
+      expenses: ledger.expenses || '0',
+      netAmount,
+      advance: ledger.advance || '0',
+      amountPayable,
+      balanceRemaining,
+      paymentMode: ledger.paymentMode || 'cash',
+      note: ledger.note || null,
+      financialYear: ledger.financialYear,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.farmerTransportLedgers.set(id, newLedger);
+    return newLedger;
+  }
+
+  async updateFarmerTransportLedger(id: string, ledger: UpdateFarmerTransportLedger): Promise<FarmerTransportLedger> {
+    const existing = this.farmerTransportLedgers.get(id);
+    if (!existing) {
+      throw new Error(`Farmer/Transport ledger with id ${id} not found`);
+    }
+
+    // Recalculate auto fields if amounts changed
+    const grossAmount = parseFloat((ledger.farmerInvoiceGrossAmount ?? existing.farmerInvoiceGrossAmount).toString());
+    const expenses = parseFloat((ledger.expenses ?? existing.expenses).toString());
+    const advance = parseFloat((ledger.advance ?? existing.advance).toString());
+    
+    const netAmount = (grossAmount - expenses).toFixed(2);
+    const amountPayable = (parseFloat(netAmount) - advance).toFixed(2);
+    const balanceRemaining = amountPayable; // Simplified
+
+    const updated: FarmerTransportLedger = {
+      ...existing,
+      ...ledger,
+      netAmount,
+      amountPayable,
+      balanceRemaining,
+      updatedAt: new Date(),
+    };
+    
+    this.farmerTransportLedgers.set(id, updated);
+    return updated;
+  }
+
+  async deleteFarmerTransportLedger(id: string): Promise<boolean> {
+    return this.farmerTransportLedgers.delete(id);
+  }
+
+  async generateFarmerTransportLedgerId(financialYear: string): Promise<string> {
+    const ledgers = Array.from(this.farmerTransportLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    const nextNumber = String(ledgers.length + 1).padStart(4, '0');
+    return `FTL-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Income Ledger
+  async getIncomeLedgers(financialYear: string, searchTerm?: string): Promise<IncomeLedger[]> {
+    let ledgers = Array.from(this.incomeLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      ledgers = ledgers.filter(ledger => 
+        ledger.incomeSource.toLowerCase().includes(term) ||
+        ledger.ledgerId.toLowerCase().includes(term) ||
+        (ledger.description && ledger.description.toLowerCase().includes(term))
+      );
+    }
+    
+    return ledgers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getIncomeLedger(id: string): Promise<IncomeLedger | undefined> {
+    return this.incomeLedgers.get(id);
+  }
+
+  async createIncomeLedger(ledger: InsertIncomeLedger): Promise<IncomeLedger> {
+    const id = randomUUID();
+    const ledgerId = await this.generateIncomeLedgerId(ledger.financialYear);
+    
+    // For running balance, this would be calculated based on all previous income entries
+    // For now, simplified calculation
+    const amount = parseFloat(ledger.amount.toString());
+    const runningBalance = amount.toFixed(2); // Simplified
+    
+    const newLedger: IncomeLedger = {
+      id,
+      ledgerId,
+      date: new Date(ledger.date),
+      incomeSource: ledger.incomeSource,
+      amount: ledger.amount,
+      runningBalance,
+      receiptId: ledger.receiptId || null,
+      paymentMode: ledger.paymentMode,
+      description: ledger.description || null,
+      note: ledger.note || null,
+      financialYear: ledger.financialYear,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.incomeLedgers.set(id, newLedger);
+    return newLedger;
+  }
+
+  async updateIncomeLedger(id: string, ledger: UpdateIncomeLedger): Promise<IncomeLedger> {
+    const existing = this.incomeLedgers.get(id);
+    if (!existing) {
+      throw new Error(`Income ledger with id ${id} not found`);
+    }
+
+    // Recalculate running balance if amount changed
+    const amount = parseFloat((ledger.amount ?? existing.amount).toString());
+    const runningBalance = amount.toFixed(2); // Simplified
+
+    const updated: IncomeLedger = {
+      ...existing,
+      ...ledger,
+      runningBalance,
+      updatedAt: new Date(),
+    };
+    
+    this.incomeLedgers.set(id, updated);
+    return updated;
+  }
+
+  async deleteIncomeLedger(id: string): Promise<boolean> {
+    return this.incomeLedgers.delete(id);
+  }
+
+  async generateIncomeLedgerId(financialYear: string): Promise<string> {
+    const ledgers = Array.from(this.incomeLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    const nextNumber = String(ledgers.length + 1).padStart(4, '0');
+    return `INC-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Expense Ledger
+  async getExpenseLedgers(financialYear: string, searchTerm?: string): Promise<ExpenseLedger[]> {
+    let ledgers = Array.from(this.expenseLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      ledgers = ledgers.filter(ledger => 
+        ledger.expenseCategory.toLowerCase().includes(term) ||
+        ledger.ledgerId.toLowerCase().includes(term) ||
+        (ledger.description && ledger.description.toLowerCase().includes(term))
+      );
+    }
+    
+    return ledgers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getExpenseLedger(id: string): Promise<ExpenseLedger | undefined> {
+    return this.expenseLedgers.get(id);
+  }
+
+  async createExpenseLedger(ledger: InsertExpenseLedger): Promise<ExpenseLedger> {
+    const id = randomUUID();
+    const ledgerId = await this.generateExpenseLedgerId(ledger.financialYear);
+    
+    // For running balance, this would be calculated based on all previous expense entries
+    const amount = parseFloat(ledger.amount.toString());
+    const runningBalance = amount.toFixed(2); // Simplified
+    
+    const newLedger: ExpenseLedger = {
+      id,
+      ledgerId,
+      date: new Date(ledger.date),
+      expenseCategory: ledger.expenseCategory,
+      amount: ledger.amount,
+      runningBalance,
+      receiptId: ledger.receiptId || null,
+      paymentMode: ledger.paymentMode,
+      description: ledger.description || null,
+      note: ledger.note || null,
+      financialYear: ledger.financialYear,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.expenseLedgers.set(id, newLedger);
+    return newLedger;
+  }
+
+  async updateExpenseLedger(id: string, ledger: UpdateExpenseLedger): Promise<ExpenseLedger> {
+    const existing = this.expenseLedgers.get(id);
+    if (!existing) {
+      throw new Error(`Expense ledger with id ${id} not found`);
+    }
+
+    // Recalculate running balance if amount changed
+    const amount = parseFloat((ledger.amount ?? existing.amount).toString());
+    const runningBalance = amount.toFixed(2); // Simplified
+
+    const updated: ExpenseLedger = {
+      ...existing,
+      ...ledger,
+      runningBalance,
+      updatedAt: new Date(),
+    };
+    
+    this.expenseLedgers.set(id, updated);
+    return updated;
+  }
+
+  async deleteExpenseLedger(id: string): Promise<boolean> {
+    return this.expenseLedgers.delete(id);
+  }
+
+  async generateExpenseLedgerId(financialYear: string): Promise<string> {
+    const ledgers = Array.from(this.expenseLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    const nextNumber = String(ledgers.length + 1).padStart(4, '0');
+    return `EXP-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Bank Deposit Ledger
+  async getBankDepositLedgers(financialYear: string, searchTerm?: string): Promise<BankDepositLedger[]> {
+    let ledgers = Array.from(this.bankDepositLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      ledgers = ledgers.filter(ledger => 
+        ledger.bankName.toLowerCase().includes(term) ||
+        ledger.ledgerId.toLowerCase().includes(term) ||
+        (ledger.description && ledger.description.toLowerCase().includes(term))
+      );
+    }
+    
+    return ledgers.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
+
+  async getBankDepositLedger(id: string): Promise<BankDepositLedger | undefined> {
+    return this.bankDepositLedgers.get(id);
+  }
+
+  async createBankDepositLedger(ledger: InsertBankDepositLedger): Promise<BankDepositLedger> {
+    const id = randomUUID();
+    const ledgerId = await this.generateBankDepositLedgerId(ledger.financialYear);
+    
+    // Calculate running balance (simplified for now)
+    const depositAmount = parseFloat(ledger.depositAmount?.toString() || '0');
+    const runningBalance = depositAmount.toFixed(2);
+    
+    const newLedger: BankDepositLedger = {
+      id,
+      ledgerId,
+      date: new Date(ledger.date),
+      bankName: ledger.bankName,
+      accountNumber: ledger.accountNumber || null,
+      depositAmount: ledger.depositAmount,
+      runningBalance,
+      receiptId: ledger.receiptId || null,
+      transactionType: ledger.transactionType || 'deposit',
+      cashBreakdown: ledger.cashBreakdown || null,
+      description: ledger.description || null,
+      note: ledger.note || null,
+      financialYear: ledger.financialYear,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.bankDepositLedgers.set(id, newLedger);
+    return newLedger;
+  }
+
+  async updateBankDepositLedger(id: string, ledger: UpdateBankDepositLedger): Promise<BankDepositLedger> {
+    const existing = this.bankDepositLedgers.get(id);
+    if (!existing) {
+      throw new Error(`Bank deposit ledger with id ${id} not found`);
+    }
+
+    const updated: BankDepositLedger = {
+      ...existing,
+      ...ledger,
+      updatedAt: new Date(),
+    };
+    
+    this.bankDepositLedgers.set(id, updated);
+    return updated;
+  }
+
+  async deleteBankDepositLedger(id: string): Promise<boolean> {
+    return this.bankDepositLedgers.delete(id);
+  }
+
+  async generateBankDepositLedgerId(financialYear: string): Promise<string> {
+    const ledgers = Array.from(this.bankDepositLedgers.values()).filter(ledger => 
+      ledger.financialYear === financialYear
+    );
+    const nextNumber = String(ledgers.length + 1).padStart(4, '0');
+    return `BDL-${nextNumber}`;
+  }
 }
 
 // Database Storage Implementation
@@ -2958,6 +3562,455 @@ export class DatabaseStorage implements IStorage {
     const sheets = await db.select().from(balanceSheet).where(eq(balanceSheet.financialYear, financialYear));
     const nextNumber = String((sheets || []).length + 1).padStart(3, '0');
     return `BS-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Uplag (Balance) Ledger
+  async getUplagLedgers(financialYear: string, searchTerm?: string): Promise<UplagLedger[]> {
+    let query = db.select().from(uplagLedger).where(eq(uplagLedger.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(uplagLedger).where(
+        and(
+          eq(uplagLedger.financialYear, financialYear),
+          or(
+            ilike(uplagLedger.customerName, `%${searchTerm}%`),
+            ilike(uplagLedger.ledgerId, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query.orderBy(uplagLedger.date);
+  }
+
+  async getUplagLedger(id: string): Promise<UplagLedger | undefined> {
+    const result = await db.select().from(uplagLedger).where(eq(uplagLedger.id, id));
+    return result[0];
+  }
+
+  async createUplagLedger(ledger: InsertUplagLedger): Promise<UplagLedger> {
+    const ledgerId = await this.generateUplagLedgerId(ledger.financialYear);
+    
+    // Calculate total balance
+    const openingBalance = Number(ledger.openingBalance || 0);
+    const paymentReceived = Number(ledger.paymentReceived || 0);
+    const totalBalance = (openingBalance + paymentReceived).toString();
+    
+    const ledgerData = {
+      ...ledger,
+      ledgerId,
+      totalBalance,
+    };
+    
+    const result = await db.insert(uplagLedger).values(ledgerData).returning();
+    return result[0];
+  }
+
+  async updateUplagLedger(id: string, ledger: UpdateUplagLedger): Promise<UplagLedger> {
+    // Get existing record for recalculation
+    const existing = await this.getUplagLedger(id);
+    if (!existing) throw new Error('Uplag ledger not found');
+    
+    // Recalculate total balance if amounts changed
+    let totalBalance = existing.totalBalance;
+    if (ledger.openingBalance !== undefined || ledger.paymentReceived !== undefined) {
+      const openingBalance = Number(ledger.openingBalance ?? existing.openingBalance);
+      const paymentReceived = Number(ledger.paymentReceived ?? existing.paymentReceived);
+      totalBalance = (openingBalance + paymentReceived).toString();
+    }
+    
+    const result = await db.update(uplagLedger)
+      .set({ ...ledger, totalBalance, updatedAt: new Date() })
+      .where(eq(uplagLedger.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteUplagLedger(id: string): Promise<boolean> {
+    const result = await db.delete(uplagLedger).where(eq(uplagLedger.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateUplagLedgerId(financialYear: string): Promise<string> {
+    const ledgers = await db.select().from(uplagLedger).where(eq(uplagLedger.financialYear, financialYear));
+    const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
+    return `UPL-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Khata Ledger
+  async getKhataLedgers(financialYear: string, searchTerm?: string): Promise<KhataLedger[]> {
+    let query = db.select().from(khataLedger).where(eq(khataLedger.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(khataLedger).where(
+        and(
+          eq(khataLedger.financialYear, financialYear),
+          or(
+            ilike(khataLedger.customerName, `%${searchTerm}%`),
+            ilike(khataLedger.ledgerId, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query.orderBy(khataLedger.date);
+  }
+
+  async getKhataLedger(id: string): Promise<KhataLedger | undefined> {
+    const result = await db.select().from(khataLedger).where(eq(khataLedger.id, id));
+    return result[0];
+  }
+
+  async createKhataLedger(ledger: InsertKhataLedger): Promise<KhataLedger> {
+    const ledgerId = await this.generateKhataLedgerId(ledger.financialYear);
+    
+    // Calculate total balance
+    const openingBalance = Number(ledger.openingBalance || 0);
+    const paymentReceived = Number(ledger.paymentReceived || 0);
+    const totalBalance = (openingBalance + paymentReceived).toString();
+    
+    const ledgerData = {
+      ...ledger,
+      ledgerId,
+      totalBalance,
+    };
+    
+    const result = await db.insert(khataLedger).values(ledgerData).returning();
+    return result[0];
+  }
+
+  async updateKhataLedger(id: string, ledger: UpdateKhataLedger): Promise<KhataLedger> {
+    // Get existing record for recalculation
+    const existing = await this.getKhataLedger(id);
+    if (!existing) throw new Error('Khata ledger not found');
+    
+    // Recalculate total balance if amounts changed
+    let totalBalance = existing.totalBalance;
+    if (ledger.openingBalance !== undefined || ledger.paymentReceived !== undefined) {
+      const openingBalance = Number(ledger.openingBalance ?? existing.openingBalance);
+      const paymentReceived = Number(ledger.paymentReceived ?? existing.paymentReceived);
+      totalBalance = (openingBalance + paymentReceived).toString();
+    }
+    
+    const result = await db.update(khataLedger)
+      .set({ ...ledger, totalBalance, updatedAt: new Date() })
+      .where(eq(khataLedger.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteKhataLedger(id: string): Promise<boolean> {
+    const result = await db.delete(khataLedger).where(eq(khataLedger.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateKhataLedgerId(financialYear: string): Promise<string> {
+    const ledgers = await db.select().from(khataLedger).where(eq(khataLedger.financialYear, financialYear));
+    const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
+    return `KHA-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Farmer/Transport Ledger
+  async getFarmerTransportLedgers(financialYear: string, searchTerm?: string): Promise<FarmerTransportLedger[]> {
+    let query = db.select().from(farmerTransportLedger).where(eq(farmerTransportLedger.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(farmerTransportLedger).where(
+        and(
+          eq(farmerTransportLedger.financialYear, financialYear),
+          or(
+            ilike(farmerTransportLedger.customerName, `%${searchTerm}%`),
+            ilike(farmerTransportLedger.ledgerId, `%${searchTerm}%`),
+            ilike(farmerTransportLedger.productName, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query.orderBy(farmerTransportLedger.date);
+  }
+
+  async getFarmerTransportLedger(id: string): Promise<FarmerTransportLedger | undefined> {
+    const result = await db.select().from(farmerTransportLedger).where(eq(farmerTransportLedger.id, id));
+    return result[0];
+  }
+
+  async createFarmerTransportLedger(ledger: InsertFarmerTransportLedger): Promise<FarmerTransportLedger> {
+    const ledgerId = await this.generateFarmerTransportLedgerId(ledger.financialYear);
+    
+    // Calculate auto fields
+    const grossAmount = Number(ledger.farmerInvoiceGrossAmount || 0);
+    const expenses = Number(ledger.expenses || 0);
+    const advance = Number(ledger.advance || 0);
+    
+    const netAmount = (grossAmount - expenses).toString();
+    const amountPayable = (parseFloat(netAmount) - advance).toString();
+    const balanceRemaining = amountPayable; // Simplified
+    
+    const ledgerData = {
+      ...ledger,
+      ledgerId,
+      netAmount,
+      amountPayable,
+      balanceRemaining,
+    };
+    
+    const result = await db.insert(farmerTransportLedger).values(ledgerData).returning();
+    return result[0];
+  }
+
+  async updateFarmerTransportLedger(id: string, ledger: UpdateFarmerTransportLedger): Promise<FarmerTransportLedger> {
+    // Get existing record for recalculation
+    const existing = await this.getFarmerTransportLedger(id);
+    if (!existing) throw new Error('Farmer/Transport ledger not found');
+    
+    // Recalculate auto fields if amounts changed
+    let netAmount = existing.netAmount;
+    let amountPayable = existing.amountPayable;
+    let balanceRemaining = existing.balanceRemaining;
+    
+    if (ledger.farmerInvoiceGrossAmount !== undefined || ledger.expenses !== undefined || ledger.advance !== undefined) {
+      const grossAmount = Number(ledger.farmerInvoiceGrossAmount ?? existing.farmerInvoiceGrossAmount);
+      const expenses = Number(ledger.expenses ?? existing.expenses);
+      const advance = Number(ledger.advance ?? existing.advance);
+      
+      netAmount = (grossAmount - expenses).toString();
+      amountPayable = (parseFloat(netAmount) - advance).toString();
+      balanceRemaining = amountPayable; // Simplified
+    }
+    
+    const result = await db.update(farmerTransportLedger)
+      .set({ ...ledger, netAmount, amountPayable, balanceRemaining, updatedAt: new Date() })
+      .where(eq(farmerTransportLedger.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteFarmerTransportLedger(id: string): Promise<boolean> {
+    const result = await db.delete(farmerTransportLedger).where(eq(farmerTransportLedger.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateFarmerTransportLedgerId(financialYear: string): Promise<string> {
+    const ledgers = await db.select().from(farmerTransportLedger).where(eq(farmerTransportLedger.financialYear, financialYear));
+    const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
+    return `FTL-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Income Ledger
+  async getIncomeLedgers(financialYear: string, searchTerm?: string): Promise<IncomeLedger[]> {
+    let query = db.select().from(incomeLedger).where(eq(incomeLedger.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(incomeLedger).where(
+        and(
+          eq(incomeLedger.financialYear, financialYear),
+          or(
+            ilike(incomeLedger.incomeSource, `%${searchTerm}%`),
+            ilike(incomeLedger.ledgerId, `%${searchTerm}%`),
+            ilike(incomeLedger.description, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query.orderBy(incomeLedger.date);
+  }
+
+  async getIncomeLedger(id: string): Promise<IncomeLedger | undefined> {
+    const result = await db.select().from(incomeLedger).where(eq(incomeLedger.id, id));
+    return result[0];
+  }
+
+  async createIncomeLedger(ledger: InsertIncomeLedger): Promise<IncomeLedger> {
+    const ledgerId = await this.generateIncomeLedgerId(ledger.financialYear);
+    
+    // For running balance, this would be calculated based on all previous income entries
+    const amount = Number(ledger.amount);
+    const runningBalance = amount.toString(); // Simplified
+    
+    const ledgerData = {
+      ...ledger,
+      ledgerId,
+      runningBalance,
+    };
+    
+    const result = await db.insert(incomeLedger).values(ledgerData).returning();
+    return result[0];
+  }
+
+  async updateIncomeLedger(id: string, ledger: UpdateIncomeLedger): Promise<IncomeLedger> {
+    // Get existing record for recalculation
+    const existing = await this.getIncomeLedger(id);
+    if (!existing) throw new Error('Income ledger not found');
+    
+    // Recalculate running balance if amount changed
+    let runningBalance = existing.runningBalance;
+    if (ledger.amount !== undefined) {
+      const amount = Number(ledger.amount);
+      runningBalance = amount.toString(); // Simplified
+    }
+    
+    const result = await db.update(incomeLedger)
+      .set({ ...ledger, runningBalance, updatedAt: new Date() })
+      .where(eq(incomeLedger.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteIncomeLedger(id: string): Promise<boolean> {
+    const result = await db.delete(incomeLedger).where(eq(incomeLedger.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateIncomeLedgerId(financialYear: string): Promise<string> {
+    const ledgers = await db.select().from(incomeLedger).where(eq(incomeLedger.financialYear, financialYear));
+    const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
+    return `INC-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Expense Ledger
+  async getExpenseLedgers(financialYear: string, searchTerm?: string): Promise<ExpenseLedger[]> {
+    let query = db.select().from(expenseLedger).where(eq(expenseLedger.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(expenseLedger).where(
+        and(
+          eq(expenseLedger.financialYear, financialYear),
+          or(
+            ilike(expenseLedger.expenseCategory, `%${searchTerm}%`),
+            ilike(expenseLedger.ledgerId, `%${searchTerm}%`),
+            ilike(expenseLedger.description, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query.orderBy(expenseLedger.date);
+  }
+
+  async getExpenseLedger(id: string): Promise<ExpenseLedger | undefined> {
+    const result = await db.select().from(expenseLedger).where(eq(expenseLedger.id, id));
+    return result[0];
+  }
+
+  async createExpenseLedger(ledger: InsertExpenseLedger): Promise<ExpenseLedger> {
+    const ledgerId = await this.generateExpenseLedgerId(ledger.financialYear);
+    
+    // For running balance, this would be calculated based on all previous expense entries
+    const amount = Number(ledger.amount);
+    const runningBalance = amount.toString(); // Simplified
+    
+    const ledgerData = {
+      ...ledger,
+      ledgerId,
+      runningBalance,
+    };
+    
+    const result = await db.insert(expenseLedger).values(ledgerData).returning();
+    return result[0];
+  }
+
+  async updateExpenseLedger(id: string, ledger: UpdateExpenseLedger): Promise<ExpenseLedger> {
+    // Get existing record for recalculation
+    const existing = await this.getExpenseLedger(id);
+    if (!existing) throw new Error('Expense ledger not found');
+    
+    // Recalculate running balance if amount changed
+    let runningBalance = existing.runningBalance;
+    if (ledger.amount !== undefined) {
+      const amount = Number(ledger.amount);
+      runningBalance = amount.toString(); // Simplified
+    }
+    
+    const result = await db.update(expenseLedger)
+      .set({ ...ledger, runningBalance, updatedAt: new Date() })
+      .where(eq(expenseLedger.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteExpenseLedger(id: string): Promise<boolean> {
+    const result = await db.delete(expenseLedger).where(eq(expenseLedger.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateExpenseLedgerId(financialYear: string): Promise<string> {
+    const ledgers = await db.select().from(expenseLedger).where(eq(expenseLedger.financialYear, financialYear));
+    const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
+    return `EXP-${nextNumber}`;
+  }
+
+  // Ledger Module operations - Bank Deposit Ledger
+  async getBankDepositLedgers(financialYear: string, searchTerm?: string): Promise<BankDepositLedger[]> {
+    let query = db.select().from(bankDepositLedger).where(eq(bankDepositLedger.financialYear, financialYear));
+    
+    if (searchTerm) {
+      query = db.select().from(bankDepositLedger).where(
+        and(
+          eq(bankDepositLedger.financialYear, financialYear),
+          or(
+            ilike(bankDepositLedger.bankName, `%${searchTerm}%`),
+            ilike(bankDepositLedger.ledgerId, `%${searchTerm}%`),
+            ilike(bankDepositLedger.description, `%${searchTerm}%`)
+          )
+        )
+      );
+    }
+    
+    return await query.orderBy(bankDepositLedger.date);
+  }
+
+  async getBankDepositLedger(id: string): Promise<BankDepositLedger | undefined> {
+    const result = await db.select().from(bankDepositLedger).where(eq(bankDepositLedger.id, id));
+    return result[0];
+  }
+
+  async createBankDepositLedger(ledger: InsertBankDepositLedger): Promise<BankDepositLedger> {
+    const ledgerId = await this.generateBankDepositLedgerId(ledger.financialYear);
+    
+    // Calculate running balance (simplified for now)
+    const depositAmount = Number(ledger.depositAmount || 0);
+    const runningBalance = depositAmount.toString();
+    
+    const ledgerData = {
+      ...ledger,
+      ledgerId,
+      runningBalance,
+    };
+    
+    const result = await db.insert(bankDepositLedger).values(ledgerData).returning();
+    return result[0];
+  }
+
+  async updateBankDepositLedger(id: string, ledger: UpdateBankDepositLedger): Promise<BankDepositLedger> {
+    // Get existing record for recalculation
+    const existing = await this.getBankDepositLedger(id);
+    if (!existing) throw new Error('Bank deposit ledger not found');
+    
+    // Recalculate running balance if deposit amount changed
+    let runningBalance = existing.runningBalance;
+    if (ledger.depositAmount !== undefined) {
+      const depositAmount = Number(ledger.depositAmount);
+      runningBalance = depositAmount.toString();
+    }
+    
+    const result = await db.update(bankDepositLedger)
+      .set({ ...ledger, runningBalance, updatedAt: new Date() })
+      .where(eq(bankDepositLedger.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteBankDepositLedger(id: string): Promise<boolean> {
+    const result = await db.delete(bankDepositLedger).where(eq(bankDepositLedger.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async generateBankDepositLedgerId(financialYear: string): Promise<string> {
+    const ledgers = await db.select().from(bankDepositLedger).where(eq(bankDepositLedger.financialYear, financialYear));
+    const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
+    return `BDL-${nextNumber}`;
   }
 }
 

@@ -41,7 +41,19 @@ import {
   insertBankDepositReceiptSchema,
   updateBankDepositReceiptSchema,
   insertBalanceSheetSchema,
-  updateBalanceSheetSchema
+  updateBalanceSheetSchema,
+  insertUplagLedgerSchema,
+  updateUplagLedgerSchema,
+  insertKhataLedgerSchema,
+  updateKhataLedgerSchema,
+  insertFarmerTransportLedgerSchema,
+  updateFarmerTransportLedgerSchema,
+  insertIncomeLedgerSchema,
+  updateIncomeLedgerSchema,
+  insertExpenseLedgerSchema,
+  updateExpenseLedgerSchema,
+  insertBankDepositLedgerSchema,
+  updateBankDepositLedgerSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1127,6 +1139,346 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete balance sheet" });
+    }
+  });
+
+  // ===========================================
+  // LEDGER MODULE ROUTES
+  // ===========================================
+
+  // Ledger Module - Uplag (Balance) Ledger Routes
+  app.get("/api/ledger/uplag", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const ledgers = await storage.getUplagLedgers(fy as string, search as string);
+      res.json(ledgers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch uplag ledgers" });
+    }
+  });
+
+  app.get("/api/ledger/uplag/:id", async (req, res) => {
+    try {
+      const ledger = await storage.getUplagLedger(req.params.id);
+      if (!ledger) {
+        return res.status(404).json({ error: "Uplag ledger not found" });
+      }
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch uplag ledger" });
+    }
+  });
+
+  app.post("/api/ledger/uplag", async (req, res) => {
+    try {
+      const validatedData = insertUplagLedgerSchema.parse(req.body);
+      const ledger = await storage.createUplagLedger(validatedData);
+      res.status(201).json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid uplag ledger data" });
+    }
+  });
+
+  app.put("/api/ledger/uplag/:id", async (req, res) => {
+    try {
+      const validatedData = updateUplagLedgerSchema.parse(req.body);
+      const ledger = await storage.updateUplagLedger(req.params.id, validatedData);
+      res.json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update uplag ledger" });
+    }
+  });
+
+  app.delete("/api/ledger/uplag/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteUplagLedger(req.params.id);
+      if (success) {
+        res.json({ message: "Uplag ledger deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Uplag ledger not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete uplag ledger" });
+    }
+  });
+
+  // Ledger Module - Khata Ledger Routes
+  app.get("/api/ledger/khata", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const ledgers = await storage.getKhataLedgers(fy as string, search as string);
+      res.json(ledgers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch khata ledgers" });
+    }
+  });
+
+  app.get("/api/ledger/khata/:id", async (req, res) => {
+    try {
+      const ledger = await storage.getKhataLedger(req.params.id);
+      if (!ledger) {
+        return res.status(404).json({ error: "Khata ledger not found" });
+      }
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch khata ledger" });
+    }
+  });
+
+  app.post("/api/ledger/khata", async (req, res) => {
+    try {
+      const validatedData = insertKhataLedgerSchema.parse(req.body);
+      const ledger = await storage.createKhataLedger(validatedData);
+      res.status(201).json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid khata ledger data" });
+    }
+  });
+
+  app.put("/api/ledger/khata/:id", async (req, res) => {
+    try {
+      const validatedData = updateKhataLedgerSchema.parse(req.body);
+      const ledger = await storage.updateKhataLedger(req.params.id, validatedData);
+      res.json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update khata ledger" });
+    }
+  });
+
+  app.delete("/api/ledger/khata/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteKhataLedger(req.params.id);
+      if (success) {
+        res.json({ message: "Khata ledger deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Khata ledger not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete khata ledger" });
+    }
+  });
+
+  // Ledger Module - Farmer/Transport Ledger Routes
+  app.get("/api/ledger/farmer-transport", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const ledgers = await storage.getFarmerTransportLedgers(fy as string, search as string);
+      res.json(ledgers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch farmer/transport ledgers" });
+    }
+  });
+
+  app.get("/api/ledger/farmer-transport/:id", async (req, res) => {
+    try {
+      const ledger = await storage.getFarmerTransportLedger(req.params.id);
+      if (!ledger) {
+        return res.status(404).json({ error: "Farmer/transport ledger not found" });
+      }
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch farmer/transport ledger" });
+    }
+  });
+
+  app.post("/api/ledger/farmer-transport", async (req, res) => {
+    try {
+      const validatedData = insertFarmerTransportLedgerSchema.parse(req.body);
+      const ledger = await storage.createFarmerTransportLedger(validatedData);
+      res.status(201).json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid farmer/transport ledger data" });
+    }
+  });
+
+  app.put("/api/ledger/farmer-transport/:id", async (req, res) => {
+    try {
+      const validatedData = updateFarmerTransportLedgerSchema.parse(req.body);
+      const ledger = await storage.updateFarmerTransportLedger(req.params.id, validatedData);
+      res.json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update farmer/transport ledger" });
+    }
+  });
+
+  app.delete("/api/ledger/farmer-transport/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteFarmerTransportLedger(req.params.id);
+      if (success) {
+        res.json({ message: "Farmer/transport ledger deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Farmer/transport ledger not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete farmer/transport ledger" });
+    }
+  });
+
+  // Ledger Module - Income Ledger Routes
+  app.get("/api/ledger/income", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const ledgers = await storage.getIncomeLedgers(fy as string, search as string);
+      res.json(ledgers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch income ledgers" });
+    }
+  });
+
+  app.get("/api/ledger/income/:id", async (req, res) => {
+    try {
+      const ledger = await storage.getIncomeLedger(req.params.id);
+      if (!ledger) {
+        return res.status(404).json({ error: "Income ledger not found" });
+      }
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch income ledger" });
+    }
+  });
+
+  app.post("/api/ledger/income", async (req, res) => {
+    try {
+      const validatedData = insertIncomeLedgerSchema.parse(req.body);
+      const ledger = await storage.createIncomeLedger(validatedData);
+      res.status(201).json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid income ledger data" });
+    }
+  });
+
+  app.put("/api/ledger/income/:id", async (req, res) => {
+    try {
+      const validatedData = updateIncomeLedgerSchema.parse(req.body);
+      const ledger = await storage.updateIncomeLedger(req.params.id, validatedData);
+      res.json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update income ledger" });
+    }
+  });
+
+  app.delete("/api/ledger/income/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteIncomeLedger(req.params.id);
+      if (success) {
+        res.json({ message: "Income ledger deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Income ledger not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete income ledger" });
+    }
+  });
+
+  // Ledger Module - Expense Ledger Routes
+  app.get("/api/ledger/expense", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const ledgers = await storage.getExpenseLedgers(fy as string, search as string);
+      res.json(ledgers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch expense ledgers" });
+    }
+  });
+
+  app.get("/api/ledger/expense/:id", async (req, res) => {
+    try {
+      const ledger = await storage.getExpenseLedger(req.params.id);
+      if (!ledger) {
+        return res.status(404).json({ error: "Expense ledger not found" });
+      }
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch expense ledger" });
+    }
+  });
+
+  app.post("/api/ledger/expense", async (req, res) => {
+    try {
+      const validatedData = insertExpenseLedgerSchema.parse(req.body);
+      const ledger = await storage.createExpenseLedger(validatedData);
+      res.status(201).json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid expense ledger data" });
+    }
+  });
+
+  app.put("/api/ledger/expense/:id", async (req, res) => {
+    try {
+      const validatedData = updateExpenseLedgerSchema.parse(req.body);
+      const ledger = await storage.updateExpenseLedger(req.params.id, validatedData);
+      res.json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update expense ledger" });
+    }
+  });
+
+  app.delete("/api/ledger/expense/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteExpenseLedger(req.params.id);
+      if (success) {
+        res.json({ message: "Expense ledger deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Expense ledger not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete expense ledger" });
+    }
+  });
+
+  // Ledger Module - Bank Deposit Ledger Routes
+  app.get("/api/ledger/bank-deposit", async (req, res) => {
+    try {
+      const { fy = "2025-26", search } = req.query;
+      const ledgers = await storage.getBankDepositLedgers(fy as string, search as string);
+      res.json(ledgers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch bank deposit ledgers" });
+    }
+  });
+
+  app.get("/api/ledger/bank-deposit/:id", async (req, res) => {
+    try {
+      const ledger = await storage.getBankDepositLedger(req.params.id);
+      if (!ledger) {
+        return res.status(404).json({ error: "Bank deposit ledger not found" });
+      }
+      res.json(ledger);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch bank deposit ledger" });
+    }
+  });
+
+  app.post("/api/ledger/bank-deposit", async (req, res) => {
+    try {
+      const validatedData = insertBankDepositLedgerSchema.parse(req.body);
+      const ledger = await storage.createBankDepositLedger(validatedData);
+      res.status(201).json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid bank deposit ledger data" });
+    }
+  });
+
+  app.put("/api/ledger/bank-deposit/:id", async (req, res) => {
+    try {
+      const validatedData = updateBankDepositLedgerSchema.parse(req.body);
+      const ledger = await storage.updateBankDepositLedger(req.params.id, validatedData);
+      res.json(ledger);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update bank deposit ledger" });
+    }
+  });
+
+  app.delete("/api/ledger/bank-deposit/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteBankDepositLedger(req.params.id);
+      if (success) {
+        res.json({ message: "Bank deposit ledger deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Bank deposit ledger not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete bank deposit ledger" });
     }
   });
 
