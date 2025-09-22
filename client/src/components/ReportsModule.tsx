@@ -659,36 +659,26 @@ export default function ReportsModule() {
       />
 
       {/* Sub-Module Navigation */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <CardTitle className="text-lg">Sub-Module</CardTitle>
-                <p className="text-sm text-muted-foreground">Select a report type</p>
-              </div>
-              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-reports-submodule">
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {reportTypes.map((type) => {
-                    const Icon = type.icon;
-                    return (
-                      <SelectItem key={type.id} value={type.id}>
-                        <div className="flex items-center space-x-2">
-                          <Icon className="w-4 h-4" />
-                          <span>{type.label}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <div className="mb-6">
+        <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-reports-submodule">
+          <SelectTrigger className="w-[250px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {reportTypes.map((type) => {
+              const Icon = type.icon;
+              return (
+                <SelectItem key={type.id} value={type.id}>
+                  <div className="flex items-center space-x-2">
+                    <Icon className="w-4 h-4" />
+                    <span>{type.label}</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Content based on selected report type */}
       {reportTypes.map((type) => activeTab === type.id && (

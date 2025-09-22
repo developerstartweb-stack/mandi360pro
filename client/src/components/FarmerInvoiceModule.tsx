@@ -165,43 +165,33 @@ export default function FarmerInvoiceModule({ currentFY, onFYChange }: FarmerInv
         </div>
 
         {/* Sub-Module Navigation */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div>
-                  <CardTitle className="text-lg">Sub-Module</CardTitle>
-                  <p className="text-sm text-muted-foreground">Select an invoice management function</p>
+        <div className="mb-6">
+          <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-farmer-invoice-submodule">
+            <SelectTrigger className="w-[250px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dhada-book">
+                <div className="flex items-center space-x-2">
+                  <BookOpen className="w-4 h-4" />
+                  <span>Dhada Book</span>
                 </div>
-                <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-farmer-invoice-submodule">
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dhada-book">
-                      <div className="flex items-center space-x-2">
-                        <BookOpen className="w-4 h-4" />
-                        <span>Dhada Book</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="farmer-invoice">
-                      <div className="flex items-center space-x-2">
-                        <Receipt className="w-4 h-4" />
-                        <span>Farmer Invoice</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="manual-invoice">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="w-4 h-4" />
-                        <span>Manual Invoice</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
+              </SelectItem>
+              <SelectItem value="farmer-invoice">
+                <div className="flex items-center space-x-2">
+                  <Receipt className="w-4 h-4" />
+                  <span>Farmer Invoice</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="manual-invoice">
+                <div className="flex items-center space-x-2">
+                  <FileText className="w-4 h-4" />
+                  <span>Manual Invoice</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Content based on selected sub-module */}
         {activeTab === "dhada-book" && (

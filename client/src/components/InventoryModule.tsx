@@ -492,49 +492,39 @@ export default function InventoryModule({ currentFY, onFYChange }: InventoryModu
       </Card>
 
       {/* Sub-Module Navigation */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <CardTitle className="text-lg">Sub-Module</CardTitle>
-                <p className="text-sm text-muted-foreground">Select an inventory management function</p>
+      <div className="mb-6">
+        <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-inventory-submodule">
+          <SelectTrigger className="w-[250px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="lot-entry">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("lot-entry")}
+                <span>Lot Entry</span>
               </div>
-              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-inventory-submodule">
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="lot-entry">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("lot-entry")}
-                      <span>Lot Entry</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="godown-awak">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("godown-awak")}
-                      <span>Godown Awak</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="damage">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("damage")}
-                      <span>Damage</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="weight-slip">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("weight-slip")}
-                      <span>Weight Slip</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+            </SelectItem>
+            <SelectItem value="godown-awak">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("godown-awak")}
+                <span>Godown Awak</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="damage">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("damage")}
+                <span>Damage</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="weight-slip">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("weight-slip")}
+                <span>Weight Slip</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Content based on selected sub-module */}
       <Card className="space-y-4">

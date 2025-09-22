@@ -514,43 +514,33 @@ export default function BillDeskModule({ currentFY, onFYChange }: BillDeskModule
       </div>
 
       {/* Sub-Module Navigation */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <CardTitle className="text-lg">Sub-Module</CardTitle>
-                <p className="text-sm text-muted-foreground">Select a billing function</p>
+      <div className="mb-6">
+        <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-billdesk-submodule">
+          <SelectTrigger className="w-[250px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="customer-billing">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("customer-billing")}
+                <span>Customer Billing</span>
               </div>
-              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-billdesk-submodule">
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="customer-billing">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("customer-billing")}
-                      <span>Customer Billing</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="khata-billing">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("khata-billing")}
-                      <span>Khata Billing</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="payment-receipts">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("payment-receipts")}
-                      <span>Payment Receipts</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+            </SelectItem>
+            <SelectItem value="khata-billing">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("khata-billing")}
+                <span>Khata Billing</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="payment-receipts">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("payment-receipts")}
+                <span>Payment Receipts</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Content based on selected sub-module */}
       {activeTab === "customer-billing" && (

@@ -641,49 +641,39 @@ export default function MasterDataModule({ currentFY, onFYChange }: MasterDataMo
       </Card>
 
       {/* Sub-Module Navigation */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <CardTitle className="text-lg">Sub-Module</CardTitle>
-                <p className="text-sm text-muted-foreground">Select a master data category</p>
+      <div className="mb-6">
+        <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-masterdata-submodule">
+          <SelectTrigger className="w-[250px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="accounts">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("accounts")}
+                <span>Account Master</span>
               </div>
-              <Select value={activeTab} onValueChange={setActiveTab} data-testid="select-masterdata-submodule">
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="accounts">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("accounts")}
-                      <span>Account Master</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="products">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("products")}
-                      <span>Product Master</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="expenses">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("expenses")}
-                      <span>Product Expenses</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="places">
-                    <div className="flex items-center space-x-2">
-                      {getTabIcon("places")}
-                      <span>Place Master</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+            </SelectItem>
+            <SelectItem value="products">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("products")}
+                <span>Product Master</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="expenses">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("expenses")}
+                <span>Product Expenses</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="places">
+              <div className="flex items-center space-x-2">
+                {getTabIcon("places")}
+                <span>Place Master</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Content based on selected sub-module */}
       <Card className="space-y-4">
