@@ -33,21 +33,18 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
     resolver: zodResolver(isEditing ? updateFarmerTransportLedgerSchema : insertFarmerTransportLedgerSchema),
     defaultValues: {
       date: farmerTransport?.date ? new Date(farmerTransport.date) : new Date(),
-      farmerTransporterName: farmerTransport?.farmerTransporterName || "",
-      farmerTransporterId: farmerTransport?.farmerTransporterId || "",
-      type: farmerTransport?.type || "farmer",
-      grossAmount: farmerTransport?.grossAmount || 0,
+      customerName: farmerTransport?.customerName || "",
+      customerId: farmerTransport?.customerId || "",
+      farmerInvoiceGrossAmount: farmerTransport?.farmerInvoiceGrossAmount || 0,
       expenses: farmerTransport?.expenses || 0,
       netAmount: farmerTransport?.netAmount || 0,
       advance: farmerTransport?.advance || 0,
       amountPayable: farmerTransport?.amountPayable || 0,
       balanceRemaining: farmerTransport?.balanceRemaining || 0,
-      billType: farmerTransport?.billType || "",
-      billNo: farmerTransport?.billNo || "",
-      invoiceId: farmerTransport?.invoiceId || null,
-      receiptId: farmerTransport?.receiptId || null,
-      notes: farmerTransport?.notes || "",
-      fy: currentFY,
+      invoiceId: farmerTransport?.invoiceId || "",
+      paymentMode: farmerTransport?.paymentMode || "cash",
+      note: farmerTransport?.note || "",
+      financialYear: currentFY,
     },
   });
 
@@ -57,19 +54,19 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
   });
 
   // Auto-calculate derived amounts when values change
-  const grossAmount = form.watch("grossAmount");
+  const farmerInvoiceGrossAmount = form.watch("farmerInvoiceGrossAmount");
   const expenses = form.watch("expenses");
   const advance = form.watch("advance");
 
   useEffect(() => {
-    const netAmt = (grossAmount || 0) - (expenses || 0);
+    const netAmt = (farmerInvoiceGrossAmount || 0) - (expenses || 0);
     const amountPayable = netAmt - (advance || 0);
     const balanceRemaining = amountPayable; // For now, same as amount payable
     
     form.setValue("netAmount", netAmt);
     form.setValue("amountPayable", amountPayable);
     form.setValue("balanceRemaining", balanceRemaining);
-  }, [grossAmount, expenses, advance, form]);
+  }, [farmerInvoiceGrossAmount, expenses, advance, form]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -135,16 +132,16 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
   };
 
   const handleFarmerTransporterSelect = (accountId: string) => {
-    const selectedAccount = accounts?.find((acc: any) => acc.id === accountId);
+    const selectedAccount = (accounts || []).find((acc: any) => acc.id === accountId);
     if (selectedAccount) {
-      form.setValue("farmerTransporterId", accountId);
-      form.setValue("farmerTransporterName", selectedAccount.name);
+      form.setValue("customerId", accountId);
+      form.setValue("customerName", selectedAccount.name);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] h-[95vh] max-w-none p-6 overflow-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Farmer/Transport Ledger' : 'New Farmer/Transport Ledger'}
@@ -198,45 +195,21 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
                 )}
               />
 
-              {/* Type */}
+              {/* Customer Selection */}
               <FormField
                 control={form.control}
-                name="type"
+                name="customerId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Type *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-type">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="farmer">Farmer</SelectItem>
-                        <SelectItem value="transport">Transport</SelectItem>
-                        <SelectItem value="both">Both</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Farmer/Transporter Selection */}
-              <FormField
-                control={form.control}
-                name="farmerTransporterId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Farmer/Transporter *</FormLabel>
+                    <FormLabel>Customer *</FormLabel>
                     <Select onValueChange={handleFarmerTransporterSelect} value={field.value}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-farmer-transporter">
-                          <SelectValue placeholder="Select farmer/transporter" />
+                        <SelectTrigger data-testid="select-customer">
+                          <SelectValue placeholder="Select customer" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {accounts?.filter((acc: any) => 
+                        {(accounts || []).filter((acc: any) => 
                           acc.type === 'farmer' || acc.type === 'transport' || acc.type === 'both'
                         ).map((account: any) => (
                           <SelectItem key={account.id} value={account.id}>
@@ -250,35 +223,35 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
                 )}
               />
 
-              {/* Farmer/Transporter Name (auto-filled) */}
+              {/* Customer Name (auto-filled) */}
               <FormField
                 control={form.control}
-                name="farmerTransporterName"
+                name="customerName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel>Customer Name</FormLabel>
                     <FormControl>
-                      <Input {...field} readOnly className="bg-muted" data-testid="input-farmer-transporter-name" />
+                      <Input {...field} readOnly className="bg-muted" data-testid="input-customer-name" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* Gross Amount */}
+              {/* Farmer Invoice Gross Amount */}
               <FormField
                 control={form.control}
-                name="grossAmount"
+                name="farmerInvoiceGrossAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gross Amount (₹) *</FormLabel>
+                    <FormLabel>Farmer Invoice Gross Amount (₹) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.01"
                         {...field}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        data-testid="input-gross-amount"
+                        data-testid="input-farmer-invoice-gross-amount"
                       />
                     </FormControl>
                     <FormMessage />
@@ -394,47 +367,6 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
                 )}
               />
 
-              {/* Bill Type */}
-              <FormField
-                control={form.control}
-                name="billType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bill Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-bill-type">
-                          <SelectValue placeholder="Select bill type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="invoice">Invoice</SelectItem>
-                        <SelectItem value="receipt">Receipt</SelectItem>
-                        <SelectItem value="payment">Payment</SelectItem>
-                        <SelectItem value="transport">Transport Bill</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Bill Number */}
-              <FormField
-                control={form.control}
-                name="billNo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bill Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter bill number" data-testid="input-bill-no" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               {/* Invoice ID */}
               <FormField
                 control={form.control}
@@ -450,16 +382,26 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
                 )}
               />
 
-              {/* Receipt ID */}
+              {/* Payment Mode */}
               <FormField
                 control={form.control}
-                name="receiptId"
+                name="paymentMode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Receipt ID</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter receipt ID" data-testid="input-receipt-id" />
-                    </FormControl>
+                    <FormLabel>Payment Mode *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-payment-mode">
+                          <SelectValue placeholder="Select payment mode" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="bank">Bank</SelectItem>
+                        <SelectItem value="upi">UPI</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -469,7 +411,7 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
             {/* Notes */}
             <FormField
               control={form.control}
-              name="notes"
+              name="note"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Notes</FormLabel>
@@ -478,7 +420,7 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
                       {...field}
                       placeholder="Enter any additional notes..."
                       className="min-h-[100px]"
-                      data-testid="textarea-notes"
+                      data-testid="textarea-note"
                     />
                   </FormControl>
                   <FormMessage />
@@ -502,10 +444,12 @@ export default function FarmerTransportLedgerForm({ farmerTransport, isOpen, onC
                 </Button>
                 <Button
                   type="submit"
-                  loading={createMutation.isPending || updateMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   data-testid="button-save"
                 >
-                  {isEditing ? 'Update' : 'Create'} Farmer/Transport Ledger
+                  {createMutation.isPending || updateMutation.isPending 
+                    ? 'Saving...' 
+                    : isEditing ? 'Update' : 'Create'} Farmer/Transport Ledger
                 </Button>
               </div>
             </div>

@@ -38,12 +38,8 @@ export default function KhataLedgerForm({ khata, isOpen, onClose, currentFY }: K
       openingBalance: khata?.openingBalance ? parseFloat(khata.openingBalance) : 0,
       paymentReceived: khata?.paymentReceived ? parseFloat(khata.paymentReceived) : 0,
       totalBalance: khata?.totalBalance ? parseFloat(khata.totalBalance) : 0,
-      billType: "",
-      billNo: "",
-      invoiceId: null,
-      receiptId: null,
-      notes: khata?.note || "",
-      fy: currentFY,
+      note: khata?.note || "",
+      financialYear: currentFY,
     },
   });
 
@@ -125,7 +121,7 @@ export default function KhataLedgerForm({ khata, isOpen, onClose, currentFY }: K
   };
 
   const handleCustomerSelect = (customerId: string) => {
-    const selectedAccount = accounts?.find((acc: any) => acc.id === customerId);
+    const selectedAccount = (accounts || []).find((acc: any) => acc.id === customerId);
     if (selectedAccount) {
       form.setValue("customerId", customerId);
       form.setValue("customerName", selectedAccount.name);
@@ -203,7 +199,7 @@ export default function KhataLedgerForm({ khata, isOpen, onClose, currentFY }: K
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {accounts?.map((account: any) => (
+                        {(accounts || []).map((account: any) => (
                           <SelectItem key={account.id} value={account.id}>
                             {account.accountId} - {account.name}
                           </SelectItem>
@@ -294,81 +290,12 @@ export default function KhataLedgerForm({ khata, isOpen, onClose, currentFY }: K
                 )}
               />
 
-              {/* Bill Type */}
-              <FormField
-                control={form.control}
-                name="billType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bill Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-bill-type">
-                          <SelectValue placeholder="Select bill type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="invoice">Invoice</SelectItem>
-                        <SelectItem value="receipt">Receipt</SelectItem>
-                        <SelectItem value="payment">Payment</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Bill Number */}
-              <FormField
-                control={form.control}
-                name="billNo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bill Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter bill number" data-testid="input-bill-no" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Invoice ID */}
-              <FormField
-                control={form.control}
-                name="invoiceId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Invoice ID</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter invoice ID" data-testid="input-invoice-id" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Receipt ID */}
-              <FormField
-                control={form.control}
-                name="receiptId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Receipt ID</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter receipt ID" data-testid="input-receipt-id" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             {/* Notes */}
             <FormField
               control={form.control}
-              name="notes"
+              name="note"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Notes</FormLabel>
@@ -377,7 +304,7 @@ export default function KhataLedgerForm({ khata, isOpen, onClose, currentFY }: K
                       {...field}
                       placeholder="Enter any additional notes..."
                       className="min-h-[100px]"
-                      data-testid="textarea-notes"
+                      data-testid="textarea-note"
                     />
                   </FormControl>
                   <FormMessage />
