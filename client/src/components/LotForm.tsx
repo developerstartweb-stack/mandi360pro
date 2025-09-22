@@ -1,276 +1,571 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm, useFieldArray } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Plus, X, Minus, ChevronDown, Calculator, Truck, User, Package } from "lucide-react";
+
+// Form validation schema
+const lotSubFieldSchema = z.object({
+  accountId: z.string().min(1, "Farmer account is required"),
+  quantity: z.string().min(1, "Quantity is required").refine(val => Number(val) > 0, "Quantity must be greater than 0"),
+  quality: z.string().optional(),
+  averageRate: z.string().optional(),
+});
+
+const lotFormSchema = z.object({
+  productId: z.string().min(1, "Product is required"),
+  totalQuantity: z.string().min(1, "Total quantity is required").refine(val => Number(val) > 0, "Total quantity must be greater than 0"),
+  totalWeight: z.string().optional(),
+  freight: z.string().optional(),
+  transportAccountId: z.string().optional(),
+  vehicleNumber: z.string().optional(),
+  advance: z.string().optional(),
+  otherExpenses: z.string().optional(),
+  financialYear: z.string(),
+  subFields: z.array(lotSubFieldSchema).min(1, "At least one farmer lot is required"),
+});
+
+type LotFormData = z.infer<typeof lotFormSchema>;
 
 interface LotFormProps {
-  onSubmit?: (lotData: any) => void;
+  onSubmit?: () => void;
   onCancel?: () => void;
   initialData?: any;
+  currentFY: string;
 }
 
-// todo: remove mock functionality
-const mockProducts = [
-  "Onion", "Wheat", "Rice", "Potato", "Tomato", "Cotton", "Sugarcane"
-];
+export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: LotFormProps) {
+  const { toast } = useToast();
+  const [showCalculations, setShowCalculations] = useState(false);
+  const [showTransportDetails, setShowTransportDetails] = useState(false);
 
-const mockFarmers = [
-  { id: "F-RK-001", name: "Rajesh Kumar" },
-  { id: "F-SP-002", name: "Suresh Patel" },
-  { id: "F-AS-003", name: "Amit Singh" },
-];
-
-export default function LotForm({ onSubmit, onCancel, initialData }: LotFormProps) {
-  const [formData, setFormData] = useState({
-    product: initialData?.product || "",
-    totalQuantity: initialData?.totalQuantity || "",
-    farmerId: initialData?.farmerId || "",
-    farmerQuantity: initialData?.farmerQuantity || "",
-    quality: initialData?.quality || "",
-    basePrice: initialData?.basePrice || "",
-    description: initialData?.description || "",
-    customFields: initialData?.customFields || []
+  // Fetch master data
+  const { data: products = [] } = useQuery({
+    queryKey: ['/api/products', currentFY],
+    queryFn: () => fetch(`/api/products?fy=${currentFY}`).then(res => res.json()),
   });
 
-  const [newField, setNewField] = useState({ name: "", value: "" });
+  const { data: accounts = [] } = useQuery({
+    queryKey: ['/api/accounts', currentFY],
+    queryFn: () => fetch(`/api/accounts?fy=${currentFY}`).then(res => res.json()),
+  });
 
-  const generateLotId = () => {
-    const seq = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
-    return `${formData.product}-${formData.totalQuantity}-${formData.farmerQuantity}-${seq}`;
+  // Filter accounts by type
+  const farmers = accounts.filter((acc: any) => acc.type === 'F');
+  const transporters = accounts.filter((acc: any) => acc.type === 'A');
+
+  const form = useForm<LotFormData>({
+    resolver: zodResolver(lotFormSchema),
+    defaultValues: {
+      productId: initialData?.productId || "",
+      totalQuantity: initialData?.totalQuantity || "",
+      totalWeight: initialData?.totalWeight || "",
+      freight: initialData?.freight || "",
+      transportAccountId: initialData?.transportAccountId || "",
+      vehicleNumber: initialData?.vehicleNumber || "",
+      advance: initialData?.advance || "",
+      otherExpenses: initialData?.otherExpenses || "",
+      financialYear: currentFY,
+      subFields: initialData?.subFields || [{ accountId: "", quantity: "", quality: "", averageRate: "" }],
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "subFields"
+  });
+
+  // Watch form values for calculations
+  const watchedValues = form.watch();
+  const { totalQuantity, totalWeight, freight, subFields } = watchedValues;
+
+  // Auto-calculations
+  const calculations = {
+    farmerQuantity: subFields.reduce((sum, field) => sum + (Number(field.quantity) || 0), 0),
+    averageWeight: totalWeight && totalQuantity ? (Number(totalWeight) / Number(totalQuantity)).toFixed(2) : "0.00",
+    totalFreight: freight ? Number(freight) : 0,
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const lotData = {
-      ...formData,
-      id: generateLotId(),
-      createdAt: new Date().toISOString(),
-      status: "active"
+  // Calculate sub-field values
+  const enhancedSubFields = subFields.map((field, index) => {
+    const quantity = Number(field.quantity) || 0;
+    const weight = calculations.averageWeight ? (Number(calculations.averageWeight) * quantity).toFixed(2) : "0.00";
+    const fieldFreight = calculations.totalFreight && totalQuantity ? 
+      ((calculations.totalFreight / Number(totalQuantity)) * quantity).toFixed(2) : "0.00";
+    
+    return {
+      ...field,
+      calculatedWeight: weight,
+      calculatedFreight: fieldFreight,
     };
-    console.log("Lot submitted:", lotData);
-    onSubmit?.(lotData);
+  });
+
+  // Generate preview LotID
+  const selectedProduct = products.find((p: any) => p.id === watchedValues.productId);
+  const previewLotId = selectedProduct && totalQuantity && calculations.farmerQuantity > 0
+    ? `${selectedProduct.name}${totalQuantity}-${calculations.farmerQuantity}-001`
+    : "---";
+
+  // Create lot mutation
+  const createLotMutation = useMutation({
+    mutationFn: async (data: LotFormData) => {
+      const payload = {
+        lot: {
+          productId: data.productId,
+          totalQuantity: data.totalQuantity,
+          totalWeight: data.totalWeight || null,
+          freight: data.freight || null,
+          transportAccountId: data.transportAccountId || null,
+          vehicleNumber: data.vehicleNumber || null,
+          advance: data.advance || null,
+          otherExpenses: data.otherExpenses || null,
+          financialYear: data.financialYear,
+        },
+        subFields: data.subFields.map(field => ({
+          accountId: field.accountId,
+          quantity: field.quantity,
+          quality: field.quality || null,
+          averageRate: field.averageRate || null,
+        })),
+      };
+      
+      return apiRequest("POST", "/api/inventory/lot-entry/with-sub-fields", payload);
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/inventory/lot-entry', currentFY] });
+      toast({
+        title: "Success",
+        description: `Lot created successfully with ID: ${data?.lot?.lotId || 'New Lot'}`,
+      });
+      onSubmit?.();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create lot",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmit = (data: LotFormData) => {
+    createLotMutation.mutate(data);
   };
 
-  const addCustomField = () => {
-    if (newField.name && newField.value) {
-      setFormData(prev => ({
-        ...prev,
-        customFields: [...prev.customFields, { ...newField, id: Date.now() }]
-      }));
-      setNewField({ name: "", value: "" });
+  const addSubField = () => {
+    append({ accountId: "", quantity: "", quality: "", averageRate: "" });
+  };
+
+  const removeSubField = (index: number) => {
+    if (fields.length > 1) {
+      remove(index);
     }
   };
-
-  const removeCustomField = (id: number) => {
-    setFormData(prev => ({
-      ...prev,
-      customFields: prev.customFields.filter((field: any) => field.id !== id)
-    }));
-  };
-
-  const previewLotId = formData.product && formData.totalQuantity && formData.farmerQuantity 
-    ? generateLotId() 
-    : "---";
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Create New Lot</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Create New Lot Entry
+            </CardTitle>
             <Badge variant="outline" className="font-mono">
               ID: {previewLotId}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Product */}
-              <div className="space-y-2">
-                <Label htmlFor="product">Product *</Label>
-                <Select value={formData.product} onValueChange={(value) => setFormData(prev => ({ ...prev, product: value }))}>
-                  <SelectTrigger data-testid="select-product">
-                    <SelectValue placeholder="Select product" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockProducts.map(product => (
-                      <SelectItem key={product} value={product}>{product}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Total Quantity */}
-              <div className="space-y-2">
-                <Label htmlFor="totalQuantity">Total Quantity (quintals) *</Label>
-                <Input
-                  id="totalQuantity"
-                  type="number"
-                  value={formData.totalQuantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, totalQuantity: e.target.value }))}
-                  placeholder="Enter total quantity"
-                  data-testid="input-total-quantity"
-                  required
-                />
-              </div>
-
-              {/* Farmer */}
-              <div className="space-y-2">
-                <Label htmlFor="farmer">Farmer/Agent *</Label>
-                <Select value={formData.farmerId} onValueChange={(value) => setFormData(prev => ({ ...prev, farmerId: value }))}>
-                  <SelectTrigger data-testid="select-farmer">
-                    <SelectValue placeholder="Select farmer/agent" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockFarmers.map(farmer => (
-                      <SelectItem key={farmer.id} value={farmer.id}>
-                        {farmer.name} ({farmer.id})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Farmer Quantity */}
-              <div className="space-y-2">
-                <Label htmlFor="farmerQuantity">Farmer Items Quantity (quintals) *</Label>
-                <Input
-                  id="farmerQuantity"
-                  type="number"
-                  value={formData.farmerQuantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, farmerQuantity: e.target.value }))}
-                  placeholder="Enter farmer quantity"
-                  data-testid="input-farmer-quantity"
-                  required
-                />
-              </div>
-
-              {/* Quality */}
-              <div className="space-y-2">
-                <Label htmlFor="quality">Quality Grade</Label>
-                <Select value={formData.quality} onValueChange={(value) => setFormData(prev => ({ ...prev, quality: value }))}>
-                  <SelectTrigger data-testid="select-quality">
-                    <SelectValue placeholder="Select quality" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="A">Grade A - Premium</SelectItem>
-                    <SelectItem value="B">Grade B - Good</SelectItem>
-                    <SelectItem value="C">Grade C - Standard</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Base Price */}
-              <div className="space-y-2">
-                <Label htmlFor="basePrice">Base Price (₹ per quintal)</Label>
-                <Input
-                  id="basePrice"
-                  type="number"
-                  value={formData.basePrice}
-                  onChange={(e) => setFormData(prev => ({ ...prev, basePrice: e.target.value }))}
-                  placeholder="Enter base price"
-                  data-testid="input-base-price"
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Enter lot description, notes, or special conditions..."
-                rows={3}
-                data-testid="textarea-description"
-              />
-            </div>
-
-            {/* Custom Fields */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Custom Fields</Label>
-                <Badge variant="secondary" className="text-xs">
-                  {formData.customFields.length} fields
-                </Badge>
-              </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               
-              {formData.customFields.length > 0 && (
-                <div className="space-y-2">
-                  {formData.customFields.map((field: any) => (
-                    <div key={field.id} className="flex items-center gap-2 p-2 border rounded-md">
-                      <span className="font-medium text-sm">{field.name}:</span>
-                      <span className="text-sm">{field.value}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 ml-auto"
-                        onClick={() => removeCustomField(field.id)}
-                        data-testid={`button-remove-field-${field.id}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
+              {/* Basic Lot Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="productId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Product *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-product">
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {products.map((product: any) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name} ({product.unit})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="totalQuantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Total Quantity *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Enter total quantity"
+                          data-testid="input-total-quantity"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="totalWeight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Total Weight (optional)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Enter total weight"
+                          data-testid="input-total-weight"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="freight"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Total Freight (₹)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Enter freight amount"
+                          data-testid="input-freight"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Transport Details (Collapsible) */}
+              <Collapsible open={showTransportDetails} onOpenChange={setShowTransportDetails}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Transport Details
+                    </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showTransportDetails ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="transportAccountId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Transport Account</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-transport">
+                                <SelectValue placeholder="Select transport account" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {transporters.map((account: any) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.name} ({account.accountId})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="vehicleNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter vehicle number"
+                              data-testid="input-vehicle-number"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="advance"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Advance (₹)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Enter advance amount"
+                              data-testid="input-advance"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="otherExpenses"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Other Expenses (₹)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Enter other expenses"
+                              data-testid="input-other-expenses"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Farmer Lot Sub-Fields */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-semibold flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Farmer Lots
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addSubField}
+                    data-testid="button-add-subfield"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Farmer
+                  </Button>
+                </div>
+
+                <div className="space-y-3">
+                  {fields.map((field, index) => (
+                    <Card key={field.id} className="relative">
+                      <CardContent className="pt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <FormField
+                            control={form.control}
+                            name={`subFields.${index}.accountId`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Farmer Account *</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid={`select-farmer-${index}`}>
+                                      <SelectValue placeholder="Select farmer" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {farmers.map((farmer: any) => (
+                                      <SelectItem key={farmer.id} value={farmer.id}>
+                                        {farmer.name} ({farmer.accountId})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`subFields.${index}.quantity`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Quantity *</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="Enter quantity"
+                                    data-testid={`input-quantity-${index}`}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                {enhancedSubFields[index]?.calculatedWeight && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Weight: {enhancedSubFields[index].calculatedWeight} kg
+                                  </p>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`subFields.${index}.quality`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Quality</FormLabel>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid={`select-quality-${index}`}>
+                                      <SelectValue placeholder="Select quality" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="A">Grade A</SelectItem>
+                                    <SelectItem value="B">Grade B</SelectItem>
+                                    <SelectItem value="C">Grade C</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`subFields.${index}.averageRate`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Average Rate (₹)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    placeholder="Enter rate"
+                                    data-testid={`input-rate-${index}`}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                {enhancedSubFields[index]?.calculatedFreight && (
+                                  <p className="text-xs text-muted-foreground">
+                                    Freight: ₹{enhancedSubFields[index].calculatedFreight}
+                                  </p>
+                                )}
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {fields.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => removeSubField(index)}
+                            data-testid={`button-remove-subfield-${index}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
-              )}
-              
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Field name"
-                  value={newField.name}
-                  onChange={(e) => setNewField(prev => ({ ...prev, name: e.target.value }))}
-                  data-testid="input-field-name"
-                />
-                <Input
-                  placeholder="Field value"
-                  value={newField.value}
-                  onChange={(e) => setNewField(prev => ({ ...prev, value: e.target.value }))}
-                  data-testid="input-field-value"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addCustomField}
-                  data-testid="button-add-field"
+              </div>
+
+              {/* Auto-calculations Display */}
+              <Collapsible open={showCalculations} onOpenChange={setShowCalculations}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between">
+                    <span className="flex items-center gap-2">
+                      <Calculator className="h-4 w-4" />
+                      Auto-Calculations Summary
+                    </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${showCalculations ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-muted/50">
+                    <div>
+                      <p className="text-sm font-medium">Total Quantity</p>
+                      <p className="text-2xl font-bold">{totalQuantity || 0}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Farmer Quantity</p>
+                      <p className="text-2xl font-bold">{calculations.farmerQuantity}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Average Weight</p>
+                      <p className="text-2xl font-bold">{calculations.averageWeight} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Total Freight</p>
+                      <p className="text-2xl font-bold">₹{calculations.totalFreight}</p>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onCancel}
+                  data-testid="button-cancel"
                 >
-                  <Plus className="h-4 w-4" />
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={createLotMutation.isPending}
+                  data-testid="button-submit"
+                >
+                  {createLotMutation.isPending ? "Creating..." : "Create Lot"}
                 </Button>
               </div>
-            </div>
-
-            {/* Form Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onCancel}
-                data-testid="button-cancel"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                data-testid="button-submit"
-              >
-                Create Lot
-              </Button>
-            </div>
-          </form>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>

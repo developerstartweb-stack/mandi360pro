@@ -20,6 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
+import LotForm from "@/components/LotForm";
 
 interface InventoryModuleProps {
   currentFY: string;
@@ -465,6 +466,28 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
       </Table>
     );
   };
+
+  // Show full-screen LotForm for lot-entry
+  if (activeSubModule === "lot-entry" && showForm) {
+    return (
+      <div className="p-6">
+        <LotForm 
+          onSubmit={() => {
+            setShowForm(false);
+            setEditingItem(null);
+            // Refresh the lot entry data
+            queryClient.invalidateQueries({ queryKey: ['/api/inventory/lot-entry', currentFY] });
+          }}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingItem(null);
+          }}
+          initialData={editingItem}
+          currentFY={currentFY}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
