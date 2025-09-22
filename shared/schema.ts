@@ -1213,3 +1213,123 @@ export type UpdateReportConfig = z.infer<typeof updateReportConfigSchema>;
 export type ReportConfig = typeof reportConfigs.$inferSelect;
 export type InsertReportSnapshot = z.infer<typeof insertReportSnapshotSchema>;
 export type ReportSnapshot = typeof reportSnapshots.$inferSelect;
+
+// Settings Module Tables
+
+// Company Profile Table
+export const companyProfile = pgTable('company_profile', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
+  companyName: varchar('company_name', { length: 200 }).notNull(),
+  address: text('address'),
+  phone1: varchar('phone1', { length: 20 }),
+  phone2: varchar('phone2', { length: 20 }),
+  email: varchar('email', { length: 100 }),
+  website: varchar('website', { length: 200 }),
+  remark: text('remark'),
+  logoUrl: varchar('logo_url', { length: 500 }), // File upload path
+  customFields: json('custom_fields').default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Default Expenses Table  
+export const defaultExpenses = pgTable('default_expenses', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
+  expenseName: varchar('expense_name', { length: 100 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(), // fixed, variable, percentage
+  value: decimal('value', { precision: 12, scale: 2 }).notNull(),
+  customFields: json('custom_fields').default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Printing Settings Table
+export const printingSettings = pgTable('printing_settings', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
+  templateId: varchar('template_id', { length: 50 }).notNull(), // auto-generated
+  templateName: varchar('template_name', { length: 100 }).notNull(),
+  fieldsToShow: json('fields_to_show').default([]), // multi-select array
+  customFields: json('custom_fields').default({}),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Module Settings Table
+export const moduleSettings = pgTable('module_settings', {
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
+  moduleName: varchar('module_name', { length: 100 }).notNull(),
+  moduleFields: json('module_fields').default({}), // configurable fields
+  isActive: boolean('is_active').default(true),
+  customFields: json('custom_fields').default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Settings Zod Schemas
+export const insertCompanyProfileSchema = createInsertSchema(companyProfile).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  companyName: z.string().min(1, "Company name is required"),
+  email: z.string().email().optional().or(z.literal("")),
+  phone1: z.string().optional(),
+  phone2: z.string().optional(),
+});
+
+export const updateCompanyProfileSchema = insertCompanyProfileSchema.partial();
+
+export const insertDefaultExpensesSchema = createInsertSchema(defaultExpenses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  expenseName: z.string().min(1, "Expense name is required"),
+  type: z.enum(["fixed", "variable", "percentage"]),
+  value: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid number format"),
+});
+
+export const updateDefaultExpensesSchema = insertDefaultExpensesSchema.partial();
+
+export const insertPrintingSettingsSchema = createInsertSchema(printingSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  templateName: z.string().min(1, "Template name is required"),
+  fieldsToShow: z.array(z.string()).optional(),
+});
+
+export const updatePrintingSettingsSchema = insertPrintingSettingsSchema.partial();
+
+export const insertModuleSettingsSchema = createInsertSchema(moduleSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  moduleName: z.string().min(1, "Module name is required"),
+});
+
+export const updateModuleSettingsSchema = insertModuleSettingsSchema.partial();
+
+// Settings Types
+export type CompanyProfile = typeof companyProfile.$inferSelect;
+export type InsertCompanyProfile = z.infer<typeof insertCompanyProfileSchema>;
+export type UpdateCompanyProfile = z.infer<typeof updateCompanyProfileSchema>;
+
+export type DefaultExpenses = typeof defaultExpenses.$inferSelect;
+export type InsertDefaultExpenses = z.infer<typeof insertDefaultExpensesSchema>;
+export type UpdateDefaultExpenses = z.infer<typeof updateDefaultExpensesSchema>;
+
+export type PrintingSettings = typeof printingSettings.$inferSelect;
+export type InsertPrintingSettings = z.infer<typeof insertPrintingSettingsSchema>;
+export type UpdatePrintingSettings = z.infer<typeof updatePrintingSettingsSchema>;
+
+export type ModuleSettings = typeof moduleSettings.$inferSelect;
+export type InsertModuleSettings = z.infer<typeof insertModuleSettingsSchema>;
+export type UpdateModuleSettings = z.infer<typeof updateModuleSettingsSchema>;
