@@ -82,6 +82,7 @@ export const placeMaster = pgTable("place_master", {
 // Schema validations for Account Master
 export const insertAccountMasterSchema = createInsertSchema(accountMaster).omit({
   id: true,
+  accountId: true, // Auto-generated, don't require in input
   createdAt: true,
   updatedAt: true,
 });
@@ -97,6 +98,7 @@ export type AccountMaster = typeof accountMaster.$inferSelect;
 // Schema validations for Product Master
 export const insertProductMasterSchema = createInsertSchema(productMaster).omit({
   id: true,
+  productId: true, // Auto-generated, don't require in input
   createdAt: true,
   updatedAt: true,
 });
@@ -125,6 +127,7 @@ export type ProductExpenses = typeof productExpenses.$inferSelect;
 // Schema validations for Place Master
 export const insertPlaceMasterSchema = createInsertSchema(placeMaster).omit({
   id: true,
+  placeId: true, // Auto-generated, don't require in input
   createdAt: true,
   updatedAt: true,
 });
