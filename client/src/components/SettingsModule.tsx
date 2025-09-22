@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
@@ -309,41 +308,45 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
           </CardHeader>
 
           <CardContent className="h-full">
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTab)} className="h-full">
-              {/* Tab Navigation */}
-              <TabsList className="grid w-full grid-cols-4 mb-6">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      className="flex items-center gap-2 px-3 py-2"
-                      data-testid={`tab-${tab.id}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{tab.label}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
+            {/* Sub-Module Navigation */}
+            <div className="mb-6">
+              <div className="flex items-center gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Sub-Module</h3>
+                  <p className="text-sm text-muted-foreground">Select a settings category</p>
+                </div>
+                <Select value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTab)} data-testid="select-settings-submodule">
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tabs.map((tab) => {
+                      const Icon = tab.icon;
+                      return (
+                        <SelectItem key={tab.id} value={tab.id}>
+                          <div className="flex items-center space-x-2">
+                            <Icon className="h-4 w-4" />
+                            <span>{tab.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-              {/* Tab Content */}
-              {tabs.map((tab) => (
-                <TabsContent key={tab.id} value={tab.id} className="h-full mt-0">
-                  <SettingsTable
-                    type={tab.id}
-                    financialYear={selectedFY}
-                    searchTerm={searchTerm}
-                    selectedRowId={selectedRowId}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onSearch={setSearchTerm}
-                    onRowSelect={setSelectedRowId}
-                  />
-                </TabsContent>
-              ))}
-            </Tabs>
+            {/* Content based on selected sub-module */}
+            <SettingsTable
+              type={activeTab}
+              financialYear={selectedFY}
+              searchTerm={searchTerm}
+              selectedRowId={selectedRowId}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onSearch={setSearchTerm}
+              onRowSelect={setSelectedRowId}
+            />
           </CardContent>
         </Card>
       </div>
