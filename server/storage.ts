@@ -2912,7 +2912,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAccountMaster(account: InsertAccountMaster): Promise<AccountMaster> {
-    const accountId = await this.generateAccountId();
+    const accountId = await this.generateAccountId(account.type, account.name, account.financialYear || '2025-26');
     const accountData = {
       ...account,
       accountId,
