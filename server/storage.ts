@@ -128,7 +128,19 @@ import {
   type UpdatePrintingSettings,
   type ModuleSettings,
   type InsertModuleSettings,
-  type UpdateModuleSettings
+  type UpdateModuleSettings,
+  whatsappMessages,
+  whatsappTemplates,
+  whatsappSettings,
+  type WhatsappMessages,
+  type InsertWhatsappMessages,
+  type UpdateWhatsappMessages,
+  type WhatsappTemplates,
+  type InsertWhatsappTemplates,
+  type UpdateWhatsappTemplates,
+  type WhatsappSettings,
+  type InsertWhatsappSettings,
+  type UpdateWhatsappSettings
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -389,6 +401,30 @@ export interface IStorage {
   createModuleSetting(setting: InsertModuleSettings): Promise<ModuleSettings>;
   updateModuleSetting(id: string, setting: UpdateModuleSettings): Promise<ModuleSettings>;
   deleteModuleSetting(id: string): Promise<boolean>;
+
+  // WhatsApp Messages operations
+  getWhatsappMessages(financialYear: string, searchTerm?: string): Promise<WhatsappMessages[]>;
+  getWhatsappMessage(id: string): Promise<WhatsappMessages | undefined>;
+  createWhatsappMessage(message: InsertWhatsappMessages): Promise<WhatsappMessages>;
+  updateWhatsappMessage(id: string, message: UpdateWhatsappMessages): Promise<WhatsappMessages>;
+  deleteWhatsappMessage(id: string): Promise<boolean>;
+  generateWhatsappMessageId(): Promise<string>;
+
+  // WhatsApp Templates operations
+  getWhatsappTemplates(financialYear: string, searchTerm?: string): Promise<WhatsappTemplates[]>;
+  getWhatsappTemplate(id: string): Promise<WhatsappTemplates | undefined>;
+  createWhatsappTemplate(template: InsertWhatsappTemplates): Promise<WhatsappTemplates>;
+  updateWhatsappTemplate(id: string, template: UpdateWhatsappTemplates): Promise<WhatsappTemplates>;
+  deleteWhatsappTemplate(id: string): Promise<boolean>;
+  generateWhatsappTemplateId(): Promise<string>;
+
+  // WhatsApp Settings operations
+  getWhatsappSettings(financialYear: string): Promise<WhatsappSettings[]>;
+  getWhatsappSetting(id: string): Promise<WhatsappSettings | undefined>;
+  createWhatsappSetting(setting: InsertWhatsappSettings): Promise<WhatsappSettings>;
+  updateWhatsappSetting(id: string, setting: UpdateWhatsappSettings): Promise<WhatsappSettings>;
+  deleteWhatsappSetting(id: string): Promise<boolean>;
+  generateWhatsappSettingId(): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -419,6 +455,9 @@ export class MemStorage implements IStorage {
   private incomeLedgers: Map<string, IncomeLedger>;
   private expenseLedgers: Map<string, ExpenseLedger>;
   private bankDepositLedgers: Map<string, BankDepositLedger>;
+  private whatsappMessages: Map<string, WhatsappMessages>;
+  private whatsappTemplates: Map<string, WhatsappTemplates>;
+  private whatsappSettings: Map<string, WhatsappSettings>;
 
   constructor() {
     this.users = new Map();
@@ -448,6 +487,9 @@ export class MemStorage implements IStorage {
     this.incomeLedgers = new Map();
     this.expenseLedgers = new Map();
     this.bankDepositLedgers = new Map();
+    this.whatsappMessages = new Map();
+    this.whatsappTemplates = new Map();
+    this.whatsappSettings = new Map();
   }
 
   // User operations
@@ -2607,6 +2649,197 @@ export class MemStorage implements IStorage {
   async deleteModuleSetting(id: string): Promise<boolean> {
     return true;
   }
+
+  // WhatsApp Messages operations
+  async getWhatsappMessages(financialYear: string, searchTerm?: string): Promise<WhatsappMessages[]> {
+    let messages = Array.from(this.whatsappMessages.values()).filter(
+      (message) => message.financialYear === financialYear
+    );
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      messages = messages.filter((message) =>
+        String(message.recipient || '').toLowerCase().includes(term) ||
+        String(message.messageText || '').toLowerCase().includes(term) ||
+        String(message.type || '').toLowerCase().includes(term)
+      );
+    }
+
+    return messages.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getWhatsappMessage(id: string): Promise<WhatsappMessages | undefined> {
+    return this.whatsappMessages.get(id);
+  }
+
+  async createWhatsappMessage(insertMessage: InsertWhatsappMessages): Promise<WhatsappMessages> {
+    const id = randomUUID();
+    const messageId = await this.generateWhatsappMessageId();
+    const now = new Date();
+    const message: WhatsappMessages = {
+      ...insertMessage,
+      id,
+      messageId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.whatsappMessages.set(id, message);
+    return message;
+  }
+
+  async updateWhatsappMessage(id: string, updateMessage: UpdateWhatsappMessages): Promise<WhatsappMessages> {
+    const existing = this.whatsappMessages.get(id);
+    if (!existing) {
+      throw new Error(`WhatsApp message with id ${id} not found`);
+    }
+    const updated: WhatsappMessages = {
+      ...existing,
+      ...updateMessage,
+      updatedAt: new Date(),
+    };
+    this.whatsappMessages.set(id, updated);
+    return updated;
+  }
+
+  async deleteWhatsappMessage(id: string): Promise<boolean> {
+    return this.whatsappMessages.delete(id);
+  }
+
+  async generateWhatsappMessageId(): Promise<string> {
+    const messages = Array.from(this.whatsappMessages.values());
+    const lastNumber = messages.reduce((max, message) => {
+      const match = message.messageId.match(/MSG-(\d+)/);
+      if (match) {
+        return Math.max(max, parseInt(match[1]));
+      }
+      return max;
+    }, 0);
+    return `MSG-${(lastNumber + 1).toString().padStart(3, '0')}`;
+  }
+
+  // WhatsApp Templates operations
+  async getWhatsappTemplates(financialYear: string, searchTerm?: string): Promise<WhatsappTemplates[]> {
+    let templates = Array.from(this.whatsappTemplates.values()).filter(
+      (template) => template.financialYear === financialYear
+    );
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      templates = templates.filter((template) =>
+        String(template.templateName || '').toLowerCase().includes(term) ||
+        String(template.templateText || '').toLowerCase().includes(term) ||
+        String(template.type || '').toLowerCase().includes(term)
+      );
+    }
+
+    return templates.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getWhatsappTemplate(id: string): Promise<WhatsappTemplates | undefined> {
+    return this.whatsappTemplates.get(id);
+  }
+
+  async createWhatsappTemplate(insertTemplate: InsertWhatsappTemplates): Promise<WhatsappTemplates> {
+    const id = randomUUID();
+    const templateId = await this.generateWhatsappTemplateId();
+    const now = new Date();
+    const template: WhatsappTemplates = {
+      ...insertTemplate,
+      id,
+      templateId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.whatsappTemplates.set(id, template);
+    return template;
+  }
+
+  async updateWhatsappTemplate(id: string, updateTemplate: UpdateWhatsappTemplates): Promise<WhatsappTemplates> {
+    const existing = this.whatsappTemplates.get(id);
+    if (!existing) {
+      throw new Error(`WhatsApp template with id ${id} not found`);
+    }
+    const updated: WhatsappTemplates = {
+      ...existing,
+      ...updateTemplate,
+      updatedAt: new Date(),
+    };
+    this.whatsappTemplates.set(id, updated);
+    return updated;
+  }
+
+  async deleteWhatsappTemplate(id: string): Promise<boolean> {
+    return this.whatsappTemplates.delete(id);
+  }
+
+  async generateWhatsappTemplateId(): Promise<string> {
+    const templates = Array.from(this.whatsappTemplates.values());
+    const lastNumber = templates.reduce((max, template) => {
+      const match = template.templateId.match(/WTPL-(\d+)/);
+      if (match) {
+        return Math.max(max, parseInt(match[1]));
+      }
+      return max;
+    }, 0);
+    return `WTPL-${(lastNumber + 1).toString().padStart(3, '0')}`;
+  }
+
+  // WhatsApp Settings operations
+  async getWhatsappSettings(financialYear: string): Promise<WhatsappSettings[]> {
+    const settings = Array.from(this.whatsappSettings.values()).filter(
+      (setting) => setting.financialYear === financialYear
+    );
+    return settings.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getWhatsappSetting(id: string): Promise<WhatsappSettings | undefined> {
+    return this.whatsappSettings.get(id);
+  }
+
+  async createWhatsappSetting(insertSetting: InsertWhatsappSettings): Promise<WhatsappSettings> {
+    const id = randomUUID();
+    const settingId = await this.generateWhatsappSettingId();
+    const now = new Date();
+    const setting: WhatsappSettings = {
+      ...insertSetting,
+      id,
+      settingId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.whatsappSettings.set(id, setting);
+    return setting;
+  }
+
+  async updateWhatsappSetting(id: string, updateSetting: UpdateWhatsappSettings): Promise<WhatsappSettings> {
+    const existing = this.whatsappSettings.get(id);
+    if (!existing) {
+      throw new Error(`WhatsApp setting with id ${id} not found`);
+    }
+    const updated: WhatsappSettings = {
+      ...existing,
+      ...updateSetting,
+      updatedAt: new Date(),
+    };
+    this.whatsappSettings.set(id, updated);
+    return updated;
+  }
+
+  async deleteWhatsappSetting(id: string): Promise<boolean> {
+    return this.whatsappSettings.delete(id);
+  }
+
+  async generateWhatsappSettingId(): Promise<string> {
+    const settings = Array.from(this.whatsappSettings.values());
+    const lastNumber = settings.reduce((max, setting) => {
+      const match = setting.settingId.match(/WSET-(\d+)/);
+      if (match) {
+        return Math.max(max, parseInt(match[1]));
+      }
+      return max;
+    }, 0);
+    return `WSET-${(lastNumber + 1).toString().padStart(3, '0')}`;
+  }
 }
 
 // Database Storage Implementation
@@ -4590,6 +4823,154 @@ export class DatabaseStorage implements IStorage {
   async deleteModuleSetting(id: string): Promise<boolean> {
     const result = await db.delete(moduleSettings).where(eq(moduleSettings.id, id));
     return result.rowCount > 0;
+  }
+
+  // WhatsApp Messages operations
+  async getWhatsappMessages(financialYear: string, searchTerm?: string): Promise<WhatsappMessages[]> {
+    let query = db.select().from(whatsappMessages)
+      .where(eq(whatsappMessages.financialYear, financialYear));
+
+    if (searchTerm) {
+      query = query.where(
+        or(
+          ilike(whatsappMessages.recipient, `%${searchTerm}%`),
+          ilike(whatsappMessages.messageText, `%${searchTerm}%`),
+          ilike(whatsappMessages.type, `%${searchTerm}%`)
+        )
+      );
+    }
+
+    return await query.orderBy(whatsappMessages.createdAt);
+  }
+
+  async getWhatsappMessage(id: string): Promise<WhatsappMessages | undefined> {
+    const [result] = await db.select().from(whatsappMessages)
+      .where(eq(whatsappMessages.id, id));
+    return result;
+  }
+
+  async createWhatsappMessage(message: InsertWhatsappMessages): Promise<WhatsappMessages> {
+    const messageId = await this.generateWhatsappMessageId();
+    const [result] = await db.insert(whatsappMessages)
+      .values({ ...message, messageId })
+      .returning();
+    return result;
+  }
+
+  async updateWhatsappMessage(id: string, message: UpdateWhatsappMessages): Promise<WhatsappMessages> {
+    const [result] = await db.update(whatsappMessages)
+      .set({ ...message, updatedAt: new Date() })
+      .where(eq(whatsappMessages.id, id))
+      .returning();
+    
+    if (!result) throw new Error("WhatsApp message not found");
+    return result;
+  }
+
+  async deleteWhatsappMessage(id: string): Promise<boolean> {
+    const result = await db.delete(whatsappMessages).where(eq(whatsappMessages.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateWhatsappMessageId(): Promise<string> {
+    const existing = await db.select().from(whatsappMessages);
+    const count = existing.length + 1;
+    return `MSG-${count.toString().padStart(3, '0')}`;
+  }
+
+  // WhatsApp Templates operations
+  async getWhatsappTemplates(financialYear: string, searchTerm?: string): Promise<WhatsappTemplates[]> {
+    let query = db.select().from(whatsappTemplates)
+      .where(eq(whatsappTemplates.financialYear, financialYear));
+
+    if (searchTerm) {
+      query = query.where(
+        or(
+          ilike(whatsappTemplates.templateName, `%${searchTerm}%`),
+          ilike(whatsappTemplates.templateText, `%${searchTerm}%`),
+          ilike(whatsappTemplates.type, `%${searchTerm}%`)
+        )
+      );
+    }
+
+    return await query.orderBy(whatsappTemplates.createdAt);
+  }
+
+  async getWhatsappTemplate(id: string): Promise<WhatsappTemplates | undefined> {
+    const [result] = await db.select().from(whatsappTemplates)
+      .where(eq(whatsappTemplates.id, id));
+    return result;
+  }
+
+  async createWhatsappTemplate(template: InsertWhatsappTemplates): Promise<WhatsappTemplates> {
+    const templateId = await this.generateWhatsappTemplateId();
+    const [result] = await db.insert(whatsappTemplates)
+      .values({ ...template, templateId })
+      .returning();
+    return result;
+  }
+
+  async updateWhatsappTemplate(id: string, template: UpdateWhatsappTemplates): Promise<WhatsappTemplates> {
+    const [result] = await db.update(whatsappTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(whatsappTemplates.id, id))
+      .returning();
+    
+    if (!result) throw new Error("WhatsApp template not found");
+    return result;
+  }
+
+  async deleteWhatsappTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(whatsappTemplates).where(eq(whatsappTemplates.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateWhatsappTemplateId(): Promise<string> {
+    const existing = await db.select().from(whatsappTemplates);
+    const count = existing.length + 1;
+    return `WTPL-${count.toString().padStart(3, '0')}`;
+  }
+
+  // WhatsApp Settings operations
+  async getWhatsappSettings(financialYear: string): Promise<WhatsappSettings[]> {
+    return await db.select().from(whatsappSettings)
+      .where(eq(whatsappSettings.financialYear, financialYear))
+      .orderBy(whatsappSettings.createdAt);
+  }
+
+  async getWhatsappSetting(id: string): Promise<WhatsappSettings | undefined> {
+    const [result] = await db.select().from(whatsappSettings)
+      .where(eq(whatsappSettings.id, id));
+    return result;
+  }
+
+  async createWhatsappSetting(setting: InsertWhatsappSettings): Promise<WhatsappSettings> {
+    const settingId = await this.generateWhatsappSettingId();
+    const [result] = await db.insert(whatsappSettings)
+      .values({ ...setting, settingId })
+      .returning();
+    return result;
+  }
+
+  async updateWhatsappSetting(id: string, setting: UpdateWhatsappSettings): Promise<WhatsappSettings> {
+    const [result] = await db.update(whatsappSettings)
+      .set({ ...setting, updatedAt: new Date() })
+      .where(eq(whatsappSettings.id, id))
+      .returning();
+    
+    if (!result) throw new Error("WhatsApp setting not found");
+    return result;
+  }
+
+  async deleteWhatsappSetting(id: string): Promise<boolean> {
+    const result = await db.delete(whatsappSettings).where(eq(whatsappSettings.id, id));
+    return result.rowCount > 0;
+  }
+
+  async generateWhatsappSettingId(): Promise<string> {
+    const existing = await db.select().from(whatsappSettings);
+    const count = existing.length + 1;
+    return `WSET-${count.toString().padStart(3, '0')}`;
   }
 }
 
