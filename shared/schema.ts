@@ -1333,3 +1333,130 @@ export type UpdatePrintingSettings = z.infer<typeof updatePrintingSettingsSchema
 export type ModuleSettings = typeof moduleSettings.$inferSelect;
 export type InsertModuleSettings = z.infer<typeof insertModuleSettingsSchema>;
 export type UpdateModuleSettings = z.infer<typeof updateModuleSettingsSchema>;
+
+// WhatsApp Module Tables
+
+// WhatsApp Messages Table
+export const whatsappMessages = pgTable("whatsapp_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id", { length: 50 }).notNull().unique(), // Auto-generated like "MSG-001"
+  type: varchar("type", { length: 50 }).notNull(), // Dropdown: promotional/transactional/notification
+  recipient: text("recipient").notNull(), // Phone number or contact
+  messageText: text("message_text").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default('pending'), // Dropdown: sent/failed/pending
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  readAt: timestamp("read_at"),
+  errorMessage: text("error_message"),
+  linkedBillId: varchar("linked_bill_id", { length: 50 }), // Link to Bill Desk
+  linkedInvoiceId: varchar("linked_invoice_id", { length: 50 }), // Link to Farmer Invoice
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxWhatsappMessagesFyMessageId: uniqueIndex("ux_whatsapp_messages_fy_messageid").on(table.financialYear, table.messageId),
+}));
+
+// WhatsApp Templates Table
+export const whatsappTemplates = pgTable("whatsapp_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  templateId: varchar("template_id", { length: 50 }).notNull().unique(), // Auto-generated like "TPL-001"
+  type: varchar("type", { length: 50 }).notNull(), // Dropdown: bill_notification/payment_reminder/invoice_summary
+  templateName: varchar("template_name", { length: 100 }).notNull(),
+  templateText: text("template_text").notNull(), // Text with placeholders like {{customer_name}}, {{amount}}
+  placeholders: json("placeholders").default([]), // Array of available placeholder fields
+  isActive: boolean("is_active").default(true),
+  usageCount: integer("usage_count").default(0),
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxWhatsappTemplatesFyTemplateId: uniqueIndex("ux_whatsapp_templates_fy_templateid").on(table.financialYear, table.templateId),
+}));
+
+// WhatsApp Settings Table
+export const whatsappSettings = pgTable("whatsapp_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  settingId: varchar("setting_id", { length: 50 }).notNull().unique(), // Auto-generated like "SET-001"
+  apiProvider: varchar("api_provider", { length: 50 }).notNull().default('twilio'), // Dropdown: twilio/whatsapp_business/other
+  apiKey: text("api_key").notNull(), // Encrypted API key
+  apiSecret: text("api_secret"), // Optional secret for some providers
+  phoneNumberId: varchar("phone_number_id", { length: 50 }), // WhatsApp Business phone number ID
+  businessName: varchar("business_name", { length: 100 }),
+  autoSend: boolean("auto_send").default(false), // Auto-send messages on bill/invoice creation
+  autoSendTriggers: json("auto_send_triggers").default([]), // Array of trigger events
+  messageLimit: integer("message_limit").default(1000), // Monthly message limit
+  messagesUsed: integer("messages_used").default(0), // Current month usage
+  isActive: boolean("is_active").default(true),
+  customFields: json("custom_fields").default({}),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  uxWhatsappSettingsFySettingId: uniqueIndex("ux_whatsapp_settings_fy_settingid").on(table.financialYear, table.settingId),
+}));
+
+// WhatsApp Messages Schema Validations
+export const insertWhatsappMessagesSchema = createInsertSchema(whatsappMessages, {
+  sentAt: z.coerce.date().optional(),
+  deliveredAt: z.coerce.date().optional(),
+  readAt: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  recipient: z.string().min(1, "Recipient is required"),
+  messageText: z.string().min(1, "Message text is required"),
+  type: z.enum(["promotional", "transactional", "notification"]),
+  status: z.enum(["sent", "failed", "pending"]).default("pending"),
+});
+
+export const updateWhatsappMessagesSchema = insertWhatsappMessagesSchema.partial().omit({
+  messageId: true,
+});
+
+// WhatsApp Templates Schema Validations
+export const insertWhatsappTemplatesSchema = createInsertSchema(whatsappTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  templateName: z.string().min(1, "Template name is required"),
+  templateText: z.string().min(1, "Template text is required"),
+  type: z.enum(["bill_notification", "payment_reminder", "invoice_summary", "custom"]),
+});
+
+export const updateWhatsappTemplatesSchema = insertWhatsappTemplatesSchema.partial().omit({
+  templateId: true,
+});
+
+// WhatsApp Settings Schema Validations
+export const insertWhatsappSettingsSchema = createInsertSchema(whatsappSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  apiProvider: z.enum(["twilio", "whatsapp_business", "other"]),
+  apiKey: z.string().min(1, "API key is required"),
+  businessName: z.string().optional(),
+});
+
+export const updateWhatsappSettingsSchema = insertWhatsappSettingsSchema.partial().omit({
+  settingId: true,
+});
+
+// WhatsApp Types
+export type WhatsappMessages = typeof whatsappMessages.$inferSelect;
+export type InsertWhatsappMessages = z.infer<typeof insertWhatsappMessagesSchema>;
+export type UpdateWhatsappMessages = z.infer<typeof updateWhatsappMessagesSchema>;
+
+export type WhatsappTemplates = typeof whatsappTemplates.$inferSelect;
+export type InsertWhatsappTemplates = z.infer<typeof insertWhatsappTemplatesSchema>;
+export type UpdateWhatsappTemplates = z.infer<typeof updateWhatsappTemplatesSchema>;
+
+export type WhatsappSettings = typeof whatsappSettings.$inferSelect;
+export type InsertWhatsappSettings = z.infer<typeof insertWhatsappSettingsSchema>;
+export type UpdateWhatsappSettings = z.infer<typeof updateWhatsappSettingsSchema>;
