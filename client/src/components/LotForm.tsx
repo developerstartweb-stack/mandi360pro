@@ -756,101 +756,22 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                                   render={({ field: qualityField }) => (
                                     <FormItem>
                                       <FormLabel>Quality *</FormLabel>
-                                      <Popover>
-                                        <PopoverTrigger asChild>
-                                          <FormControl>
-                                            <Button
-                                              variant="outline"
-                                              role="combobox"
-                                              className={`w-full justify-between ${!qualityField.value && "text-muted-foreground"}`}
-                                              data-testid={`select-quality-${farmerIndex}-${qqIndex}`}
-                                            >
-                                              {qualityField.value || "Select or enter quality"}
-                                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                          </FormControl>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
-                                          <Command>
-                                            <CommandInput 
-                                              placeholder="Type quality or select..."
-                                              value={qualityField.value}
-                                              onValueChange={(value) => {
-                                                qualityField.onChange(value);
-                                                const productId = form.getValues('productId');
-                                                if (productId && value) {
-                                                  const rateKey = `${farmerIndex}-${qqIndex}`;
-                                                  fetchAverageRate(productId, value, rateKey, farmerIndex, qqIndex);
-                                                }
-                                              }}
-                                            />
-                                            <CommandList>
-                                              <CommandEmpty>
-                                                Press Enter to use "{qualityField.value}"
-                                              </CommandEmpty>
-                                              <CommandGroup heading="Predefined Grades">
-                                                <CommandItem
-                                                  value="A"
-                                                  onSelect={() => {
-                                                    qualityField.onChange("A");
-                                                    const productId = form.getValues('productId');
-                                                    if (productId) {
-                                                      const rateKey = `${farmerIndex}-${qqIndex}`;
-                                                      fetchAverageRate(productId, "A", rateKey, farmerIndex, qqIndex);
-                                                    }
-                                                  }}
-                                                  data-testid={`option-quality-A-${farmerIndex}-${qqIndex}`}
-                                                >
-                                                  <Check
-                                                    className={`mr-2 h-4 w-4 ${
-                                                      qualityField.value === "A" ? "opacity-100" : "opacity-0"
-                                                    }`}
-                                                  />
-                                                  Grade A
-                                                </CommandItem>
-                                                <CommandItem
-                                                  value="B"
-                                                  onSelect={() => {
-                                                    qualityField.onChange("B");
-                                                    const productId = form.getValues('productId');
-                                                    if (productId) {
-                                                      const rateKey = `${farmerIndex}-${qqIndex}`;
-                                                      fetchAverageRate(productId, "B", rateKey, farmerIndex, qqIndex);
-                                                    }
-                                                  }}
-                                                  data-testid={`option-quality-B-${farmerIndex}-${qqIndex}`}
-                                                >
-                                                  <Check
-                                                    className={`mr-2 h-4 w-4 ${
-                                                      qualityField.value === "B" ? "opacity-100" : "opacity-0"
-                                                    }`}
-                                                  />
-                                                  Grade B
-                                                </CommandItem>
-                                                <CommandItem
-                                                  value="C"
-                                                  onSelect={() => {
-                                                    qualityField.onChange("C");
-                                                    const productId = form.getValues('productId');
-                                                    if (productId) {
-                                                      const rateKey = `${farmerIndex}-${qqIndex}`;
-                                                      fetchAverageRate(productId, "C", rateKey, farmerIndex, qqIndex);
-                                                    }
-                                                  }}
-                                                  data-testid={`option-quality-C-${farmerIndex}-${qqIndex}`}
-                                                >
-                                                  <Check
-                                                    className={`mr-2 h-4 w-4 ${
-                                                      qualityField.value === "C" ? "opacity-100" : "opacity-0"
-                                                    }`}
-                                                  />
-                                                  Grade C
-                                                </CommandItem>
-                                              </CommandGroup>
-                                            </CommandList>
-                                          </Command>
-                                        </PopoverContent>
-                                      </Popover>
+                                      <FormControl>
+                                        <Input
+                                          placeholder="Enter quality (e.g., A, B, C, Grade-1)"
+                                          data-testid={`input-quality-${farmerIndex}-${qqIndex}`}
+                                          {...qualityField}
+                                          onChange={(e) => {
+                                            qualityField.onChange(e.target.value);
+                                            // Auto-fetch rate when quality is entered
+                                            const productId = form.getValues('productId');
+                                            if (productId && e.target.value.length > 0) {
+                                              const rateKey = `${farmerIndex}-${qqIndex}`;
+                                              fetchAverageRate(productId, e.target.value, rateKey, farmerIndex, qqIndex);
+                                            }
+                                          }}
+                                        />
+                                      </FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )}
