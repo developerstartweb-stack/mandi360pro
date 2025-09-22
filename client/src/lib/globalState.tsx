@@ -5,6 +5,15 @@ import { useToast } from "@/hooks/use-toast";
 // Global State Management Context with FY-scoped data
 interface GlobalState {
   currentFY: string;
+  companyProfile: {
+    companyName: string;
+    address?: string;
+    phone1?: string;
+    phone2?: string;
+    email?: string;
+    website?: string;
+    logoUrl?: string;
+  } | null;
   masterData: {
     accountsByFY: Record<string, any[]>;
     productsByFY: Record<string, any[]>;
@@ -39,6 +48,7 @@ interface GlobalContextType {
   updateMasterData: (type: keyof GlobalState['masterData'], data: any[]) => void;
   updateActiveData: (type: keyof GlobalState['activeData'], data: any[]) => void;
   updatePreferences: (prefs: Partial<GlobalState['preferences']>) => void;
+  updateCompanyProfile: (profile: GlobalState['companyProfile']) => void;
   setCurrentFY: (fy: string) => void;
   isLoading: boolean;
 }
@@ -70,6 +80,7 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
     const savedState = localStorage.getItem(`mandi360pro-global-${autoFY}`);
     const defaultState: GlobalState = {
       currentFY: autoFY,
+      companyProfile: null,
       masterData: {
         accountsByFY: {},
         productsByFY: {},
@@ -105,6 +116,18 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
   // Centralized data loading for the current FY
   const dataQueries = useQueries({
     queries: [
+      {
+        queryKey: ["/api/company-profiles", state.currentFY],
+        queryFn: async () => {
+          const url = new URL('/api/company-profiles', window.location.origin);
+          url.searchParams.set('fy', state.currentFY);
+          const response = await fetch(url.toString());
+          if (!response.ok) throw new Error('Failed to fetch company profiles');
+          const profiles = await response.json();
+          return profiles.length > 0 ? profiles[0] : null; // Return first profile or null
+        },
+        staleTime: 10 * 60 * 1000, // 10 minutes - company profile changes less frequently
+      },
       {
         queryKey: ["/api/accounts", state.currentFY],
         queryFn: async () => {
@@ -168,10 +191,15 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
 
   // Update global state when centralized data is fetched
   useEffect(() => {
-    const [accountsQuery, productsQuery, placesQuery, expensesQuery, lotsQuery] = dataQueries;
+    const [companyProfileQuery, accountsQuery, productsQuery, placesQuery, expensesQuery, lotsQuery] = dataQueries;
 
     let stateUpdated = false;
     const newState = { ...state };
+
+    if (companyProfileQuery.data && companyProfileQuery.data !== state.companyProfile) {
+      newState.companyProfile = companyProfileQuery.data;
+      stateUpdated = true;
+    }
 
     if (accountsQuery.data && accountsQuery.data !== state.masterData.accounts) {
       newState.masterData = {
@@ -324,6 +352,13 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const updateCompanyProfile = useCallback((profile: GlobalState['companyProfile']) => {
+    setState(prevState => ({
+      ...prevState,
+      companyProfile: profile
+    }));
+  }, []);
+
   const setCurrentFY = useCallback((fy: string) => {
     // Save current state before switching
     localStorage.setItem(`mandi360pro-global-${state.currentFY}`, JSON.stringify(state));
@@ -379,6 +414,7 @@ export function GlobalProvider({ children }: { children: React.ReactNode }) {
       updateMasterData,
       updateActiveData,
       updatePreferences,
+      updateCompanyProfile,
       setCurrentFY,
       isLoading
     }}>

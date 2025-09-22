@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useGlobalState } from "@/lib/globalState";
 import { useState } from "react";
 
 interface HeaderProps {
@@ -18,6 +19,15 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderProps) {
+  // Safely access global state with fallback
+  let companyName = "Mandi360pro"; // Default fallback
+  try {
+    const { state } = useGlobalState();
+    companyName = state.companyProfile?.companyName || "Mandi360pro";
+  } catch (error) {
+    // Global state not available yet, use default
+    console.log("Global state not yet available, using default company name");
+  }
 
   return (
     <header className="flex items-center justify-between p-4 border-b bg-background">
@@ -34,7 +44,7 @@ export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderPro
         
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-display font-semibold text-primary">
-            Mandi360pro
+            {companyName}
           </h1>
           <Badge variant="secondary" className="text-xs">
             v1.0
