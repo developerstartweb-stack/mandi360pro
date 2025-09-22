@@ -25,6 +25,7 @@ const accountTypes = [
   { value: "S", label: "Seller", description: "Sells products through mandi" },
   { value: "F", label: "Farmer", description: "Produces and supplies products" },
   { value: "A", label: "Agent", description: "Commission agent/broker" },
+  { value: "T", label: "Transport", description: "Transportation and logistics services" },
 ];
 
 export default function AccountForm({ onSubmit, onCancel, initialData }: AccountFormProps) {

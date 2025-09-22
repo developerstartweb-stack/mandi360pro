@@ -66,7 +66,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
 
   // Filter accounts by type
   const farmers = accounts.filter((acc: any) => acc.type === 'F');
-  const transporters = accounts.filter((acc: any) => acc.type === 'A' || acc.type === 'B'); // Include Agents and Buyers as transporters
+  const transporters = accounts.filter((acc: any) => acc.type === 'T'); // Only Transport type accounts
 
   const form = useForm<LotFormData>({
     resolver: zodResolver(lotFormSchema),
@@ -320,7 +320,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                                 <CommandList>
                                   <CommandEmpty>
                                     {transporters.length === 0 
-                                      ? "No transport accounts found. Please create Agent or Buyer accounts first."
+                                      ? "No transport accounts found. Please create Transport type accounts in Account Master first."
                                       : "No accounts match your search."
                                     }
                                   </CommandEmpty>
@@ -342,7 +342,7 @@ export default function LotForm({ onSubmit, onCancel, initialData, currentFY }: 
                                         <div className="flex flex-col">
                                           <span className="font-medium">{account.name}</span>
                                           <span className="text-sm text-muted-foreground">
-                                            {account.accountId} • {account.type === 'A' ? 'Agent' : 'Buyer'}
+                                            {account.accountId} • Transport
                                           </span>
                                         </div>
                                       </CommandItem>
