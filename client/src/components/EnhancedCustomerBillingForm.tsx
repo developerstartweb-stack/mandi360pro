@@ -165,6 +165,58 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
     }
   };
 
+  // Auto-calculate commission, market fee, hamali based on product expenses with type "buyer"
+  const autoCalculateExpenses = async (productId: string) => {
+    try {
+      // Filter expenses for the specific product with type "buyer"
+      const productExpenses = expenses.filter((exp: any) => 
+        exp.productId === productId && exp.type === 'buyer'
+      );
+
+      let commission = 0;
+      let marketFee = 0;
+      let hamali = 0;
+
+      // Calculate expenses based on current bill items subtotal
+      const currentSubtotal = billItems.reduce((sum, item) => sum + (item.weight * item.rate), 0);
+
+      productExpenses.forEach((expense: any) => {
+        const amount = expense.isPercentage 
+          ? (currentSubtotal * Number(expense.amount)) / 100 
+          : Number(expense.amount);
+
+        // Map expense names to form fields
+        const expenseName = expense.name.toLowerCase();
+        if (expenseName.includes('commission')) {
+          commission += amount;
+        } else if (expenseName.includes('market') || expenseName.includes('fee')) {
+          marketFee += amount;
+        } else if (expenseName.includes('hamali') || expenseName.includes('loading') || expenseName.includes('labor')) {
+          hamali += amount;
+        }
+      });
+
+      // Update form values
+      form.setValue('commission', commission);
+      form.setValue('marketFee', marketFee);
+      form.setValue('hamali', hamali);
+
+      if (productExpenses.length > 0) {
+        toast({
+          title: "Expenses Auto-Calculated",
+          description: `Updated commission (₹${commission.toFixed(2)}), market fee (₹${marketFee.toFixed(2)}), and hamali (₹${hamali.toFixed(2)}) based on product expenses.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error auto-calculating expenses:', error);
+      toast({
+        title: "Auto-Calculation Failed",
+        description: "Could not auto-calculate expenses. Please enter manually.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Add/Remove bill items
   const addBillItem = () => {
     const currentItems = form.getValues('billItems');
@@ -326,12 +378,12 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
             </CardContent>
           </Card>
 
-          {/* Products Section */}
+          {/* Lot Selection Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Products & Billing Items
+                <MapPin className="h-5 w-5" />
+                Lot Selection
               </CardTitle>
               <div className="flex gap-2">
                 <Button 
@@ -349,15 +401,14 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
             <CardContent className="space-y-4">
               {billItems.map((item, index) => (
                 <div key={index} className="border rounded-lg p-4 relative">
-                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                    
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Lot Selection */}
                     <FormField
                       control={form.control}
                       name={`billItems.${index}.lotId`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Lot *</FormLabel>
+                          <FormLabel>Select Lot *</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
@@ -367,9 +418,11 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                   className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
                                   data-testid={`select-lot-${index}`}
                                 >
-                                  {field.value
-                                    ? lots.find((lot: any) => lot.id === field.value)?.lotId || "Select lot"
-                                    : "Select lot"}
+                                  {field.value ? (() => {
+                                    const lot = lots.find((l: any) => l.id === field.value);
+                                    const product = products.find((p: any) => p.id === lot?.productId);
+                                    return `${lot?.lotId || `Lot-${lot?.id.slice(-6)}`} - ${product?.name}`;
+                                  })() : "Select lot"}
                                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                               </FormControl>
@@ -394,6 +447,10 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                               form.setValue(`billItems.${index}.productId`, lot.productId);
                                               form.setValue(`billItems.${index}.productName`, product?.name || '');
                                             }
+                                            // Auto-calculate expenses based on product
+                                            if (product?.id) {
+                                              await autoCalculateExpenses(product.id);
+                                            }
                                           }}
                                           data-testid={`option-lot-${lot.id}`}
                                         >
@@ -405,7 +462,7 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                           <div className="flex flex-col">
                                             <span className="font-medium">{lot.lotId || `Lot-${lot.id.slice(-6)}`}</span>
                                             <span className="text-xs text-muted-foreground">
-                                              {product?.name || 'Unknown Product'} • Qty: {Number(lot.totalQuantity).toLocaleString()}
+                                              {product?.name || 'Unknown Product'} • Total Qty: {Number(lot.totalQuantity).toLocaleString()}
                                             </span>
                                           </div>
                                         </CommandItem>
@@ -426,11 +483,10 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                       control={form.control}
                       name={`billItems.${index}.farmerSubFieldId`}
                       render={({ field }) => {
-                        const selectedLot = lots.find((l: any) => l.id === item.lotId);
                         const subFields = item.lotId ? lotSubFields[item.lotId] || [] : [];
                         return (
                           <FormItem>
-                            <FormLabel>Farmer Lot *</FormLabel>
+                            <FormLabel>Select Farmer Lot *</FormLabel>
                             <Popover>
                               <PopoverTrigger asChild>
                                 <FormControl>
@@ -457,49 +513,46 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                   <CommandList>
                                     <CommandEmpty>No farmer lots found.</CommandEmpty>
                                     <CommandGroup>
-                                      {subFields.map((subField: any) => {
-                                        return (
-                                          <CommandItem
-                                            key={subField.id}
-                                            value={`${subField.farmerName} ${subField.quality} ${subField.availableQuantity}`}
-                                            onSelect={() => {
-                                              field.onChange(subField.id);
-                                              // Auto-fill form fields from selected farmer lot
-                                              form.setValue(`billItems.${index}.quality`, subField.quality);
-                                              form.setValue(`billItems.${index}.productId`, subField.productId);
-                                              form.setValue(`billItems.${index}.productName`, subField.productName);
-                                              
-                                              // Set quantity and weight from available stock
-                                              form.setValue(`billItems.${index}.quantity`, Number(subField.availableQuantity || subField.quantity));
-                                              form.setValue(`billItems.${index}.weight`, Number(subField.availableWeight || subField.weight || subField.availableQuantity));
-                                              
-                                              // Set rate from sub-field or fetch if needed
-                                              if (subField.averageRate) {
-                                                form.setValue(`billItems.${index}.rate`, Number(subField.averageRate));
-                                              } else if (subField.productId && subField.quality) {
-                                                fetchAverageRate(subField.productId, subField.quality, index);
-                                              }
-                                            }}
-                                            data-testid={`option-farmer-lot-${subField.id}`}
-                                          >
-                                            <Check
-                                              className={`mr-2 h-4 w-4 ${
-                                                subField.id === field.value ? "opacity-100" : "opacity-0"
-                                              }`}
-                                            />
-                                            <div className="flex flex-col">
-                                              <span className="font-medium">
-                                                {subField.farmerName} - {subField.quality}
-                                              </span>
-                                              <span className="text-xs text-muted-foreground">
-                                                Avl Qty: {Number(subField.availableQuantity || subField.quantity).toLocaleString()} • 
-                                                Avl Weight: {Number(subField.availableWeight || subField.weight || subField.quantity).toLocaleString()} kg • 
-                                                Rate: ₹{Number(subField.averageRate || 0).toLocaleString()}
-                                              </span>
-                                            </div>
-                                          </CommandItem>
-                                        );
-                                      })}
+                                      {subFields.map((subField: any) => (
+                                        <CommandItem
+                                          key={subField.id}
+                                          value={`${subField.farmerName} ${subField.quality} ${subField.availableQuantity}`}
+                                          onSelect={() => {
+                                            field.onChange(subField.id);
+                                            // Auto-fill form fields from selected farmer lot
+                                            form.setValue(`billItems.${index}.quality`, subField.quality);
+                                            form.setValue(`billItems.${index}.productId`, subField.productId);
+                                            form.setValue(`billItems.${index}.productName`, subField.productName);
+                                            
+                                            // Set quantity and weight from available stock
+                                            form.setValue(`billItems.${index}.quantity`, Number(subField.availableQuantity || subField.quantity));
+                                            form.setValue(`billItems.${index}.weight`, Number(subField.availableWeight || subField.weight || subField.availableQuantity));
+                                            
+                                            // Set rate from sub-field or fetch if needed
+                                            if (subField.averageRate) {
+                                              form.setValue(`billItems.${index}.rate`, Number(subField.averageRate));
+                                            } else if (subField.productId && subField.quality) {
+                                              fetchAverageRate(subField.productId, subField.quality, index);
+                                            }
+                                          }}
+                                          data-testid={`option-farmer-lot-${subField.id}`}
+                                        >
+                                          <Check
+                                            className={`mr-2 h-4 w-4 ${
+                                              subField.id === field.value ? "opacity-100" : "opacity-0"
+                                            }`}
+                                          />
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">
+                                              {subField.farmerName} - {subField.quality}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                              Avl Qty: {Number(subField.availableQuantity || subField.quantity).toLocaleString()} • 
+                                              Avl Weight: {Number(subField.availableWeight || subField.weight || subField.quantity).toLocaleString()} kg
+                                            </span>
+                                          </div>
+                                        </CommandItem>
+                                      ))}
                                     </CommandGroup>
                                   </CommandList>
                                 </Command>
@@ -510,124 +563,21 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                         );
                       }}
                     />
-
-                    {/* Quantity */}
-                    <FormField
-                      control={form.control}
-                      name={`billItems.${index}.quantity`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quantity *</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              data-testid={`input-quantity-${index}`}
-                              {...field}
-                              onChange={(e) => {
-                                field.onChange(Number(e.target.value));
-                                const value = Number(e.target.value);
-                                // Auto-calculate weight if average weight is available
-                                const selectedLot = lots.find((l: any) => l.id === item.lotId);
-                                if (selectedLot?.averageWeight) {
-                                  form.setValue(`billItems.${index}.weight`, value * Number(selectedLot.averageWeight));
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Weight */}
-                    <FormField
-                      control={form.control}
-                      name={`billItems.${index}.weight`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Weight *</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              data-testid={`input-weight-${index}`}
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          {item.quantity > 0 && item.weight > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              Avg Weight: {(item.weight / item.quantity).toFixed(2)} kg
-                            </p>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Rate */}
-                    <FormField
-                      control={form.control}
-                      name={`billItems.${index}.rate`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            Rate (₹) *
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 w-5 p-0"
-                              onClick={() => {
-                                if (item.productId && item.quality) {
-                                  fetchAverageRate(item.productId, item.quality, index);
-                                } else {
-                                  toast({
-                                    title: "Missing Data",
-                                    description: "Please select farmer lot first.",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                              disabled={loadingRates.has(index)}
-                              data-testid={`button-refresh-rate-${index}`}
-                            >
-                              <RefreshCw className={`h-3 w-3 ${loadingRates.has(index) ? 'animate-spin' : ''}`} />
-                            </Button>
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              data-testid={`input-rate-${index}`}
-                              disabled={loadingRates.has(index)}
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {/* Total (Weight × Rate) */}
-                    <div>
-                      <Label>Total (Weight × Rate)</Label>
-                      <div className="p-2 bg-muted/50 rounded text-right font-medium">
-                        ₹{(item.weight * item.rate).toFixed(2)}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Product Name Display */}
                   {item.productName && (
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      Product: <span className="font-medium">{item.productName}</span>
-                      {item.quality && <span> • Quality: <Badge variant="outline">{item.quality}</Badge></span>}
+                    <div className="mt-3 p-3 bg-muted/30 rounded-md">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Product:</span>
+                        <Badge variant="secondary">{item.productName}</Badge>
+                        {item.quality && (
+                          <>
+                            <span className="text-sm">•</span>
+                            <Badge variant="outline">{item.quality}</Badge>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -646,6 +596,163 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                   )}
                 </div>
               ))}
+            </CardContent>
+          </Card>
+
+          {/* Product Details Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Product Details & Pricing
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {billItems.map((item, index) => {
+                const subFields = item.lotId ? lotSubFields[item.lotId] || [] : [];
+                const selectedSubField = subFields.find((sf: any) => sf.id === item.farmerSubFieldId);
+                
+                if (!item.lotId || !item.farmerSubFieldId) {
+                  return (
+                    <div key={index} className="border rounded-lg p-4 bg-muted/10">
+                      <p className="text-muted-foreground text-center">
+                        Select lot and farmer lot to see product details
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={index} className="border rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Badge variant="secondary">Item #{index + 1}</Badge>
+                      <span className="text-sm font-medium">{item.productName}</span>
+                      <span className="text-sm text-muted-foreground">•</span>
+                      <span className="text-sm text-muted-foreground">{selectedSubField?.farmerName} - {item.quality}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* Quantity */}
+                      <FormField
+                        control={form.control}
+                        name={`billItems.${index}.quantity`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Quantity *</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                data-testid={`input-quantity-${index}`}
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(Number(e.target.value));
+                                  const value = Number(e.target.value);
+                                  // Auto-calculate weight if average weight is available
+                                  const selectedLot = lots.find((l: any) => l.id === item.lotId);
+                                  if (selectedLot?.averageWeight) {
+                                    form.setValue(`billItems.${index}.weight`, value * Number(selectedLot.averageWeight));
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <div className="text-xs text-muted-foreground">
+                              Max: {Number(selectedSubField?.availableQuantity || 0).toLocaleString()}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Weight */}
+                      <FormField
+                        control={form.control}
+                        name={`billItems.${index}.weight`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Weight (kg) *</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                data-testid={`input-weight-${index}`}
+                                {...field}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <div className="text-xs text-muted-foreground">
+                              Max: {Number(selectedSubField?.availableWeight || 0).toLocaleString()} kg
+                              {item.quantity > 0 && item.weight > 0 && (
+                                <span> • Avg: {(item.weight / item.quantity).toFixed(2)} kg</span>
+                              )}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Rate */}
+                      <FormField
+                        control={form.control}
+                        name={`billItems.${index}.rate`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              Rate (₹/kg) *
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0"
+                                onClick={() => {
+                                  if (item.productId && item.quality) {
+                                    fetchAverageRate(item.productId, item.quality, index);
+                                  } else {
+                                    toast({
+                                      title: "Missing Data",
+                                      description: "Please select farmer lot first.",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                                disabled={loadingRates.has(index)}
+                                data-testid={`button-refresh-rate-${index}`}
+                              >
+                                <RefreshCw className={`h-3 w-3 ${loadingRates.has(index) ? 'animate-spin' : ''}`} />
+                              </Button>
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                data-testid={`input-rate-${index}`}
+                                disabled={loadingRates.has(index)}
+                                {...field}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Total */}
+                      <div>
+                        <Label>Total Amount</Label>
+                        <div className="p-2 bg-primary/5 border rounded text-right font-medium">
+                          ₹{(item.weight * item.rate).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {item.weight} kg × ₹{item.rate}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
