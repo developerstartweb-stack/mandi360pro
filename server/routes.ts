@@ -389,7 +389,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Lot Entry Sub-Fields Routes
   app.get("/api/inventory/lot-entry/:lotId/sub-fields", async (req, res) => {
     try {
-      const subFields = await storage.getLotEntrySubFields(req.params.lotId);
+      // First get the lot to find the actual lot_id string
+      const lot = await storage.getLotEntry(req.params.lotId);
+      if (!lot) {
+        return res.status(404).json({ error: "Lot not found" });
+      }
+      
+      const subFields = await storage.getLotEntrySubFields(lot.lotId);
       
       // Enrich with farmer and product names
       const accounts = await storage.getAccountMasters('2025-26', ''); // Get all accounts
