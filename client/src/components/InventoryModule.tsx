@@ -187,9 +187,34 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
     }
   };
 
-  // Read data from global state (centrally loaded)
-  const lots = state.activeData.lots || [];
-  const lotsLoading = false; // Centralized loading
+  // Query lots with product and place data for better display and search
+  const { data: lots = [], isLoading: lotsLoading } = useQuery({
+    queryKey: ['/api/inventory/lot-entry', currentFY],
+    queryFn: () => fetch(`/api/inventory/lot-entry?fy=${currentFY}`).then(res => res.json()),
+  });
+
+  // Query products and places for enriching lot data
+  const { data: products = [] } = useQuery({
+    queryKey: ['/api/products'],
+    queryFn: () => fetch('/api/products').then(res => res.json()),
+  });
+
+  const { data: places = [] } = useQuery({
+    queryKey: ['/api/places'],
+    queryFn: () => fetch('/api/places').then(res => res.json()),
+  });
+
+  // Enrich lots with product and place names for better display
+  const enrichedLots = lots.map((lot: any) => {
+    const product = products.find((p: any) => p.id === lot.productId);
+    const place = places.find((p: any) => p.id === lot.placeId);
+    return {
+      ...lot,
+      productName: product?.name || lot.productId,
+      placeName: place?.name || lot.placeId,
+      productUnit: product?.unit,
+    };
+  });
 
   // Mock data for other tabs (will be replaced with centralized loading later)
   const godownAwaks: any[] = [];
@@ -199,11 +224,14 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
   const damagesLoading = false;
   const weightSlipsLoading = false;
 
-  // Apply client-side search filtering for lots
-  const filteredLots = searchTerm ? lots.filter(lot => 
-    lot.productId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lot.placeId?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : lots;
+  // Apply client-side search filtering for lots with enhanced search
+  const filteredLots = searchTerm ? enrichedLots.filter(lot => 
+    lot.lotId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lot.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lot.placeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lot.transportName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lot.totalQuantity?.toString().includes(searchTerm.toLowerCase())
+  ) : enrichedLots;
 
   // Get current data based on active tab
   const getCurrentData = () => {
@@ -362,12 +390,14 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
     switch (activeSubModule) {
       case "lot-entry":
         return [
-          { key: "lotId", label: "Lot ID", width: "w-32" },
+          { key: "lotId", label: "Lot ID", width: "w-28" },
+          { key: "productName", label: "Product", width: "w-32" },
+          { key: "placeName", label: "Place", width: "w-28" },
           { key: "arrivingDate", label: "Date", width: "w-24" },
-          { key: "transportName", label: "Transport", width: "w-32" },
-          { key: "totalQuantity", label: "Quantity", width: "w-24" },
-          { key: "totalWeight", label: "Weight", width: "w-24" },
-          { key: "actions", label: "Actions", width: "w-32" },
+          { key: "transportName", label: "Transport", width: "w-28" },
+          { key: "totalQuantity", label: "Quantity", width: "w-20" },
+          { key: "totalWeight", label: "Weight", width: "w-20" },
+          { key: "actions", label: "Actions", width: "w-24" },
         ];
       case "godown-awak":
         return [
@@ -455,6 +485,17 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
+                  ) : column.key === "productName" ? (
+                    <div className="flex flex-col">
+                      <span className="font-medium">{item.productName || "-"}</span>
+                      {item.productUnit && (
+                        <span className="text-xs text-muted-foreground">{item.productUnit}</span>
+                      )}
+                    </div>
+                  ) : column.key === "arrivingDate" ? (
+                    <span>{item[column.key] ? new Date(item[column.key]).toLocaleDateString() : "-"}</span>
+                  ) : column.key === "totalQuantity" || column.key === "totalWeight" ? (
+                    <span>{item[column.key] ? `${Number(item[column.key]).toLocaleString()}` : "-"}</span>
                   ) : (
                     <span>{item[column.key] || "-"}</span>
                   )}
@@ -524,7 +565,7 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Search inventory records..."
+                placeholder="Search by Lot ID, Product, Place, Transport..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
