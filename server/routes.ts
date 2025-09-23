@@ -390,7 +390,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/inventory/lot-entry/:lotId/sub-fields", async (req, res) => {
     try {
       const subFields = await storage.getLotEntrySubFields(req.params.lotId);
-      res.json(subFields);
+      
+      // Enrich with farmer and product names
+      const accounts = await storage.getAccountMasters('2025-26', ''); // Get all accounts
+      const products = await storage.getProductMasters('2025-26', ''); // Get all products
+      
+      const enrichedSubFields = subFields.map(sub => {
+        const farmer = accounts.find(acc => acc.id === sub.farmerAgentId);
+        const product = products.find(prod => prod.id === sub.productId);
+        
+        return {
+          ...sub,
+          farmerName: farmer?.name || 'Unknown Farmer',
+          farmerAccountId: farmer?.accountId || '',
+          productName: product?.name || 'Unknown Product',
+          availableQuantity: sub.quantity, // For now, same as quantity - will be reduced by sales later
+          availableWeight: sub.weight, // For now, same as weight - will be reduced by sales later
+        };
+      });
+      
+      res.json(enrichedSubFields);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch lot entry sub-fields" });
     }
