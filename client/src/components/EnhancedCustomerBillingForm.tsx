@@ -472,10 +472,7 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                               form.setValue(`billItems.${index}.productId`, lot.productId);
                                               form.setValue(`billItems.${index}.productName`, product?.name || '');
                                             }
-                                            // Auto-calculate expenses based on product
-                                            if (product?.name) {
-                                              await autoCalculateExpenses(product.name);
-                                            }
+                                            // Note: Auto-calculation will happen after farmer lot selection
                                           }}
                                           data-testid={`option-lot-${lot.id}`}
                                         >
@@ -556,8 +553,20 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                             // Set rate from sub-field or fetch if needed
                                             if (subField.averageRate) {
                                               form.setValue(`billItems.${index}.rate`, Number(subField.averageRate));
+                                              // Auto-calculate expenses after all data is populated
+                                              setTimeout(() => {
+                                                if (subField.productName) {
+                                                  autoCalculateExpenses(subField.productName);
+                                                }
+                                              }, 100);
                                             } else if (subField.productId && subField.quality) {
                                               fetchAverageRate(subField.productId, subField.quality, index);
+                                              // Auto-calculate expenses after rate is fetched
+                                              setTimeout(() => {
+                                                if (subField.productName) {
+                                                  autoCalculateExpenses(subField.productName);
+                                                }
+                                              }, 500);
                                             }
                                           }}
                                           data-testid={`option-farmer-lot-${subField.id}`}
@@ -675,9 +684,13 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                   field.onChange(Number(e.target.value));
                                   const value = Number(e.target.value);
                                   // Auto-calculate weight if average weight is available
-                                  const selectedLot = lots.find((l: any) => l.id === item.lotId);
+                                  const selectedLot = (lots as any[]).find((l: any) => l.id === item.lotId);
                                   if (selectedLot?.averageWeight) {
                                     form.setValue(`billItems.${index}.weight`, value * Number(selectedLot.averageWeight));
+                                  }
+                                  // Trigger expense recalculation
+                                  if (item.productName) {
+                                    setTimeout(() => autoCalculateExpenses(item.productName), 200);
                                   }
                                 }}
                               />
@@ -704,7 +717,13 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                 placeholder="0.00"
                                 data-testid={`input-weight-${index}`}
                                 {...field}
-                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                onChange={(e) => {
+                                  field.onChange(Number(e.target.value));
+                                  // Trigger expense recalculation when weight changes
+                                  if (item.productName) {
+                                    setTimeout(() => autoCalculateExpenses(item.productName), 200);
+                                  }
+                                }}
                               />
                             </FormControl>
                             <div className="text-xs text-muted-foreground">
@@ -756,7 +775,13 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                 data-testid={`input-rate-${index}`}
                                 disabled={loadingRates.has(index)}
                                 {...field}
-                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                onChange={(e) => {
+                                  field.onChange(Number(e.target.value));
+                                  // Trigger expense recalculation when rate changes
+                                  if (item.productName) {
+                                    setTimeout(() => autoCalculateExpenses(item.productName), 200);
+                                  }
+                                }}
                               />
                             </FormControl>
                             <FormMessage />
