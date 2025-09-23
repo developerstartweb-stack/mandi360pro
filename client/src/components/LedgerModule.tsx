@@ -57,6 +57,24 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
     content: () => componentRef.current,
   });
 
+  // Helper functions - moved here to fix initialization errors
+  const getCurrentData = () => {
+    switch (activeTab) {
+      case 'uplag': return uplagLedgers || [];
+      case 'khata': return khataLedgers || [];
+      case 'farmer-transport': return farmerTransportLedgers || [];
+      case 'income': return incomeLedgers || [];
+      case 'expense': return expenseLedgers || [];
+      case 'bank-deposit': return bankDepositLedgers || [];
+      default: return [];
+    }
+  };
+
+  const getSelectedRow = () => {
+    if (!selectedRowId) return null;
+    const currentData = getCurrentData();
+    return currentData.find((item: any) => item.id === selectedRowId) || null;
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -242,24 +260,7 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
     enabled: activeTab === 'bank-deposit'
   });
 
-  // Helper functions - moved here after useQuery declarations to avoid initialization errors
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case 'uplag': return uplagLedgers || [];
-      case 'khata': return khataLedgers || [];
-      case 'farmer-transport': return farmerTransportLedgers || [];
-      case 'income': return incomeLedgers || [];
-      case 'expense': return expenseLedgers || [];
-      case 'bank-deposit': return bankDepositLedgers || [];
-      default: return [];
-    }
-  };
-
-  const getSelectedRow = () => {
-    if (!selectedRowId) return null;
-    const currentData = getCurrentData();
-    return currentData.find((item: any) => item.id === selectedRowId) || null;
-  };
+  // Helper functions - moved to top of component to fix initialization errors
 
   // Delete mutations
   const deleteUplagMutation = useMutation({
