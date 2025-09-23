@@ -186,18 +186,29 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
       let marketFee = 0;
       let hamali = 0;
 
-      // Calculate expenses based on current bill items subtotal
+      // Calculate expenses based on current bill items subtotal and quantities
       const currentSubtotal = billItems.reduce((sum, item) => sum + (item.weight * item.rate), 0);
+      const totalQuantity = billItems.reduce((sum, item) => sum + item.quantity, 0);
 
       productExpenses.forEach((expense: any) => {
-        const isPercentage = expense.expenseType === '%';
-        const amount = isPercentage 
-          ? (currentSubtotal * Number(expense.value)) / 100 
-          : Number(expense.value);
+        let amount = 0;
+        const expenseType = expense.expenseType;
+        const expenseValue = Number(expense.value);
+        
+        if (expenseType === '%') {
+          // Percentage of subtotal
+          amount = (currentSubtotal * expenseValue) / 100;
+        } else if (expenseType === 'Per Bag' || expenseType.toLowerCase().includes('bag') || expenseType.toLowerCase().includes('quantity')) {
+          // Per quantity/bag
+          amount = totalQuantity * expenseValue;
+        } else {
+          // Fixed amount
+          amount = expenseValue;
+        }
 
         // Map expense names to form fields
         const expenseName = expense.expenseName.toLowerCase();
-        console.log(`Processing expense: ${expenseName}, amount: ${amount}, isPercentage: ${isPercentage}`);
+        console.log(`Processing expense: ${expenseName}, type: ${expenseType}, value: ${expenseValue}, calculated amount: ${amount}`);
         
         if (expenseName.includes('commission')) {
           commission += amount;
