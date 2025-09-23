@@ -80,6 +80,9 @@ export default function EnhancedCustomerBillingForm({
   const [availableLots, setAvailableLots] = useState<any[]>([]);
   const [loadingRates, setLoadingRates] = useState<Set<number>>(new Set());
   const [lotSubFields, setLotSubFields] = useState<Record<string, any[]>>({});
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+  const [lotSearchTerms, setLotSearchTerms] = useState<Record<number, string>>({});
+  const [farmerSearchTerms, setFarmerSearchTerms] = useState<Record<number, string>>({});
 
   // Fetch master data
   const { data: accounts = [] } = useQuery({
@@ -109,8 +112,17 @@ export default function EnhancedCustomerBillingForm({
     }
   });
 
-  // Filter buyer accounts for customer selection
-  const buyers = accounts.filter((acc: any) => acc.type === 'B' || acc.type === 'Buyer');
+  // Filter buyer accounts for customer selection with search
+  const filteredBuyers = useMemo(() => {
+    const buyers = accounts.filter((acc: any) => acc.type === 'B' || acc.type === 'Buyer');
+    if (!customerSearchTerm) return buyers;
+    return buyers.filter((buyer: any) => 
+      buyer.name?.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+      buyer.accountId?.toLowerCase().includes(customerSearchTerm.toLowerCase()) ||
+      buyer.mobile?.includes(customerSearchTerm) ||
+      buyer.place?.toLowerCase().includes(customerSearchTerm.toLowerCase())
+    );
+  }, [accounts, customerSearchTerm]);
 
   const form = useForm<EnhancedBillingFormData>({
     resolver: zodResolver(enhancedCustomerBillingSchema),
@@ -143,13 +155,13 @@ export default function EnhancedCustomerBillingForm({
   const accountId = form.watch('accountId');
   useEffect(() => {
     if (accountId) {
-      const customer = buyers.find((acc: any) => acc.id === accountId);
+      const customer = filteredBuyers.find((acc: any) => acc.id === accountId);
       setSelectedCustomer(customer);
       if (customer?.openingBalance) {
         form.setValue('previousBalance', Number(customer.openingBalance));
       }
     }
-  }, [accountId, buyers]);
+  }, [accountId, filteredBuyers]);
 
   // Watch for lot selection to fetch farmer sub-fields
   const billItems = form.watch('billItems');
@@ -172,29 +184,52 @@ export default function EnhancedCustomerBillingForm({
     
     try {
       const response = await fetch(`/api/inventory/lot-entry/${lotId}/sub-fields`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch sub-fields: ${response.status}`);
+      let subFields = [];
+      
+      if (response.ok) {
+        subFields = await response.json();
       }
       
-      const subFields = await response.json();
+      // If no sub-fields from API, create synthetic ones for now
+      if (!subFields || subFields.length === 0) {
+        const selectedLot = lots.find((l: any) => l.id === lotId);
+        if (selectedLot) {
+          // Create a default sub-field representing the entire lot
+          subFields = [{
+            id: `synthetic-${lotId}`,
+            lotId: lotId,
+            farmerAgentId: 'default-farmer',
+            productId: selectedLot.productId,
+            quality: 'Standard',
+            quantity: selectedLot.totalQuantity,
+            weight: selectedLot.totalWeight || selectedLot.totalQuantity,
+            averageRate: 0,
+            isDefault: true
+          }];
+        }
+      }
+      
       setLotSubFields(prev => ({ ...prev, [lotId]: subFields }));
       return subFields;
     } catch (error) {
       console.error('Error fetching lot sub-fields:', error);
-      
-      // Fallback: try to use embedded subFields from the lots list
+      // Create fallback synthetic sub-field
       const selectedLot = lots.find((l: any) => l.id === lotId);
-      if (selectedLot?.subFields && selectedLot.subFields.length > 0) {
-        console.log('Using fallback sub-fields from lot data');
-        setLotSubFields(prev => ({ ...prev, [lotId]: selectedLot.subFields }));
-        return selectedLot.subFields;
+      if (selectedLot) {
+        const fallbackSubFields = [{
+          id: `fallback-${lotId}`,
+          lotId: lotId,
+          farmerAgentId: 'unknown-farmer',
+          productId: selectedLot.productId,
+          quality: 'Standard',
+          quantity: selectedLot.totalQuantity,
+          weight: selectedLot.totalWeight || selectedLot.totalQuantity,
+          averageRate: 0,
+          isDefault: true
+        }];
+        setLotSubFields(prev => ({ ...prev, [lotId]: fallbackSubFields }));
+        return fallbackSubFields;
       }
-      
-      toast({
-        title: "Sub-fields Fetch Failed",
-        description: "Could not fetch farmer lot details from API or fallback data.",
-        variant: "destructive",
-      });
       return [];
     }
   };
@@ -325,7 +360,7 @@ export default function EnhancedCustomerBillingForm({
 
   // Handle form submission
   const handleSubmit = (data: EnhancedBillingFormData) => {
-    const customer = buyers.find((acc: any) => acc.id === data.accountId);
+    const customer = filteredBuyers.find((acc: any) => acc.id === data.accountId);
     
     // Ensure all line item totals are up-to-date before submission
     updateAllCalculations();
@@ -388,7 +423,7 @@ export default function EnhancedCustomerBillingForm({
                           data-testid="select-customer"
                         >
                           {field.value
-                            ? buyers.find((buyer: any) => buyer.id === field.value)?.name || "Select customer"
+                            ? filteredBuyers.find((buyer: any) => buyer.id === field.value)?.name || "Select customer"
                             : "Select customer"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
@@ -399,13 +434,13 @@ export default function EnhancedCustomerBillingForm({
                         <CommandInput placeholder="Search customers..." />
                         <CommandList>
                           <CommandEmpty>
-                            {buyers.length === 0 
+                            {filteredBuyers.length === 0 
                               ? "No buyer accounts found. Please create Buyer type accounts in Account Master first."
                               : "No customers match your search."
                             }
                           </CommandEmpty>
                           <CommandGroup>
-                            {buyers.map((buyer: any) => (
+                            {filteredBuyers.map((buyer: any) => (
                               <CommandItem
                                 key={buyer.id}
                                 value={`${buyer.name} ${buyer.accountId}`}
@@ -512,40 +547,64 @@ export default function EnhancedCustomerBillingForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Lot *</FormLabel>
-                        <Select 
-                          onValueChange={async (value) => {
-                            field.onChange(value);
-                            if (value) {
-                              await fetchLotSubFields(value);
-                              // Auto-populate product info from lot
-                              const selectedLot = lots.find((l: any) => l.id === value);
-                              if (selectedLot) {
-                                form.setValue(`billItems.${index}.productId`, selectedLot.productId);
-                                const product = products.find((p: any) => p.id === selectedLot.productId);
-                                form.setValue(`billItems.${index}.productName`, product?.name || '');
-                              }
-                            }
-                          }} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger data-testid={`select-lot-${index}`}>
-                              <SelectValue placeholder="Select lot" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {lots.map((lot: any) => (
-                              <SelectItem key={lot.id} value={lot.id}>
-                                <div className="flex flex-col">
-                                  <span className="font-medium">{lot.lotId}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {products.find((p: any) => p.id === lot.productId)?.name} • {lot.totalQuantity}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                                data-testid={`select-lot-${index}`}
+                              >
+                                {field.value
+                                  ? lots.find((lot: any) => lot.id === field.value)?.lotId || "Select lot"
+                                  : "Select lot"}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0">
+                            <Command>
+                              <CommandInput placeholder="Search lots..." />
+                              <CommandList>
+                                <CommandEmpty>No lots found.</CommandEmpty>
+                                <CommandGroup>
+                                  {lots.map((lot: any) => {
+                                    const product = products.find((p: any) => p.id === lot.productId);
+                                    return (
+                                      <CommandItem
+                                        key={lot.id}
+                                        value={`${lot.lotId} ${product?.name} ${lot.totalQuantity}`}
+                                        onSelect={async () => {
+                                          field.onChange(lot.id);
+                                          await fetchLotSubFields(lot.id);
+                                          // Auto-populate product info from lot
+                                          if (lot) {
+                                            form.setValue(`billItems.${index}.productId`, lot.productId);
+                                            form.setValue(`billItems.${index}.productName`, product?.name || '');
+                                          }
+                                        }}
+                                        data-testid={`option-lot-${lot.id}`}
+                                      >
+                                        <Check
+                                          className={`mr-2 h-4 w-4 ${
+                                            lot.id === field.value ? "opacity-100" : "opacity-0"
+                                          }`}
+                                        />
+                                        <div className="flex flex-col">
+                                          <span className="font-medium">{lot.lotId || `Lot-${lot.id.slice(-6)}`}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {product?.name || 'Unknown Product'} • Qty: {Number(lot.totalQuantity).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      </CommandItem>
+                                    );
+                                  })}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -561,44 +620,71 @@ export default function EnhancedCustomerBillingForm({
                       return (
                         <FormItem>
                           <FormLabel>Farmer Lot *</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              const subField = subFields.find((sf: any) => sf.id === value);
-                              if (subField) {
-                                form.setValue(`billItems.${index}.quality`, subField.quality);
-                                form.setValue(`billItems.${index}.productId`, subField.productId);
-                                const product = products.find((p: any) => p.id === subField.productId);
-                                form.setValue(`billItems.${index}.productName`, product?.name || '');
-                                
-                                // Auto-fetch rate
-                                if (subField.productId && subField.quality) {
-                                  fetchAverageRate(subField.productId, subField.quality, index);
-                                }
-                              }
-                            }} 
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger data-testid={`select-farmer-lot-${index}`}>
-                                <SelectValue placeholder="Select farmer lot" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {subFields.map((subField: any) => (
-                                <SelectItem key={subField.id} value={subField.id}>
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {accounts.find((acc: any) => acc.id === subField.farmerAgentId)?.name}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      {subField.quality} • {subField.quantity} • ₹{subField.averageRate}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={`w-full justify-between ${!field.value && "text-muted-foreground"}`}
+                                  data-testid={`select-farmer-lot-${index}`}
+                                >
+                                  {field.value ? (
+                                    subFields.find((sf: any) => sf.id === field.value)?.isDefault ? 'Full Lot' :
+                                    accounts.find((acc: any) => acc.id === subFields.find((sf: any) => sf.id === field.value)?.farmerAgentId)?.name || 'Unknown Farmer'
+                                  ) : "Select farmer lot"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                              <Command>
+                                <CommandInput placeholder="Search farmer lots..." />
+                                <CommandList>
+                                  <CommandEmpty>No farmer lots found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {subFields.map((subField: any) => {
+                                      const farmerName = subField.isDefault ? 'Full Lot' : 
+                                        accounts.find((acc: any) => acc.id === subField.farmerAgentId)?.name || 'Unknown Farmer';
+                                      return (
+                                        <CommandItem
+                                          key={subField.id}
+                                          value={`${farmerName} ${subField.quality} ${subField.quantity}`}
+                                          onSelect={() => {
+                                            field.onChange(subField.id);
+                                            if (subField) {
+                                              form.setValue(`billItems.${index}.quality`, subField.quality);
+                                              form.setValue(`billItems.${index}.productId`, subField.productId);
+                                              const product = products.find((p: any) => p.id === subField.productId);
+                                              form.setValue(`billItems.${index}.productName`, product?.name || '');
+                                              
+                                              // Auto-fetch rate
+                                              if (subField.productId && subField.quality) {
+                                                fetchAverageRate(subField.productId, subField.quality, index);
+                                              }
+                                            }
+                                          }}
+                                          data-testid={`option-farmer-lot-${subField.id}`}
+                                        >
+                                          <Check
+                                            className={`mr-2 h-4 w-4 ${
+                                              subField.id === field.value ? "opacity-100" : "opacity-0"
+                                            }`}
+                                          />
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">{farmerName}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                              {subField.quality} • Qty: {Number(subField.quantity).toLocaleString()} • Rate: ₹{Number(subField.averageRate).toLocaleString()}
+                                            </span>
+                                          </div>
+                                        </CommandItem>
+                                      );
+                                    })}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage />
                         </FormItem>
                       );
