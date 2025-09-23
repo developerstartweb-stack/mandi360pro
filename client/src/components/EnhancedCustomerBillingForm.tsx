@@ -165,13 +165,22 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
     }
   };
 
-  // Auto-calculate commission, market fee, hamali based on product expenses with type "buyer"
-  const autoCalculateExpenses = async (productId: string) => {
+  // Auto-calculate commission, market fee, hamali based on product expenses with linkedTo "Buyer"
+  const autoCalculateExpenses = async (productName: string) => {
     try {
-      // Filter expenses for the specific product with type "buyer"
-      const productExpenses = expenses.filter((exp: any) => 
-        exp.productId === productId && exp.type === 'buyer'
+      console.log('Auto-calculating expenses for product:', productName);
+      console.log('Available expenses:', expenses);
+      
+      // Get the product code/ID from the product name (e.g., "Onion" -> "Onion-01")
+      const product = (products as any[]).find((p: any) => p.name === productName);
+      const productCode = product?.productId || `${productName}-01`;
+      
+      // Filter expenses for the specific product with linkedTo "Buyer"
+      const productExpenses = (expenses as any[]).filter((exp: any) => 
+        exp.productId === productCode && exp.linkedTo === 'Buyer' && exp.active === true
       );
+
+      console.log('Filtered product expenses:', productExpenses);
 
       let commission = 0;
       let marketFee = 0;
@@ -181,12 +190,15 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
       const currentSubtotal = billItems.reduce((sum, item) => sum + (item.weight * item.rate), 0);
 
       productExpenses.forEach((expense: any) => {
-        const amount = expense.isPercentage 
-          ? (currentSubtotal * Number(expense.amount)) / 100 
-          : Number(expense.amount);
+        const isPercentage = expense.expenseType === '%';
+        const amount = isPercentage 
+          ? (currentSubtotal * Number(expense.value)) / 100 
+          : Number(expense.value);
 
         // Map expense names to form fields
-        const expenseName = expense.name.toLowerCase();
+        const expenseName = expense.expenseName.toLowerCase();
+        console.log(`Processing expense: ${expenseName}, amount: ${amount}, isPercentage: ${isPercentage}`);
+        
         if (expenseName.includes('commission')) {
           commission += amount;
         } else if (expenseName.includes('market') || expenseName.includes('fee')) {
@@ -195,6 +207,8 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
           hamali += amount;
         }
       });
+
+      console.log(`Calculated expenses - Commission: ${commission}, Market Fee: ${marketFee}, Hamali: ${hamali}`);
 
       // Update form values
       form.setValue('commission', commission);
@@ -448,8 +462,8 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
                                               form.setValue(`billItems.${index}.productName`, product?.name || '');
                                             }
                                             // Auto-calculate expenses based on product
-                                            if (product?.id) {
-                                              await autoCalculateExpenses(product.id);
+                                            if (product?.name) {
+                                              await autoCalculateExpenses(product.name);
                                             }
                                           }}
                                           data-testid={`option-lot-${lot.id}`}
