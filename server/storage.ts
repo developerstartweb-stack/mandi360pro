@@ -144,7 +144,17 @@ import {
   type UpdateWhatsappSettings,
   type SalesTransactions,
   type InsertSalesTransactions,
-  type UpdateSalesTransactions
+  type UpdateSalesTransactions,
+  accountingIntegrations,
+  accountingSyncLogs,
+  accountingMappings,
+  type AccountingIntegrations,
+  type InsertAccountingIntegrations,
+  type UpdateAccountingIntegrations,
+  type AccountingSyncLogs,
+  type InsertAccountingSyncLogs,
+  type AccountingMappings,
+  type InsertAccountingMappings
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -435,6 +445,26 @@ export interface IStorage {
   // Rate Calculation operations
   getAverageRate(productId: string, quality: string, financialYear: string, days?: number): Promise<{ avgRate: number | null; count: number; qtySum: number }>;
   createSalesTransaction(transaction: InsertSalesTransactions): Promise<SalesTransactions>;
+  
+  // Accounting Integration operations
+  getAccountingIntegrations(financialYear: string): Promise<AccountingIntegrations[]>;
+  getAccountingIntegration(id: string): Promise<AccountingIntegrations | undefined>;
+  createAccountingIntegration(integration: InsertAccountingIntegrations): Promise<AccountingIntegrations>;
+  updateAccountingIntegration(id: string, integration: UpdateAccountingIntegrations): Promise<AccountingIntegrations | undefined>;
+  deleteAccountingIntegration(id: string): Promise<boolean>;
+  
+  // Accounting Sync operations
+  syncAccountingData(integrationId: string, syncType: string, entityIds?: string[]): Promise<any>;
+  getAccountingSyncStatus(integrationId: string): Promise<any>;
+  
+  // Accounting Sync Logs operations
+  getAccountingSyncLogs(integrationId: string, financialYear: string, limit: number): Promise<AccountingSyncLogs[]>;
+  createAccountingSyncLog(log: InsertAccountingSyncLogs): Promise<AccountingSyncLogs>;
+  
+  // Accounting Mappings operations
+  getAccountingMappings(integrationId: string, entityType?: string, financialYear?: string): Promise<AccountingMappings[]>;
+  createAccountingMapping(mapping: InsertAccountingMappings): Promise<AccountingMappings>;
+  deleteAccountingMapping(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -5275,6 +5305,122 @@ export class DatabaseStorage implements IStorage {
       .values(transaction)
       .returning();
     return result;
+  }
+
+  // Accounting Integration operations
+  async getAccountingIntegrations(financialYear: string): Promise<AccountingIntegrations[]> {
+    return await db.select()
+      .from(accountingIntegrations)
+      .where(eq(accountingIntegrations.financialYear, financialYear));
+  }
+
+  async getAccountingIntegration(id: string): Promise<AccountingIntegrations | undefined> {
+    const [result] = await db.select()
+      .from(accountingIntegrations)
+      .where(eq(accountingIntegrations.id, id));
+    return result;
+  }
+
+  async createAccountingIntegration(integration: InsertAccountingIntegrations): Promise<AccountingIntegrations> {
+    const [result] = await db.insert(accountingIntegrations)
+      .values(integration)
+      .returning();
+    return result;
+  }
+
+  async updateAccountingIntegration(id: string, integration: UpdateAccountingIntegrations): Promise<AccountingIntegrations | undefined> {
+    const [result] = await db.update(accountingIntegrations)
+      .set({ ...integration, updatedAt: new Date() })
+      .where(eq(accountingIntegrations.id, id))
+      .returning();
+    return result;
+  }
+
+  async deleteAccountingIntegration(id: string): Promise<boolean> {
+    const result = await db.delete(accountingIntegrations)
+      .where(eq(accountingIntegrations.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Accounting Sync operations
+  async syncAccountingData(integrationId: string, syncType: string, entityIds?: string[]): Promise<any> {
+    // This is a placeholder for actual sync logic
+    // In a real implementation, this would connect to external accounting software APIs
+    return {
+      status: 'success',
+      message: `Sync ${syncType} initiated for integration ${integrationId}`,
+      entityIds: entityIds || [],
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  async getAccountingSyncStatus(integrationId: string): Promise<any> {
+    const integration = await this.getAccountingIntegration(integrationId);
+    if (!integration) {
+      throw new Error('Integration not found');
+    }
+    
+    return {
+      integrationId,
+      platform: integration.platform,
+      syncStatus: integration.syncStatus,
+      lastSyncAt: integration.lastSyncAt,
+      syncError: integration.syncError
+    };
+  }
+
+  // Accounting Sync Logs operations
+  async getAccountingSyncLogs(integrationId: string, financialYear: string, limit: number): Promise<AccountingSyncLogs[]> {
+    return await db.select()
+      .from(accountingSyncLogs)
+      .where(and(
+        eq(accountingSyncLogs.integrationId, integrationId),
+        eq(accountingSyncLogs.financialYear, financialYear)
+      ))
+      .limit(limit);
+  }
+
+  async createAccountingSyncLog(log: InsertAccountingSyncLogs): Promise<AccountingSyncLogs> {
+    const [result] = await db.insert(accountingSyncLogs)
+      .values(log)
+      .returning();
+    return result;
+  }
+
+  // Accounting Mappings operations
+  async getAccountingMappings(integrationId: string, entityType?: string, financialYear?: string): Promise<AccountingMappings[]> {
+    let query = db.select()
+      .from(accountingMappings)
+      .where(eq(accountingMappings.integrationId, integrationId));
+
+    if (entityType) {
+      query = query.where(and(
+        eq(accountingMappings.integrationId, integrationId),
+        eq(accountingMappings.entityType, entityType)
+      ));
+    }
+
+    if (financialYear) {
+      query = query.where(and(
+        eq(accountingMappings.integrationId, integrationId),
+        eq(accountingMappings.financialYear, financialYear)
+      ));
+    }
+
+    return await query;
+  }
+
+  async createAccountingMapping(mapping: InsertAccountingMappings): Promise<AccountingMappings> {
+    const [result] = await db.insert(accountingMappings)
+      .values(mapping)
+      .returning();
+    return result;
+  }
+
+  async deleteAccountingMapping(id: string): Promise<boolean> {
+    const result = await db.delete(accountingMappings)
+      .where(eq(accountingMappings.id, id));
+    return result.rowCount > 0;
   }
 }
 

@@ -70,7 +70,11 @@ import {
   insertWhatsappSettingsSchema,
   updateWhatsappSettingsSchema,
   insertSalesTransactionsSchema,
-  updateSalesTransactionsSchema
+  updateSalesTransactionsSchema,
+  insertAccountingIntegrationsSchema,
+  updateAccountingIntegrationsSchema,
+  insertAccountingSyncLogsSchema,
+  insertAccountingMappingsSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2017,6 +2021,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating sales transaction:", error);
       res.status(400).json({ error: error.message || "Failed to create sales transaction" });
+    }
+  });
+
+  // Accounting Integrations Routes
+  app.get("/api/accounting/integrations", async (req, res) => {
+    try {
+      const { financialYear = "2025-26" } = req.query;
+      const integrations = await storage.getAccountingIntegrations(financialYear as string);
+      res.json(integrations);
+    } catch (error) {
+      console.error("Error fetching accounting integrations:", error);
+      res.status(500).json({ error: "Failed to fetch accounting integrations" });
+    }
+  });
+
+  app.get("/api/accounting/integrations/:id", async (req, res) => {
+    try {
+      const integration = await storage.getAccountingIntegration(req.params.id);
+      if (!integration) {
+        return res.status(404).json({ error: "Accounting integration not found" });
+      }
+      res.json(integration);
+    } catch (error) {
+      console.error("Error fetching accounting integration:", error);
+      res.status(500).json({ error: "Failed to fetch accounting integration" });
+    }
+  });
+
+  app.post("/api/accounting/integrations", async (req, res) => {
+    try {
+      const validatedData = insertAccountingIntegrationsSchema.parse(req.body);
+      const integration = await storage.createAccountingIntegration(validatedData);
+      res.status(201).json(integration);
+    } catch (error: any) {
+      console.error("Error creating accounting integration:", error);
+      res.status(400).json({ error: error.message || "Failed to create accounting integration" });
+    }
+  });
+
+  app.put("/api/accounting/integrations/:id", async (req, res) => {
+    try {
+      const validatedData = updateAccountingIntegrationsSchema.parse(req.body);
+      const updated = await storage.updateAccountingIntegration(req.params.id, validatedData);
+      if (!updated) {
+        return res.status(404).json({ error: "Accounting integration not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating accounting integration:", error);
+      res.status(400).json({ error: error.message || "Failed to update accounting integration" });
+    }
+  });
+
+  app.delete("/api/accounting/integrations/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteAccountingIntegration(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Accounting integration not found" });
+      }
+      res.json({ message: "Accounting integration deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting accounting integration:", error);
+      res.status(500).json({ error: "Failed to delete accounting integration" });
+    }
+  });
+
+  // Accounting Sync Operations
+  app.post("/api/accounting/integrations/:id/sync", async (req, res) => {
+    try {
+      const { syncType, entityIds } = req.body;
+      if (!syncType) {
+        return res.status(400).json({ error: "syncType is required" });
+      }
+      const result = await storage.syncAccountingData(req.params.id, syncType, entityIds);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error syncing accounting data:", error);
+      res.status(500).json({ error: error.message || "Failed to sync accounting data" });
+    }
+  });
+
+  app.get("/api/accounting/integrations/:id/sync-status", async (req, res) => {
+    try {
+      const status = await storage.getAccountingSyncStatus(req.params.id);
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching sync status:", error);
+      res.status(500).json({ error: "Failed to fetch sync status" });
+    }
+  });
+
+  // Accounting Sync Logs
+  app.get("/api/accounting/sync-logs", async (req, res) => {
+    try {
+      const { integrationId, financialYear = "2025-26", limit = 50 } = req.query;
+      const logs = await storage.getAccountingSyncLogs(
+        integrationId as string,
+        financialYear as string,
+        parseInt(limit as string)
+      );
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching sync logs:", error);
+      res.status(500).json({ error: "Failed to fetch sync logs" });
+    }
+  });
+
+  app.post("/api/accounting/sync-logs", async (req, res) => {
+    try {
+      const validatedData = insertAccountingSyncLogsSchema.parse(req.body);
+      const log = await storage.createAccountingSyncLog(validatedData);
+      res.status(201).json(log);
+    } catch (error: any) {
+      console.error("Error creating sync log:", error);
+      res.status(400).json({ error: error.message || "Failed to create sync log" });
+    }
+  });
+
+  // Accounting Mappings
+  app.get("/api/accounting/mappings", async (req, res) => {
+    try {
+      const { integrationId, entityType, financialYear = "2025-26" } = req.query;
+      if (!integrationId) {
+        return res.status(400).json({ error: "integrationId is required" });
+      }
+      const mappings = await storage.getAccountingMappings(
+        integrationId as string,
+        entityType as string,
+        financialYear as string
+      );
+      res.json(mappings);
+    } catch (error) {
+      console.error("Error fetching accounting mappings:", error);
+      res.status(500).json({ error: "Failed to fetch accounting mappings" });
+    }
+  });
+
+  app.post("/api/accounting/mappings", async (req, res) => {
+    try {
+      const validatedData = insertAccountingMappingsSchema.parse(req.body);
+      const mapping = await storage.createAccountingMapping(validatedData);
+      res.status(201).json(mapping);
+    } catch (error: any) {
+      console.error("Error creating accounting mapping:", error);
+      res.status(400).json({ error: error.message || "Failed to create accounting mapping" });
+    }
+  });
+
+  app.delete("/api/accounting/mappings/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteAccountingMapping(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Accounting mapping not found" });
+      }
+      res.json({ message: "Accounting mapping deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting accounting mapping:", error);
+      res.status(500).json({ error: "Failed to delete accounting mapping" });
     }
   });
 

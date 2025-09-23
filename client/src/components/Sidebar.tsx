@@ -96,6 +96,7 @@ const menuItems = [
     ]
   },
   { id: "accounting", label: "Accounting", icon: Wallet, color: "text-yellow-500" },
+  { id: "accounting-integration", label: "Accounting Integrations", icon: Zap, color: "text-orange-600" },
   { 
     id: "ledger", 
     label: "Ledger Module", 

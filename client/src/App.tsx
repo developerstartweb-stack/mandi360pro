@@ -16,6 +16,7 @@ import LedgerModule from "@/components/LedgerModule";
 import ReportsModule from "@/components/ReportsModule";
 import SettingsModule from "@/components/SettingsModule";
 import WhatsAppModule from "@/components/WhatsAppModule";
+import AccountingIntegrationModule from "@/components/AccountingIntegrationModule";
 import LotForm from "@/components/LotForm";
 import AccountForm from "@/components/AccountForm";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -143,6 +144,9 @@ function MainContent({ activeTab }: { activeTab: string }) {
     
     case "accounting":
       return <AccountingModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+
+    case "accounting-integration":
+      return <AccountingIntegrationModule />;
     
     case "ledger":
       return <LedgerModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
