@@ -187,22 +187,11 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
     }
   };
 
-  // Query lots with product and place data for better display and search
-  const { data: lots = [], isLoading: lotsLoading } = useQuery({
-    queryKey: ['/api/inventory/lot-entry', currentFY],
-    queryFn: () => fetch(`/api/inventory/lot-entry?fy=${currentFY}`).then(res => res.json()),
-  });
-
-  // Query products and places for enriching lot data
-  const { data: products = [] } = useQuery({
-    queryKey: ['/api/products'],
-    queryFn: () => fetch('/api/products').then(res => res.json()),
-  });
-
-  const { data: places = [] } = useQuery({
-    queryKey: ['/api/places'],
-    queryFn: () => fetch('/api/places').then(res => res.json()),
-  });
+  // Simple data loading from global state with debugging
+  const lots = state.activeData.lots || [];
+  const lotsLoading = false;
+  const products = state.masterData.products || [];
+  const places = state.masterData.places || [];
 
   // Enrich lots with product and place names for better display
   const enrichedLots = lots.map((lot: any) => {
@@ -210,11 +199,12 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
     const place = places.find((p: any) => p.id === lot.placeId);
     return {
       ...lot,
-      productName: product?.name || lot.productId,
-      placeName: place?.name || lot.placeId,
-      productUnit: product?.unit,
+      productName: product?.name || lot.productId || 'Unknown Product',
+      placeName: place?.name || lot.placeId || 'Unknown Place',
+      productUnit: product?.unit || '',
     };
   });
+
 
   // Mock data for other tabs (will be replaced with centralized loading later)
   const godownAwaks: any[] = [];
@@ -225,7 +215,7 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
   const weightSlipsLoading = false;
 
   // Apply client-side search filtering for lots with enhanced search
-  const filteredLots = searchTerm ? enrichedLots.filter(lot => 
+  const filteredLots = searchTerm ? enrichedLots.filter((lot: any) => 
     lot.lotId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lot.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lot.placeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
