@@ -1533,3 +1533,94 @@ export const updateSalesTransactionsSchema = insertSalesTransactionsSchema.parti
 export type SalesTransactions = typeof salesTransactions.$inferSelect;
 export type InsertSalesTransactions = z.infer<typeof insertSalesTransactionsSchema>;
 export type UpdateSalesTransactions = z.infer<typeof updateSalesTransactionsSchema>;
+
+// Accounting Integrations Table - For managing connections to external accounting software
+export const accountingIntegrations = pgTable("accounting_integrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  platform: varchar("platform", { length: 50 }).notNull(), // QuickBooks, Xero, Sage, Tally, etc.
+  connectionName: varchar("connection_name", { length: 100 }).notNull(),
+  isActive: boolean("is_active").default(true),
+  authType: varchar("auth_type", { length: 20 }).notNull(), // oauth, api_key, manual
+  credentials: json("credentials"), // Encrypted connection details (access tokens, API keys, etc.)
+  settings: json("settings"), // Sync preferences, mapping configurations, etc.
+  lastSyncAt: timestamp("last_sync_at"),
+  syncStatus: varchar("sync_status", { length: 20 }).default('pending'), // pending, syncing, success, error
+  syncError: text("sync_error"), // Last error message if any
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  platformNameIndex: uniqueIndex("idx_accounting_platform_name").on(table.platform, table.connectionName, table.financialYear),
+}));
+
+// Accounting Sync Logs Table - For tracking sync operations and troubleshooting
+export const accountingSyncLogs = pgTable("accounting_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  integrationId: varchar("integration_id", { length: 50 }).notNull(), // Reference to accountingIntegrations
+  syncType: varchar("sync_type", { length: 30 }).notNull(), // customers, products, invoices, payments, expenses
+  operation: varchar("operation", { length: 20 }).notNull(), // create, update, delete, sync
+  status: varchar("status", { length: 20 }).notNull(), // success, error, warning
+  recordsProcessed: integer("records_processed").default(0),
+  recordsSucceeded: integer("records_succeeded").default(0),
+  recordsFailed: integer("records_failed").default(0),
+  details: json("details"), // Detailed sync results, error messages, warnings
+  startedAt: timestamp("started_at").default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+});
+
+// Accounting Mappings Table - For mapping internal IDs to external accounting software IDs
+export const accountingMappings = pgTable("accounting_mappings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  integrationId: varchar("integration_id", { length: 50 }).notNull(), // Reference to accountingIntegrations
+  entityType: varchar("entity_type", { length: 30 }).notNull(), // account, product, invoice, payment, expense
+  internalId: varchar("internal_id", { length: 50 }).notNull(), // ID from our system
+  externalId: varchar("external_id", { length: 100 }).notNull(), // ID in external accounting system
+  externalData: json("external_data"), // Additional data from external system
+  lastSyncAt: timestamp("last_sync_at").default(sql`now()`),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  mappingIndex: uniqueIndex("idx_accounting_mapping").on(table.integrationId, table.entityType, table.internalId),
+  externalIndex: index("idx_accounting_external").on(table.integrationId, table.externalId),
+}));
+
+// Accounting Integration Schema Validations
+export const insertAccountingIntegrationsSchema = createInsertSchema(accountingIntegrations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  platform: z.enum(["QuickBooks", "Xero", "Sage", "Tally", "Manual"]),
+  connectionName: z.string().min(1, "Connection name is required"),
+  authType: z.enum(["oauth", "api_key", "manual"]),
+  syncStatus: z.enum(["pending", "syncing", "success", "error"]).optional(),
+});
+
+export const updateAccountingIntegrationsSchema = insertAccountingIntegrationsSchema.partial();
+
+export const insertAccountingSyncLogsSchema = createInsertSchema(accountingSyncLogs).omit({
+  id: true,
+});
+
+export const insertAccountingMappingsSchema = createInsertSchema(accountingMappings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  entityType: z.enum(["account", "product", "invoice", "payment", "expense"]),
+  internalId: z.string().min(1, "Internal ID is required"),
+  externalId: z.string().min(1, "External ID is required"),
+});
+
+// Accounting Types
+export type AccountingIntegrations = typeof accountingIntegrations.$inferSelect;
+export type InsertAccountingIntegrations = z.infer<typeof insertAccountingIntegrationsSchema>;
+export type UpdateAccountingIntegrations = z.infer<typeof updateAccountingIntegrationsSchema>;
+
+export type AccountingSyncLogs = typeof accountingSyncLogs.$inferSelect;
+export type InsertAccountingSyncLogs = z.infer<typeof insertAccountingSyncLogsSchema>;
+
+export type AccountingMappings = typeof accountingMappings.$inferSelect;
+export type InsertAccountingMappings = z.infer<typeof insertAccountingMappingsSchema>;
