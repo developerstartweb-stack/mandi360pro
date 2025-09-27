@@ -104,15 +104,9 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
   // Watch form changes
   const billItems = form.watch('billItems');
   useEffect(() => {
-    const lotsWithSubFields = billItems.map(item => {
-      if (item.lotId) {
-        const lot = lots.find((l: any) => l.id === item.lotId);
-        return { ...item, lot, subFields: lot?.subFields || [] };
-      }
-      return item;
-    });
-    setAvailableLots(lotsWithSubFields);
-  }, [billItems, lots]);
+    // Set all available lots from the query, not just the ones in bill items
+    setAvailableLots(lots);
+  }, [lots]);
 
   // Fetch real farmer quality wise sub-fields from inventory
   const fetchLotSubFields = async (lotId: string) => {
