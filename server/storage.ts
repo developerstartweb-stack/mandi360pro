@@ -1348,6 +1348,27 @@ export class MemStorage implements IStorage {
     };
     
     this.customerBillings.set(id, billData);
+    
+    // Auto-create lot sales entries for each bill item
+    if (Array.isArray(billData.billItems) && billData.billItems.length > 0) {
+      for (const item of billData.billItems as any[]) {
+        if (item.lotId && item.quantity && item.rate) {
+          const lotSale: InsertLotSales = {
+            lotId: item.lotId,
+            subLotId: null, // Main lot sale to buyer
+            buyerName: billData.customerName,
+            quantity: String(item.quantity),
+            weight: String(item.weight || 0),
+            rate: String(item.rate),
+            total: String(item.total || 0),
+            saleDate: billData.billDate,
+            financialYear: billData.financialYear,
+          };
+          await this.createLotSale(lotSale);
+        }
+      }
+    }
+    
     return billData;
   }
 
@@ -1430,6 +1451,27 @@ export class MemStorage implements IStorage {
     };
     
     this.khataBillings.set(id, billData);
+    
+    // Auto-create lot sales entries for each bill item
+    if (Array.isArray(billData.billItems) && billData.billItems.length > 0) {
+      for (const item of billData.billItems as any[]) {
+        if (item.lotId && item.quantity && item.rate) {
+          const lotSale: InsertLotSales = {
+            lotId: item.lotId,
+            subLotId: null, // Main lot sale to buyer
+            buyerName: billData.customerName,
+            quantity: String(item.quantity),
+            weight: String(item.weight || 0),
+            rate: String(item.rate),
+            total: String(item.total || 0),
+            saleDate: billData.billDate,
+            financialYear: billData.financialYear,
+          };
+          await this.createLotSale(lotSale);
+        }
+      }
+    }
+    
     return billData;
   }
 
@@ -3766,7 +3808,29 @@ export class DatabaseStorage implements IStorage {
       financialYear: billing.financialYear || '2025-26'
     };
     const result = await db.insert(customerBilling).values(billData).returning();
-    return result[0];
+    const createdBill = result[0];
+    
+    // Auto-create lot sales entries for each bill item
+    if (Array.isArray(createdBill.billItems) && createdBill.billItems.length > 0) {
+      for (const item of createdBill.billItems as any[]) {
+        if (item.lotId && item.quantity && item.rate) {
+          const lotSale: InsertLotSales = {
+            lotId: item.lotId,
+            subLotId: null, // Main lot sale to buyer
+            buyerName: createdBill.customerName,
+            quantity: String(item.quantity),
+            weight: String(item.weight || 0),
+            rate: String(item.rate),
+            total: String(item.total || 0),
+            saleDate: createdBill.billDate,
+            financialYear: createdBill.financialYear,
+          };
+          await this.createLotSale(lotSale);
+        }
+      }
+    }
+    
+    return createdBill;
   }
 
   async updateCustomerBilling(id: string, billing: UpdateCustomerBilling): Promise<CustomerBilling> {
@@ -3826,7 +3890,29 @@ export class DatabaseStorage implements IStorage {
       financialYear: billing.financialYear || '2025-26'
     };
     const result = await db.insert(khataBilling).values(billData).returning();
-    return result[0];
+    const createdBill = result[0];
+    
+    // Auto-create lot sales entries for each bill item
+    if (Array.isArray(createdBill.billItems) && createdBill.billItems.length > 0) {
+      for (const item of createdBill.billItems as any[]) {
+        if (item.lotId && item.quantity && item.rate) {
+          const lotSale: InsertLotSales = {
+            lotId: item.lotId,
+            subLotId: null, // Main lot sale to buyer
+            buyerName: createdBill.customerName,
+            quantity: String(item.quantity),
+            weight: String(item.weight || 0),
+            rate: String(item.rate),
+            total: String(item.total || 0),
+            saleDate: createdBill.billDate,
+            financialYear: createdBill.financialYear,
+          };
+          await this.createLotSale(lotSale);
+        }
+      }
+    }
+    
+    return createdBill;
   }
 
   async updateKhataBilling(id: string, billing: UpdateKhataBilling): Promise<KhataBilling> {
