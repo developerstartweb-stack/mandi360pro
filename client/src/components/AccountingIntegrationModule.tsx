@@ -160,15 +160,17 @@ function AccountingIntegrationModule() {
   });
 
   const onSubmit = (data: FormData) => {
+    const { syncCustomers, syncProducts, syncInvoices, syncPayments, ...rest } = data;
+    
     const settings = {
-      syncCustomers: data.syncCustomers,
-      syncProducts: data.syncProducts,
-      syncInvoices: data.syncInvoices,
-      syncPayments: data.syncPayments,
+      syncCustomers,
+      syncProducts,
+      syncInvoices,
+      syncPayments,
     };
 
     const integrationData = {
-      ...data,
+      ...rest,
       financialYear: state.currentFY,
       settings,
     };
