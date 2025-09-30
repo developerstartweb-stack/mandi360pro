@@ -207,6 +207,7 @@ export interface IStorage {
   // Inventory operations - Lot Entry
   getLotEntries(financialYear: string, searchTerm?: string): Promise<LotEntry[]>;
   getLotEntry(id: string): Promise<LotEntry | undefined>;
+  getLotsWithSubFields(financialYear: string): Promise<Array<LotEntry & { subFields: LotEntrySubFields[] }>>;
   createLotEntry(lot: InsertLotEntry): Promise<LotEntry>;
   updateLotEntry(id: string, lot: UpdateLotEntry): Promise<LotEntry>;
   deleteLotEntry(id: string): Promise<boolean>;
@@ -881,6 +882,16 @@ export class MemStorage implements IStorage {
 
   async getLotEntry(id: string): Promise<LotEntry | undefined> {
     return this.lotEntries.get(id);
+  }
+
+  async getLotsWithSubFields(financialYear: string): Promise<Array<LotEntry & { subFields: LotEntrySubFields[] }>> {
+    const lots = await this.getLotEntries(financialYear);
+    return Promise.all(
+      lots.map(async (lot) => {
+        const subFields = await this.getLotEntrySubFields(lot.lotId);
+        return { ...lot, subFields };
+      })
+    );
   }
 
   async createLotEntry(lot: InsertLotEntry): Promise<LotEntry> {
@@ -3366,6 +3377,16 @@ export class DatabaseStorage implements IStorage {
   async getLotEntry(id: string): Promise<LotEntry | undefined> {
     const result = await db.select().from(lotEntry).where(eq(lotEntry.id, id));
     return result[0];
+  }
+
+  async getLotsWithSubFields(financialYear: string): Promise<Array<LotEntry & { subFields: LotEntrySubFields[] }>> {
+    const lots = await this.getLotEntries(financialYear);
+    return Promise.all(
+      lots.map(async (lot) => {
+        const subFields = await this.getLotEntrySubFields(lot.lotId);
+        return { ...lot, subFields };
+      })
+    );
   }
 
   async createLotEntry(lot: InsertLotEntry): Promise<LotEntry> {

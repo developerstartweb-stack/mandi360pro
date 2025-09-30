@@ -329,6 +329,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/inventory/lot-entry/with-subfields", async (req, res) => {
+    try {
+      const { fy = "2025-26" } = req.query;
+      const lots = await storage.getLotsWithSubFields(fy as string);
+      res.json(lots);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch lots with sub-fields" });
+    }
+  });
+
   app.get("/api/inventory/lot-entry/:id", async (req, res) => {
     try {
       const lot = await storage.getLotEntry(req.params.id);

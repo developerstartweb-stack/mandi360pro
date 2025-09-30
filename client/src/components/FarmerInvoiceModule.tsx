@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { DhadaBook, FarmerInvoice, ManualInvoice } from "@shared/schema";
+import DhadaBookModule from "./DhadaBookModule";
 
 interface FarmerInvoiceModuleProps {
   activeSubModule: string;
@@ -192,89 +193,7 @@ export default function FarmerInvoiceModule({ activeSubModule, currentFY, onFYCh
 
         {/* Content based on selected sub-module */}
         {activeSubModule === "dhada-book" && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-green-600" />
-                    Dhada Book Management
-                  </CardTitle>
-                  <CardDescription>
-                    Track farmer agreements and lot linkages
-                  </CardDescription>
-                </div>
-                <Button 
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                  data-testid="button-add-dhada-book"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Dhada Book
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {dhadaBooksLoading ? (
-                  <div className="space-y-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Skeleton key={i} className="h-16 w-full" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Dhada ID</TableHead>
-                          <TableHead>Farmer Name</TableHead>
-                          <TableHead>Linked Lot</TableHead>
-                          <TableHead>Total Quantity</TableHead>
-                          <TableHead>Total Value</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {dhadaBooks.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                              No dhada books found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          dhadaBooks.map((book) => (
-                            <TableRow key={book.id} data-testid={`row-dhada-book-${book.id}`}>
-                              <TableCell className="font-medium">{book.dhadaId}</TableCell>
-                              <TableCell>{book.farmerName}</TableCell>
-                              <TableCell>{book.linkedLotId}</TableCell>
-                              <TableCell>{book.totalQuantity || "-"}</TableCell>
-                              <TableCell>{formatCurrency(book.totalValue)}</TableCell>
-                              <TableCell><Badge variant="outline">Active</Badge></TableCell>
-                              <TableCell>{book.createdAt ? format(new Date(book.createdAt), "MMM dd, yyyy") : "-"}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button variant="outline" size="sm" data-testid={`button-edit-dhada-book-${book.id}`}>
-                                    Edit
-                                  </Button>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={() => deleteDhadaBook.mutate(book.id)}
-                                    disabled={deleteDhadaBook.isPending}
-                                    data-testid={`button-delete-dhada-book-${book.id}`}
-                                  >
-                                    Delete
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <DhadaBookModule currentFY={currentFY} />
         )}
 
         {activeSubModule === "farmer-invoice" && (
