@@ -15,8 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Calculator, Plus, Minus, RefreshCw, ChevronsUpDown, Check, MapPin, DollarSign, Users, User } from "lucide-react";
 
-// Form schema for customer billing
-const customerBillingSchema = z.object({
+// Form schema for khata billing (credit billing - no payment collection)
+const khataBillingSchema = z.object({
   customerAccountId: z.string().min(1, "Customer is required"),
   billDate: z.string().min(1, "Bill date is required"),
   billItems: z.array(z.object({
@@ -39,22 +39,22 @@ const customerBillingSchema = z.object({
   remarks: z.string().optional(),
 });
 
-type CustomerBillingFormData = z.infer<typeof customerBillingSchema>;
+type KhataBillingFormData = z.infer<typeof khataBillingSchema>;
 
-interface EnhancedCustomerBillingFormProps {
-  onSubmit: (data: CustomerBillingFormData) => void;
-  initialData?: Partial<CustomerBillingFormData>;
+interface EnhancedKhataBillingFormProps {
+  onSubmit: (data: KhataBillingFormData) => void;
+  initialData?: Partial<KhataBillingFormData>;
 }
 
-export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: EnhancedCustomerBillingFormProps) {
+export default function EnhancedKhataBillingForm({ onSubmit, initialData }: EnhancedKhataBillingFormProps) {
   const { toast } = useToast();
   const [availableLots, setAvailableLots] = useState<any[]>([]);
   const [lotSubFields, setLotSubFields] = useState<Record<string, any[]>>({});
   const [loadingRates, setLoadingRates] = useState<Set<number>>(new Set());
 
   // Form initialization
-  const form = useForm<CustomerBillingFormData>({
-    resolver: zodResolver(customerBillingSchema),
+  const form = useForm<KhataBillingFormData>({
+    resolver: zodResolver(khataBillingSchema),
     defaultValues: {
       customerAccountId: "",
       billDate: new Date().toISOString().split('T')[0],
@@ -308,13 +308,25 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
   const totals = calculateTotals();
   const { subtotal, expenses: totalExpenses, discounts, grandTotal } = totals;
 
-  const handleSubmit = (data: CustomerBillingFormData) => {
+  const handleSubmit = (data: KhataBillingFormData) => {
     updateAllCalculations();
     onSubmit(data);
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* Khata Billing Notice */}
+      <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-md p-4">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700">
+            Credit Billing
+          </Badge>
+          <span className="text-sm text-orange-800 dark:text-orange-300">
+            This is khata (credit) billing. Payment will NOT be collected. The full amount will be added to customer's account balance.
+          </span>
+        </div>
+      </div>
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           
@@ -979,9 +991,9 @@ export default function EnhancedCustomerBillingForm({ onSubmit, initialData }: E
             <Button 
               type="submit" 
               className="flex-1"
-              data-testid="button-submit-bill"
+              data-testid="button-submit-khata-bill"
             >
-              Generate Bill
+              Generate Khata Bill (Credit Only)
             </Button>
           </div>
         </form>

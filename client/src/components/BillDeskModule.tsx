@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import ViewDetailsModal from "@/components/ViewDetailsModal";
 import EnhancedCustomerBillingForm from "@/components/EnhancedCustomerBillingForm";
+import EnhancedKhataBillingForm from "@/components/EnhancedKhataBillingForm";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -445,10 +446,97 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
 
   // Handle form submission
   const onSubmit = (data: any) => {
-    if (editingItem) {
-      updateMutation.mutate({ id: editingItem.id, data });
+    // Transform data for khata billing if needed
+    if (activeSubModule === "khata-billing" && data.customerAccountId) {
+      const selectedAccount = (accounts || []).find((acc: any) => acc.id === data.customerAccountId);
+      
+      // Calculate totals
+      const subtotal = (data.billItems || []).reduce((sum: number, item: any) => 
+        sum + (item.weight * item.rate), 0);
+      const expenses = (data.commission || 0) + (data.marketFee || 0) + (data.hamali || 0);
+      
+      // Calculate discount weight in monetary value (weight discount * average rate)
+      const avgRate = (data.billItems || []).length > 0
+        ? subtotal / (data.billItems || []).reduce((sum: number, item: any) => sum + item.weight, 0)
+        : 0;
+      const discountWeightMonetary = (data.discountWeight || 0) * avgRate;
+      const discounts = (data.discountAmount || 0) + discountWeightMonetary;
+      
+      const previousBalance = data.previousBalance || 0;
+      const totalAmount = subtotal + expenses - discounts + previousBalance;
+      
+      const transformedData = {
+        ...data,
+        accountId: data.customerAccountId,
+        customerName: selectedAccount?.name || "",
+        billType: "khata",
+        billItems: data.billItems || [],
+        subtotal: String(subtotal),
+        totalAmount: String(totalAmount),
+        netAmount: String(totalAmount),
+        finalAmount: String(totalAmount),
+        paidAmount: "0", // Khata billing has no payment
+        balanceAmount: String(totalAmount), // Full amount is balance
+        commission: String(data.commission || 0),
+        marketFee: String(data.marketFee || 0),
+        hamali: String(data.hamali || 0),
+        discountAmount: String(data.discountAmount || 0),
+        discountWeight: String(data.discountWeight || 0),
+        previousBalance: String(previousBalance),
+      };
+      
+      if (editingItem) {
+        updateMutation.mutate({ id: editingItem.id, data: transformedData });
+      } else {
+        createMutation.mutate(transformedData);
+      }
+    } else if (activeSubModule === "customer-billing" && data.customerAccountId) {
+      const selectedAccount = (accounts || []).find((acc: any) => acc.id === data.customerAccountId);
+      
+      // Calculate totals
+      const subtotal = (data.billItems || []).reduce((sum: number, item: any) => 
+        sum + (item.weight * item.rate), 0);
+      const expenses = (data.commission || 0) + (data.marketFee || 0) + (data.hamali || 0);
+      
+      // Calculate discount weight in monetary value (weight discount * average rate)
+      const avgRate = (data.billItems || []).length > 0
+        ? subtotal / (data.billItems || []).reduce((sum: number, item: any) => sum + item.weight, 0)
+        : 0;
+      const discountWeightMonetary = (data.discountWeight || 0) * avgRate;
+      const discounts = (data.discountAmount || 0) + discountWeightMonetary;
+      
+      const previousBalance = data.previousBalance || 0;
+      const totalAmount = subtotal + expenses - discounts + previousBalance;
+      
+      const transformedData = {
+        ...data,
+        accountId: data.customerAccountId,
+        customerName: selectedAccount?.name || "",
+        billType: "cash",
+        billItems: data.billItems || [],
+        subtotal: String(subtotal),
+        totalAmount: String(totalAmount),
+        netAmount: String(totalAmount),
+        finalAmount: String(totalAmount),
+        commission: String(data.commission || 0),
+        marketFee: String(data.marketFee || 0),
+        hamali: String(data.hamali || 0),
+        discountAmount: String(data.discountAmount || 0),
+        discountWeight: String(data.discountWeight || 0),
+        previousBalance: String(previousBalance),
+      };
+      
+      if (editingItem) {
+        updateMutation.mutate({ id: editingItem.id, data: transformedData });
+      } else {
+        createMutation.mutate(transformedData);
+      }
     } else {
-      createMutation.mutate(data);
+      if (editingItem) {
+        updateMutation.mutate({ id: editingItem.id, data });
+      } else {
+        createMutation.mutate(data);
+      }
     }
   };
 
@@ -934,13 +1022,33 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
             {activeSubModule === "customer-billing" ? (
               <EnhancedCustomerBillingForm
                 onSubmit={onSubmit}
-                editingItem={editingItem}
-                currentFY={currentFY}
+                initialData={editingItem ? {
+                  ...editingItem,
+                  commission: Number(editingItem.commission) || 0,
+                  marketFee: Number(editingItem.marketFee) || 0,
+                  hamali: Number(editingItem.hamali) || 0,
+                  discountAmount: Number(editingItem.discountAmount) || 0,
+                  discountWeight: Number(editingItem.discountWeight) || 0,
+                  previousBalance: Number(editingItem.previousBalance) || 0,
+                } : undefined}
+              />
+            ) : activeSubModule === "khata-billing" ? (
+              <EnhancedKhataBillingForm
+                onSubmit={onSubmit}
+                initialData={editingItem ? {
+                  ...editingItem,
+                  commission: Number(editingItem.commission) || 0,
+                  marketFee: Number(editingItem.marketFee) || 0,
+                  hamali: Number(editingItem.hamali) || 0,
+                  discountAmount: Number(editingItem.discountAmount) || 0,
+                  discountWeight: Number(editingItem.discountWeight) || 0,
+                  previousBalance: Number(editingItem.previousBalance) || 0,
+                } : undefined}
               />
             ) : (
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  {activeSubModule === "khata-billing" && (
+                  {activeSubModule === "payment-receipts" && (
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
