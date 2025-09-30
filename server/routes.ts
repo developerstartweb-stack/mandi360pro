@@ -31,6 +31,8 @@ import {
   updateOtherPaymentReceiptSchema,
   insertDhadaBookSchema,
   updateDhadaBookSchema,
+  insertLotSalesSchema,
+  updateLotSalesSchema,
   insertFarmerInvoiceSchema,
   updateFarmerInvoiceSchema,
   insertManualInvoiceSchema,
@@ -880,6 +882,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       res.status(500).json({ error: "Failed to delete dhada book" });
+    }
+  });
+
+  // Farmer Invoice Module - Lot Sales Routes (for Dhada Book)
+  app.get("/api/lot-sales", async (req, res) => {
+    try {
+      const { lotId, subLotId, fy } = req.query;
+      const sales = await storage.getLotSales(
+        lotId as string | undefined, 
+        subLotId as string | undefined, 
+        fy as string | undefined
+      );
+      res.json(sales);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch lot sales" });
+    }
+  });
+
+  app.get("/api/lot-sales/:id", async (req, res) => {
+    try {
+      const sale = await storage.getLotSale(req.params.id);
+      if (!sale) {
+        return res.status(404).json({ error: "Lot sale not found" });
+      }
+      res.json(sale);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch lot sale" });
+    }
+  });
+
+  app.post("/api/lot-sales", async (req, res) => {
+    try {
+      const validatedData = insertLotSalesSchema.parse(req.body);
+      const sale = await storage.createLotSale(validatedData);
+      res.status(201).json(sale);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Invalid lot sale data" });
+    }
+  });
+
+  app.put("/api/lot-sales/:id", async (req, res) => {
+    try {
+      const validatedData = updateLotSalesSchema.parse(req.body);
+      const sale = await storage.updateLotSale(req.params.id, validatedData);
+      res.json(sale);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update lot sale" });
+    }
+  });
+
+  app.delete("/api/lot-sales/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteLotSale(req.params.id);
+      if (success) {
+        res.json({ message: "Lot sale deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Lot sale not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete lot sale" });
     }
   });
 
