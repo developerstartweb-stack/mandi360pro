@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import ViewDetailsModal from "@/components/ViewDetailsModal";
 import EnhancedCustomerBillingForm from "@/components/EnhancedCustomerBillingForm";
 import EnhancedKhataBillingForm from "@/components/EnhancedKhataBillingForm";
+import { PaymentReceiptForm } from "@/components/PaymentReceiptForm";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1044,6 +1045,11 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
                   discountWeight: Number(editingItem.discountWeight) || 0,
                   previousBalance: Number(editingItem.previousBalance) || 0,
                 } : undefined}
+              />
+            ) : activeSubModule === "payment-receipts" ? (
+              <PaymentReceiptForm
+                onSubmit={onSubmit}
+                initialData={editingItem}
               />
             ) : (
               <Form {...form}>
