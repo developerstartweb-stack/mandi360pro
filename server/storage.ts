@@ -43,6 +43,9 @@ import {
   type DhadaBook,
   type InsertDhadaBook,
   type UpdateDhadaBook,
+  type LotSales,
+  type InsertLotSales,
+  type UpdateLotSales,
   type FarmerInvoice,
   type InsertFarmerInvoice,
   type UpdateFarmerInvoice,
@@ -94,6 +97,7 @@ import {
   customerPaymentReceipt,
   otherPaymentReceipt,
   dhadaBook,
+  lotSales,
   farmerInvoice,
   manualInvoice,
   rojmel,
@@ -279,6 +283,13 @@ export interface IStorage {
   updateDhadaBook(id: string, dhada: UpdateDhadaBook): Promise<DhadaBook>;
   deleteDhadaBook(id: string): Promise<boolean>;
   generateDhadaId(financialYear: string): Promise<string>;
+  
+  // Lot Sales operations (for Dhada Book)
+  getLotSales(lotId?: string, subLotId?: string, financialYear?: string): Promise<LotSales[]>;
+  getLotSale(id: string): Promise<LotSales | undefined>;
+  createLotSale(sale: InsertLotSales): Promise<LotSales>;
+  updateLotSale(id: string, sale: UpdateLotSales): Promise<LotSales>;
+  deleteLotSale(id: string): Promise<boolean>;
   
   // Farmer Invoice Module operations - Farmer Invoice
   getFarmerInvoices(financialYear: string, searchTerm?: string): Promise<FarmerInvoice[]>;
@@ -483,6 +494,7 @@ export class MemStorage implements IStorage {
   private customerPaymentReceipts: Map<string, CustomerPaymentReceipt>;
   private otherPaymentReceipts: Map<string, OtherPaymentReceipt>;
   private dhadaBooks: Map<string, DhadaBook>;
+  private lotSales: Map<string, LotSales>;
   private farmerInvoices: Map<string, FarmerInvoice>;
   private manualInvoices: Map<string, ManualInvoice>;
   private rojmels: Map<string, Rojmel>;
@@ -516,6 +528,7 @@ export class MemStorage implements IStorage {
     this.customerPaymentReceipts = new Map();
     this.otherPaymentReceipts = new Map();
     this.dhadaBooks = new Map();
+    this.lotSales = new Map();
     this.farmerInvoices = new Map();
     this.manualInvoices = new Map();
     this.rojmels = new Map();
@@ -1644,6 +1657,55 @@ export class MemStorage implements IStorage {
     );
     const nextNumber = String(books.length + 1).padStart(3, '0');
     return `DHD-${nextNumber}`;
+  }
+
+  // Lot Sales operations (for Dhada Book)
+  async getLotSales(lotId?: string, subLotId?: string, financialYear?: string): Promise<LotSales[]> {
+    let sales = Array.from(this.lotSales.values());
+    
+    if (lotId) {
+      sales = sales.filter(sale => sale.lotId === lotId);
+    }
+    if (subLotId) {
+      sales = sales.filter(sale => sale.subLotId === subLotId);
+    }
+    if (financialYear) {
+      sales = sales.filter(sale => sale.financialYear === financialYear);
+    }
+    
+    return sales;
+  }
+
+  async getLotSale(id: string): Promise<LotSales | undefined> {
+    return this.lotSales.get(id);
+  }
+
+  async createLotSale(sale: InsertLotSales): Promise<LotSales> {
+    const id = randomUUID();
+    const now = new Date();
+    const saleData: LotSales = {
+      ...sale,
+      id,
+      financialYear: sale.financialYear || '2025-26',
+      saleDate: sale.saleDate || now,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.lotSales.set(id, saleData);
+    return saleData;
+  }
+
+  async updateLotSale(id: string, sale: UpdateLotSales): Promise<LotSales> {
+    const existing = this.lotSales.get(id);
+    if (!existing) throw new Error('Lot sale not found');
+    
+    const updated: LotSales = { ...existing, ...sale, updatedAt: new Date() };
+    this.lotSales.set(id, updated);
+    return updated;
+  }
+
+  async deleteLotSale(id: string): Promise<boolean> {
+    return this.lotSales.delete(id);
   }
 
   // Farmer Invoice Module operations - Farmer Invoice
@@ -3944,6 +4006,58 @@ export class DatabaseStorage implements IStorage {
     const books = await db.select().from(dhadaBook).where(eq(dhadaBook.financialYear, financialYear));
     const nextNumber = String((books || []).length + 1).padStart(3, '0');
     return `DHD-${nextNumber}`;
+  }
+
+  // Lot Sales operations (for Dhada Book)
+  async getLotSales(lotId?: string, subLotId?: string, financialYear?: string): Promise<LotSales[]> {
+    const conditions = [];
+    
+    if (lotId) {
+      conditions.push(eq(lotSales.lotId, lotId));
+    }
+    if (subLotId) {
+      conditions.push(eq(lotSales.subLotId, subLotId));
+    }
+    if (financialYear) {
+      conditions.push(eq(lotSales.financialYear, financialYear));
+    }
+    
+    if (conditions.length === 0) {
+      return await db.select().from(lotSales);
+    }
+    
+    return await db.select().from(lotSales).where(and(...conditions));
+  }
+
+  async getLotSale(id: string): Promise<LotSales | undefined> {
+    const result = await db.select().from(lotSales).where(eq(lotSales.id, id));
+    return result[0];
+  }
+
+  async createLotSale(sale: InsertLotSales): Promise<LotSales> {
+    const saleData = {
+      ...sale,
+      financialYear: sale.financialYear || '2025-26'
+    };
+    const result = await db.insert(lotSales).values(saleData).returning();
+    return result[0];
+  }
+
+  async updateLotSale(id: string, sale: UpdateLotSales): Promise<LotSales> {
+    const result = await db.update(lotSales)
+      .set({ ...sale, updatedAt: new Date() })
+      .where(eq(lotSales.id, id))
+      .returning();
+    
+    if (result.length === 0) {
+      throw new Error('Lot sale not found');
+    }
+    return result[0];
+  }
+
+  async deleteLotSale(id: string): Promise<boolean> {
+    const result = await db.delete(lotSales).where(eq(lotSales.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Farmer Invoice Module operations - Farmer Invoice

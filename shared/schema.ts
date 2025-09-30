@@ -672,6 +672,22 @@ export const dhadaBook = pgTable("dhada_book", {
   uxDhadaBookFyDhadaId: uniqueIndex("ux_dhada_book_fy_dhadaid").on(table.financialYear, table.dhadaId),
 }));
 
+// Lot Sales Table (for Dhada Book sales tracking)
+export const lotSales = pgTable("lot_sales", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  lotId: varchar("lot_id", { length: 50 }).notNull(), // Reference to main Lot Entry
+  subLotId: varchar("sub_lot_id", { length: 50 }), // Reference to lot_entry_sub_fields (farmer lot)
+  buyerName: varchar("buyer_name", { length: 100 }).notNull(),
+  quantity: decimal("quantity", { precision: 12, scale: 2 }).notNull(),
+  weight: decimal("weight", { precision: 12, scale: 2 }).notNull(),
+  rate: decimal("rate", { precision: 12, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull(), // Auto: quantity * rate or weight * rate
+  saleDate: timestamp("sale_date").default(sql`now()`),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
 // Farmer Invoice Table
 export const farmerInvoice = pgTable("farmer_invoice", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -776,6 +792,21 @@ export const updateDhadaBookSchema = insertDhadaBookSchema.partial().omit({
 export type InsertDhadaBook = z.infer<typeof insertDhadaBookSchema>;
 export type UpdateDhadaBook = z.infer<typeof updateDhadaBookSchema>;
 export type DhadaBook = typeof dhadaBook.$inferSelect;
+
+// Schema validations for Lot Sales
+export const insertLotSalesSchema = createInsertSchema(lotSales, {
+  saleDate: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateLotSalesSchema = insertLotSalesSchema.partial();
+
+export type InsertLotSales = z.infer<typeof insertLotSalesSchema>;
+export type UpdateLotSales = z.infer<typeof updateLotSalesSchema>;
+export type LotSales = typeof lotSales.$inferSelect;
 
 // Schema validations for Farmer Invoice
 export const insertFarmerInvoiceSchema = createInsertSchema(farmerInvoice, {
