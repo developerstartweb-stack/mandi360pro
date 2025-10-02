@@ -6,17 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { insertUplagLedgerSchema, updateUplagLedgerSchema, type UplagLedger } from "@shared/schema";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/use-debounce";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface UplagLedgerFormProps {
   uplag: UplagLedger | null;
@@ -28,6 +30,12 @@ interface UplagLedgerFormProps {
 export default function UplagLedgerForm({ uplag, isOpen, onClose, currentFY }: UplagLedgerFormProps) {
   const { toast } = useToast();
   const isEditing = !!uplag;
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState(uplag?.customerId || "");
+  const [balanceData, setBalanceData] = useState<any>(null);
+  const [openCombobox, setOpenCombobox] = useState(false);
+  
+  const debouncedSearch = useDebounce(customerSearch, 300);
 
   const form = useForm({
     resolver: zodResolver(isEditing ? updateUplagLedgerSchema : insertUplagLedgerSchema),
@@ -43,9 +51,15 @@ export default function UplagLedgerForm({ uplag, isOpen, onClose, currentFY }: U
     },
   });
 
-  // Fetch account masters for customer selection
-  const { data: accounts } = useQuery({
-    queryKey: ['/api/accounts', currentFY],
+  // Search customers
+  const { data: customers = [] } = useQuery({
+    queryKey: ['/api/ledger/customers/search', debouncedSearch, currentFY],
+    queryFn: async () => {
+      if (!debouncedSearch) return [];
+      const response = await fetch(`/api/ledger/customers/search?q=${debouncedSearch}&fy=${currentFY}`);
+      return response.json();
+    },
+    enabled: debouncedSearch.length > 0,
   });
 
   // Auto-calculate total balance when values change
@@ -120,12 +134,24 @@ export default function UplagLedgerForm({ uplag, isOpen, onClose, currentFY }: U
     }
   };
 
-  const handleCustomerSelect = (customerId: string) => {
-    const selectedAccount = (accounts || []).find((acc: any) => acc.id === customerId);
-    if (selectedAccount) {
-      form.setValue("customerId", customerId);
-      form.setValue("customerName", selectedAccount.name);
-      form.setValue("openingBalance", selectedAccount.openingBalance || 0);
+  const handleCustomerSelect = async (customer: any) => {
+    setSelectedCustomerId(customer.accountId);
+    form.setValue("customerId", customer.accountId);
+    form.setValue("customerName", customer.name);
+    setOpenCombobox(false);
+
+    try {
+      const response = await fetch(`/api/ledger/balance/${customer.accountId}?fy=${currentFY}`);
+      const balance = await response.json();
+      setBalanceData(balance);
+      form.setValue("openingBalance", balance.currentBalance || 0);
+    } catch (error) {
+      console.error("Failed to fetch balance:", error);
+      toast({
+        title: "Warning",
+        description: "Could not fetch customer balance",
+        variant: "destructive"
+      });
     }
   };
 
@@ -185,31 +211,97 @@ export default function UplagLedgerForm({ uplag, isOpen, onClose, currentFY }: U
                 )}
               />
 
-              {/* Customer Selection */}
+              {/* Customer Search & Selection */}
               <FormField
                 control={form.control}
                 name="customerId"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer *</FormLabel>
-                    <Select onValueChange={handleCustomerSelect} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-customer">
-                          <SelectValue placeholder="Select customer" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {(accounts || []).map((account: any) => (
-                          <SelectItem key={account.id} value={account.id}>
-                            {account.accountId} - {account.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Customer (Searchable) *</FormLabel>
+                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            data-testid="button-select-customer"
+                          >
+                            {field.value || "Search and select customer..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Search customer..." 
+                            value={customerSearch}
+                            onValueChange={setCustomerSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>No customer found.</CommandEmpty>
+                            <CommandGroup>
+                              {customers.map((customer: any) => (
+                                <CommandItem
+                                  key={customer.id}
+                                  value={customer.accountId}
+                                  onSelect={() => handleCustomerSelect(customer)}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      selectedCustomerId === customer.accountId
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {customer.accountId} - {customer.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* Balance Display Card */}
+              {balanceData && (
+                <div className="md:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">Customer Balance Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Opening Balance</p>
+                          <p className="text-lg font-semibold">₹{balanceData.openingBalance?.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Total Billed</p>
+                          <p className="text-lg font-semibold text-orange-600">₹{balanceData.totalBilled?.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Total Paid</p>
+                          <p className="text-lg font-semibold text-green-600">₹{balanceData.totalPaid?.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Current Balance</p>
+                          <p className="text-lg font-bold text-brand-green">₹{balanceData.currentBalance?.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* Customer Name (auto-filled) */}
               <FormField
