@@ -1219,6 +1219,62 @@ export type InsertBankDepositLedger = z.infer<typeof insertBankDepositLedgerSche
 export type UpdateBankDepositLedger = z.infer<typeof updateBankDepositLedgerSchema>;
 export type BankDepositLedger = typeof bankDepositLedger.$inferSelect;
 
+// Account Balance Snapshots Table (for auto-balance tracking)
+export const accountBalanceSnapshots = pgTable("account_balance_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id", { length: 50 }).notNull(),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  openingBalance: decimal("opening_balance", { precision: 12, scale: 2 }).default('0'),
+  totalBilled: decimal("total_billed", { precision: 12, scale: 2 }).default('0'), // From customer/khata billing
+  totalPaid: decimal("total_paid", { precision: 12, scale: 2 }).default('0'), // From payment receipts
+  currentBalance: decimal("current_balance", { precision: 12, scale: 2 }).default('0'), // Calculated balance
+  lastUpdated: timestamp("last_updated").default(sql`now()`),
+  createdAt: timestamp("created_at").default(sql`now()`),
+}, (table) => ({
+  uxAccountBalanceFyAccountId: uniqueIndex("ux_account_balance_fy_accountid").on(table.financialYear, table.accountId),
+}));
+
+// Ledger Reminders Table
+export const ledgerReminders = pgTable("ledger_reminders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  accountId: varchar("account_id", { length: 50 }).notNull(),
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  reminderType: varchar("reminder_type", { length: 20 }).notNull(), // "payment_due", "balance_threshold"
+  reminderDate: timestamp("reminder_date").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }),
+  message: text("message"),
+  status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, sent, dismissed
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
+// Schema validations for Account Balance Snapshots
+export const insertAccountBalanceSnapshotSchema = createInsertSchema(accountBalanceSnapshots).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
+});
+
+export type InsertAccountBalanceSnapshot = z.infer<typeof insertAccountBalanceSnapshotSchema>;
+export type AccountBalanceSnapshot = typeof accountBalanceSnapshots.$inferSelect;
+
+// Schema validations for Ledger Reminders
+export const insertLedgerReminderSchema = createInsertSchema(ledgerReminders, {
+  reminderDate: z.coerce.date(),
+  reminderType: z.enum(["payment_due", "balance_threshold"]),
+  status: z.enum(["pending", "sent", "dismissed"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateLedgerReminderSchema = insertLedgerReminderSchema.partial();
+
+export type InsertLedgerReminder = z.infer<typeof insertLedgerReminderSchema>;
+export type UpdateLedgerReminder = z.infer<typeof updateLedgerReminderSchema>;
+export type LedgerReminder = typeof ledgerReminders.$inferSelect;
+
 // Reports Module - Report Configurations Table
 export const reportConfigs = pgTable("report_configs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
