@@ -93,7 +93,7 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
   // Helper to get account name from ID
   const getAccountName = (accountId: string) => {
     const account = accounts.find(acc => acc.id === accountId || acc.accountId === accountId);
-    return account?.accountName || accountId;
+    return account?.name || accountId;
   };
 
   // Helper to get product name from ID
