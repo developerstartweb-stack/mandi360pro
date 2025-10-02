@@ -45,6 +45,7 @@ interface RateGroup {
 
 export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
   const [expandedLots, setExpandedLots] = useState<Set<string>>(new Set());
+  const [expandedSubLots, setExpandedSubLots] = useState<Set<string>>(new Set());
   const [editingSales, setEditingSales] = useState<Map<string, SaleEntry>>(new Map());
   const { toast } = useToast();
 
@@ -143,6 +144,19 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
         next.delete(lotId);
       } else {
         next.add(lotId);
+      }
+      return next;
+    });
+  };
+
+  // Toggle sub-lot sales view
+  const toggleSubLotView = (subLotId: string) => {
+    setExpandedSubLots(prev => {
+      const next = new Set(prev);
+      if (next.has(subLotId)) {
+        next.delete(subLotId);
+      } else {
+        next.add(subLotId);
       }
       return next;
     });
@@ -426,6 +440,7 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                             const subLotRateGroups = calculateRateGroups(subLotSales);
                             const subEditKey = `${lot.lotId}-${subField.id}-new`;
                             const isEditingSubSale = editingSales.has(subEditKey);
+                            const isSubLotExpanded = expandedSubLots.has(subField.id);
                             
                             return (
                               <Card key={subField.id} className="ml-8 bg-gray-50 dark:bg-gray-800/30">
@@ -440,150 +455,83 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                                   </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                  {/* Sub-Lot Rate Summary */}
-                                  {subLotRateGroups.length > 0 && (
-                                    <div className="mb-4 p-3 bg-white dark:bg-gray-900 rounded-md">
-                                      <h5 className="text-xs font-semibold mb-2">Rate Summary</h5>
-                                      <div className="space-y-1">
-                                        {subLotRateGroups.map(group => (
-                                          <div key={group.rate} className="flex items-center justify-between text-xs">
-                                            <span className="font-medium">{formatCurrency(group.rate)}/bag</span>
-                                            <div className="flex items-center gap-3">
-                                              <span>{group.quantity} bags</span>
-                                              <span>{formatWeight(group.weight)}</span>
-                                              <span className="font-semibold">{formatCurrency(group.total)}</span>
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Sub-Lot Sales */}
-                                  {subLotSales.length > 0 && (
-                                    <div className="mb-3">
-                                      <div className="rounded-md border text-sm">
-                                        <Table>
-                                          <TableHeader>
-                                            <TableRow>
-                                              <TableHead className="text-xs">Buyer</TableHead>
-                                              <TableHead className="text-xs">Qty</TableHead>
-                                              <TableHead className="text-xs">Weight</TableHead>
-                                              <TableHead className="text-xs">Rate</TableHead>
-                                              <TableHead className="text-xs">Total</TableHead>
-                                              <TableHead className="text-xs">Date</TableHead>
-                                              <TableHead className="text-right text-xs">Actions</TableHead>
-                                            </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                            {subLotSales.map(sale => (
-                                              <TableRow key={sale.id}>
-                                                <TableCell className="text-xs">{sale.buyerName}</TableCell>
-                                                <TableCell className="text-xs">{sale.quantity}</TableCell>
-                                                <TableCell className="text-xs">{formatWeight(sale.weight || 0)}</TableCell>
-                                                <TableCell className="text-xs">{formatCurrency(sale.rate || 0)}</TableCell>
-                                                <TableCell className="text-xs font-semibold">{formatCurrency(sale.total || 0)}</TableCell>
-                                                <TableCell className="text-xs">{sale.saleDate ? format(new Date(sale.saleDate), "MMM dd") : "-"}</TableCell>
-                                                <TableCell className="text-right">
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => deleteSaleMutation.mutate(sale.id)}
-                                                    disabled={deleteSaleMutation.isPending}
-                                                    data-testid={`button-delete-sale-${sale.id}`}
-                                                  >
-                                                    <Trash2 className="w-3 h-3" />
-                                                  </Button>
-                                                </TableCell>
-                                              </TableRow>
+                                  {/* View Button */}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => toggleSubLotView(subField.id)}
+                                    data-testid={`button-view-sales-${subField.id}`}
+                                  >
+                                    {isSubLotExpanded ? 'Hide' : 'View'}
+                                  </Button>
+
+                                  {/* Sub-Lot Sales - Only shown when expanded */}
+                                  {isSubLotExpanded && (
+                                    <div className="mt-4">
+                                      {/* Sub-Lot Rate Summary */}
+                                      {subLotRateGroups.length > 0 && (
+                                        <div className="mb-4 p-3 bg-white dark:bg-gray-900 rounded-md">
+                                          <h5 className="text-xs font-semibold mb-2">Rate Summary</h5>
+                                          <div className="space-y-1">
+                                            {subLotRateGroups.map(group => (
+                                              <div key={group.rate} className="flex items-center justify-between text-xs">
+                                                <span className="font-medium">{formatCurrency(group.rate)}/bag</span>
+                                                <div className="flex items-center gap-3">
+                                                  <span>{group.quantity} bags</span>
+                                                  <span>{formatWeight(group.weight)}</span>
+                                                  <span className="font-semibold">{formatCurrency(group.total)}</span>
+                                                </div>
+                                              </div>
                                             ))}
-                                          </TableBody>
-                                        </Table>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Add Sale to Sub-Lot */}
-                                  {!isEditingSubSale && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => startNewSale(lot.lotId, subField.id)}
-                                      data-testid={`button-add-sale-${subField.id}`}
-                                    >
-                                      <Plus className="w-3 h-3 mr-2" />
-                                      Add Sale
-                                    </Button>
-                                  )}
-                                  
-                                  {/* New Sale Entry Form for Sub-Lot */}
-                                  {isEditingSubSale && (() => {
-                                    const sale = editingSales.get(subEditKey)!;
-                                    return (
-                                      <div className="p-3 border rounded-md bg-white dark:bg-gray-900">
-                                        <div className="grid grid-cols-6 gap-2">
-                                          <Input
-                                            placeholder="Buyer"
-                                            value={sale.buyerName}
-                                            onChange={(e) => updateSaleEntry(subEditKey, 'buyerName', e.target.value)}
-                                            className="text-sm"
-                                            data-testid="input-buyer-name"
-                                          />
-                                          <Input
-                                            type="number"
-                                            placeholder="Qty"
-                                            value={sale.quantity}
-                                            onChange={(e) => updateSaleEntry(subEditKey, 'quantity', e.target.value)}
-                                            className="text-sm"
-                                            data-testid="input-quantity"
-                                          />
-                                          <Input
-                                            type="number"
-                                            placeholder="Weight"
-                                            value={sale.weight}
-                                            onChange={(e) => updateSaleEntry(subEditKey, 'weight', e.target.value)}
-                                            className="text-sm"
-                                            data-testid="input-weight"
-                                          />
-                                          <Input
-                                            type="number"
-                                            placeholder="Rate"
-                                            value={sale.rate}
-                                            onChange={(e) => updateSaleEntry(subEditKey, 'rate', e.target.value)}
-                                            className="text-sm"
-                                            data-testid="input-rate"
-                                          />
-                                          <Input
-                                            type="number"
-                                            placeholder="Total"
-                                            value={sale.total}
-                                            readOnly
-                                            className="bg-gray-50 dark:bg-gray-800 text-sm"
-                                            data-testid="input-total"
-                                          />
-                                          <div className="flex gap-1">
-                                            <Button
-                                              variant="default"
-                                              size="sm"
-                                              onClick={() => saveSale(subEditKey)}
-                                              disabled={saveSaleMutation.isPending}
-                                              data-testid="button-save-sale"
-                                            >
-                                              <Save className="w-3 h-3" />
-                                            </Button>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => cancelEdit(subEditKey)}
-                                              data-testid="button-cancel-sale"
-                                            >
-                                              X
-                                            </Button>
                                           </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })()}
+                                      )}
+                                      
+                                      {/* Sub-Lot Sales */}
+                                      {subLotSales.length > 0 && (
+                                        <div className="mb-3">
+                                          <div className="rounded-md border text-sm">
+                                            <Table>
+                                              <TableHeader>
+                                                <TableRow>
+                                                  <TableHead className="text-xs">Buyer</TableHead>
+                                                  <TableHead className="text-xs">Qty</TableHead>
+                                                  <TableHead className="text-xs">Weight</TableHead>
+                                                  <TableHead className="text-xs">Rate</TableHead>
+                                                  <TableHead className="text-xs">Total</TableHead>
+                                                  <TableHead className="text-xs">Date</TableHead>
+                                                  <TableHead className="text-right text-xs">Actions</TableHead>
+                                                </TableRow>
+                                              </TableHeader>
+                                              <TableBody>
+                                                {subLotSales.map(sale => (
+                                                  <TableRow key={sale.id}>
+                                                    <TableCell className="text-xs">{sale.buyerName}</TableCell>
+                                                    <TableCell className="text-xs">{sale.quantity}</TableCell>
+                                                    <TableCell className="text-xs">{formatWeight(sale.weight || 0)}</TableCell>
+                                                    <TableCell className="text-xs">{formatCurrency(sale.rate || 0)}</TableCell>
+                                                    <TableCell className="text-xs font-semibold">{formatCurrency(sale.total || 0)}</TableCell>
+                                                    <TableCell className="text-xs">{sale.saleDate ? format(new Date(sale.saleDate), "MMM dd") : "-"}</TableCell>
+                                                    <TableCell className="text-right">
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => deleteSaleMutation.mutate(sale.id)}
+                                                        disabled={deleteSaleMutation.isPending}
+                                                        data-testid={`button-delete-sale-${sale.id}`}
+                                                      >
+                                                        <Trash2 className="w-3 h-3" />
+                                                      </Button>
+                                                    </TableCell>
+                                                  </TableRow>
+                                                ))}
+                                              </TableBody>
+                                            </Table>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </CardContent>
                               </Card>
                             );
