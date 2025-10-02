@@ -323,23 +323,14 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                             <ChevronRight className="w-5 h-5 text-gray-500" />
                           )}
                           <div>
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              {lot.lotId}
-                              <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
-                                {getProductName(lot.productId)}
-                              </span>
+                            <CardTitle className="text-lg">
+                              {getProductName(lot.productId)} - {lot.totalQuantity} bags - {getAccountName(lot.transportAccountId)}
                             </CardTitle>
                             <CardDescription className="flex items-center gap-4 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Scale className="w-3 h-3" />
-                                {lot.totalQuantity} bags
-                              </span>
+                              <span className="text-xs text-gray-500">{lot.lotId}</span>
                               <span className="flex items-center gap-1">
                                 {formatWeight(lot.totalWeight || 0)}
                               </span>
-                              {lot.transportAccountId && (
-                                <span>Transport: {getAccountName(lot.transportAccountId)}</span>
-                              )}
                               <span>{lot.arrivingDate ? format(new Date(lot.arrivingDate), "MMM dd, yyyy") : "-"}</span>
                             </CardDescription>
                           </div>
