@@ -20,6 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useEnterKeyNavigation } from "@/hooks/use-enter-key-navigation";
 import ViewDetailsModal from "@/components/ViewDetailsModal";
 import { 
   Plus, 
@@ -186,10 +187,10 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
         description: `${getPageInfo().singular} created successfully`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: `Failed to create ${getPageInfo().singular}`,
+        description: error.message || `Failed to create ${getPageInfo().singular}`,
         variant: "destructive",
       });
     }
@@ -208,10 +209,10 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
         description: `${getPageInfo().singular} updated successfully`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: `Failed to update ${getPageInfo().singular}`,
+        description: error.message || `Failed to update ${getPageInfo().singular}`,
         variant: "destructive",
       });
     }
@@ -230,10 +231,10 @@ export default function MasterDataModule({ currentFY, onFYChange, activeSubModul
         description: `${getPageInfo().singular} deleted successfully`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: `Failed to delete ${getPageInfo().singular}`,
+        description: error.message || `Failed to delete ${getPageInfo().singular}`,
         variant: "destructive",
       });
     }
@@ -952,6 +953,9 @@ function FormDialog({
     }
   }, [editingItem, currentFY, activeSubModule]);
 
+  // Enable Enter key navigation between form fields
+  useEnterKeyNavigation(showForm);
+
   const { toast } = useToast();
 
   const onSubmit = async (data: any) => {
@@ -1066,7 +1070,7 @@ function AccountFormFields({ form, places }: any) {
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Type *</FormLabel>
+              <FormLabel><u>T</u>ype *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-account-type">
@@ -1092,7 +1096,7 @@ function AccountFormFields({ form, places }: any) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name *</FormLabel>
+              <FormLabel><u>N</u>ame *</FormLabel>
               <FormControl>
                 <Input {...field} data-testid="input-account-name" />
               </FormControl>
@@ -1108,7 +1112,7 @@ function AccountFormFields({ form, places }: any) {
           name="mobile"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Mobile</FormLabel>
+              <FormLabel><u>M</u>obile</FormLabel>
               <FormControl>
                 <Input {...field} type="tel" data-testid="input-account-mobile" />
               </FormControl>
@@ -1121,7 +1125,7 @@ function AccountFormFields({ form, places }: any) {
           name="placeId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Place</FormLabel>
+              <FormLabel><u>P</u>lace</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-account-place">
@@ -1147,7 +1151,7 @@ function AccountFormFields({ form, places }: any) {
         name="address"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Address</FormLabel>
+            <FormLabel><u>A</u>ddress</FormLabel>
             <FormControl>
               <Textarea {...field} data-testid="input-account-address" />
             </FormControl>
@@ -1162,7 +1166,7 @@ function AccountFormFields({ form, places }: any) {
           name="openingBalance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Opening Balance</FormLabel>
+              <FormLabel><u>O</u>pening Balance</FormLabel>
               <FormControl>
                 <Input {...field} type="number" data-testid="input-account-balance" />
               </FormControl>
@@ -1175,7 +1179,7 @@ function AccountFormFields({ form, places }: any) {
           name="creditLimit"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Credit Limit</FormLabel>
+              <FormLabel><u>C</u>redit Limit</FormLabel>
               <FormControl>
                 <Input {...field} type="number" data-testid="input-account-credit-limit" />
               </FormControl>
@@ -1188,7 +1192,7 @@ function AccountFormFields({ form, places }: any) {
           name="creditTime"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Credit Time (Days)</FormLabel>
+              <FormLabel>Credit <u>T</u>ime (Days)</FormLabel>
               <FormControl>
                 <Input {...field} type="number" data-testid="input-account-credit-time" />
               </FormControl>
@@ -1203,7 +1207,7 @@ function AccountFormFields({ form, places }: any) {
         name="remarks"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Remarks</FormLabel>
+            <FormLabel><u>R</u>emarks</FormLabel>
             <FormControl>
               <Textarea {...field} data-testid="input-account-remarks" />
             </FormControl>
@@ -1418,7 +1422,7 @@ function ProductFormFields({ form }: any) {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Product Name *</FormLabel>
+            <FormLabel>Product <u>N</u>ame *</FormLabel>
             <FormControl>
               <Input {...field} data-testid="input-product-name" />
             </FormControl>
@@ -1432,7 +1436,7 @@ function ProductFormFields({ form }: any) {
         name="unit"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Unit *</FormLabel>
+            <FormLabel><u>U</u>nit *</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl>
                 <SelectTrigger data-testid="select-product-unit">
@@ -1486,7 +1490,7 @@ function ExpenseFormFields({ form, products }: any) {
           name="productId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Product *</FormLabel>
+              <FormLabel><u>P</u>roduct *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-expense-product">
@@ -1510,7 +1514,7 @@ function ExpenseFormFields({ form, products }: any) {
           name="linkedTo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Linked To *</FormLabel>
+              <FormLabel><u>L</u>inked To *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-expense-linked-to">
@@ -1556,7 +1560,7 @@ function ExpenseFormFields({ form, products }: any) {
 
           return (
             <FormItem>
-              <FormLabel>Expenses * (Select and Configure)</FormLabel>
+              <FormLabel><u>E</u>xpenses * (Select and Configure)</FormLabel>
               
               {/* Expense Selection Checkboxes */}
               <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg mb-4">
@@ -1661,7 +1665,7 @@ function PlaceFormFields({ form }: any) {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Place Name *</FormLabel>
+            <FormLabel>Place <u>N</u>ame *</FormLabel>
             <FormControl>
               <Input {...field} data-testid="input-place-name" />
             </FormControl>
@@ -1675,7 +1679,7 @@ function PlaceFormFields({ form }: any) {
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Description</FormLabel>
+            <FormLabel><u>D</u>escription</FormLabel>
             <FormControl>
               <Textarea {...field} data-testid="input-place-description" />
             </FormControl>
