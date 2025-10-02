@@ -48,6 +48,26 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
   const [editingSales, setEditingSales] = useState<Map<string, SaleEntry>>(new Map());
   const { toast } = useToast();
 
+  // Fetch accounts for farmer names
+  const { data: accounts = [] } = useQuery<any[]>({
+    queryKey: ["/api/accounts"],
+    queryFn: async () => {
+      const response = await fetch("/api/accounts");
+      if (!response.ok) throw new Error("Failed to fetch accounts");
+      return response.json();
+    }
+  });
+
+  // Fetch products for product names
+  const { data: products = [] } = useQuery<any[]>({
+    queryKey: ["/api/products"],
+    queryFn: async () => {
+      const response = await fetch("/api/products");
+      if (!response.ok) throw new Error("Failed to fetch products");
+      return response.json();
+    }
+  });
+
   // Fetch lots with their sub-fields
   const { data: lots = [], isLoading: lotsLoading } = useQuery<LotWithSubFields[]>({
     queryKey: ["/api/inventory/lot-entry/with-subfields", currentFY],
@@ -69,6 +89,18 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
       return response.json();
     }
   });
+
+  // Helper to get account name from ID
+  const getAccountName = (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId || acc.accountId === accountId);
+    return account?.accountName || accountId;
+  };
+
+  // Helper to get product name from ID
+  const getProductName = (productId: string) => {
+    const product = products.find(p => p.id === productId || p.productId === productId);
+    return product?.productName || productId;
+  };
 
   // Create or update sale mutation
   const saveSaleMutation = useMutation({
@@ -291,7 +323,12 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                             <ChevronRight className="w-5 h-5 text-gray-500" />
                           )}
                           <div>
-                            <CardTitle className="text-lg">{lot.lotId}</CardTitle>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              {lot.lotId}
+                              <span className="text-sm font-normal text-gray-600 dark:text-gray-400">
+                                {getProductName(lot.productId)}
+                              </span>
+                            </CardTitle>
                             <CardDescription className="flex items-center gap-4 mt-1">
                               <span className="flex items-center gap-1">
                                 <Scale className="w-3 h-3" />
@@ -300,6 +337,9 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                               <span className="flex items-center gap-1">
                                 {formatWeight(lot.totalWeight || 0)}
                               </span>
+                              {lot.transportName && (
+                                <span>Transport: {lot.transportName}</span>
+                              )}
                               <span>{lot.arrivingDate ? format(new Date(lot.arrivingDate), "MMM dd, yyyy") : "-"}</span>
                             </CardDescription>
                           </div>
@@ -382,84 +422,6 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                         </div>
                       )}
                       
-                      {/* Add Sale to Main Lot */}
-                      {!isEditingLotSale && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => startNewSale(lot.lotId, null)}
-                          className="mb-6"
-                          data-testid={`button-add-sale-${lot.lotId}`}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Sale to Main Lot
-                        </Button>
-                      )}
-                      
-                      {/* New Sale Entry Form for Main Lot */}
-                      {isEditingLotSale && (() => {
-                        const sale = editingSales.get(lotEditKey)!;
-                        return (
-                          <div className="mb-6 p-4 border rounded-lg bg-white dark:bg-gray-900">
-                            <div className="grid grid-cols-6 gap-3">
-                              <Input
-                                placeholder="Buyer Name"
-                                value={sale.buyerName}
-                                onChange={(e) => updateSaleEntry(lotEditKey, 'buyerName', e.target.value)}
-                                data-testid="input-buyer-name"
-                              />
-                              <Input
-                                type="number"
-                                placeholder="Quantity (bags)"
-                                value={sale.quantity}
-                                onChange={(e) => updateSaleEntry(lotEditKey, 'quantity', e.target.value)}
-                                data-testid="input-quantity"
-                              />
-                              <Input
-                                type="number"
-                                placeholder="Weight (kg)"
-                                value={sale.weight}
-                                onChange={(e) => updateSaleEntry(lotEditKey, 'weight', e.target.value)}
-                                data-testid="input-weight"
-                              />
-                              <Input
-                                type="number"
-                                placeholder="Rate (₹/bag)"
-                                value={sale.rate}
-                                onChange={(e) => updateSaleEntry(lotEditKey, 'rate', e.target.value)}
-                                data-testid="input-rate"
-                              />
-                              <Input
-                                type="number"
-                                placeholder="Total"
-                                value={sale.total}
-                                readOnly
-                                className="bg-gray-50 dark:bg-gray-800"
-                                data-testid="input-total"
-                              />
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => saveSale(lotEditKey)}
-                                  disabled={saveSaleMutation.isPending}
-                                  data-testid="button-save-sale"
-                                >
-                                  <Save className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => cancelEdit(lotEditKey)}
-                                  data-testid="button-cancel-sale"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
                       
                       {/* Farmer Sub-Lots */}
                       {lot.subFields && lot.subFields.length > 0 && (
@@ -478,7 +440,7 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                               <Card key={subField.id} className="ml-8 bg-gray-50 dark:bg-gray-800/30">
                                 <CardHeader className="pb-3">
                                   <CardTitle className="text-base">
-                                    Farmer: {subField.farmerAgentId}
+                                    Farmer: {getAccountName(subField.farmerAgentId)}
                                   </CardTitle>
                                   <CardDescription className="flex items-center gap-4">
                                     <span>{subField.quantity} bags</span>
