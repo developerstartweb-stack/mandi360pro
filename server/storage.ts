@@ -388,6 +388,17 @@ export interface IStorage {
   deleteBankDepositLedger(id: string): Promise<boolean>;
   generateBankDepositLedgerId(financialYear: string): Promise<string>;
   
+  // Account Balance operations
+  getAccountBalance(accountId: string, financialYear: string): Promise<any>;
+  searchCustomers(searchTerm: string, financialYear: string): Promise<any[]>;
+  updateAccountBalanceSnapshot(accountId: string, financialYear: string): Promise<void>;
+  
+  // Ledger Reminder operations
+  getLedgerReminders(accountId?: string, financialYear?: string, status?: string): Promise<any[]>;
+  createLedgerReminder(reminder: any): Promise<any>;
+  updateLedgerReminder(id: string, reminder: any): Promise<any>;
+  deleteLedgerReminder(id: string): Promise<boolean>;
+  
   // Reports Module operations
   getReport(type: string, financialYear: string, filters?: Record<string, any>): Promise<any[]>;
   createReportSnapshot(snapshot: InsertReportSnapshot): Promise<ReportSnapshot>;
@@ -2694,6 +2705,85 @@ export class MemStorage implements IStorage {
     );
     const nextNumber = String(ledgers.length + 1).padStart(4, '0');
     return `BDL-${nextNumber}`;
+  }
+
+  // Account Balance operations
+  async getAccountBalance(accountId: string, financialYear: string): Promise<any> {
+    const accounts = Array.from(this.accounts.values());
+    const account = accounts.find(a => a.accountId === accountId && a.financialYear === financialYear);
+    
+    if (!account) {
+      return null;
+    }
+
+    const openingBalance = parseFloat(account.openingBalance?.toString() || '0');
+    let totalBilled = 0;
+    let totalPaid = 0;
+
+    const customerBills = Array.from(this.customerBilling.values()).filter(
+      b => b.customerId === accountId && b.financialYear === financialYear
+    );
+    totalBilled += customerBills.reduce((sum, bill) => sum + parseFloat(bill.netAmount?.toString() || '0'), 0);
+
+    const khataBills = Array.from(this.khataBilling.values()).filter(
+      b => b.customerId === accountId && b.financialYear === financialYear
+    );
+    totalBilled += khataBills.reduce((sum, bill) => sum + parseFloat(bill.netAmount?.toString() || '0'), 0);
+
+    const payments = Array.from(this.customerPaymentReceipts.values()).filter(
+      p => p.customerId === accountId && p.financialYear === financialYear
+    );
+    totalPaid = payments.reduce((sum, payment) => sum + parseFloat(payment.amountReceived?.toString() || '0'), 0);
+
+    const currentBalance = openingBalance + totalBilled - totalPaid;
+
+    return {
+      accountId: account.accountId,
+      accountName: account.name,
+      openingBalance,
+      totalBilled,
+      totalPaid,
+      currentBalance,
+    };
+  }
+
+  async searchCustomers(searchTerm: string, financialYear: string): Promise<any[]> {
+    const term = searchTerm.toLowerCase();
+    const accounts = Array.from(this.accounts.values()).filter(account => 
+      account.financialYear === financialYear &&
+      (account.type === 'Buyer' || account.type === 'Customer') &&
+      (account.name.toLowerCase().includes(term) || 
+       account.accountId.toLowerCase().includes(term))
+    );
+    
+    return accounts.map(account => ({
+      id: account.id,
+      accountId: account.accountId,
+      name: account.name,
+      mobile: account.mobile,
+      address: account.address,
+    }));
+  }
+
+  async updateAccountBalanceSnapshot(accountId: string, financialYear: string): Promise<void> {
+  }
+
+  // Ledger Reminder operations
+  async getLedgerReminders(accountId?: string, financialYear?: string, status?: string): Promise<any[]> {
+    return [];
+  }
+
+  async createLedgerReminder(reminder: any): Promise<any> {
+    const id = randomUUID();
+    return { id, ...reminder };
+  }
+
+  async updateLedgerReminder(id: string, reminder: any): Promise<any> {
+    return { id, ...reminder };
+  }
+
+  async deleteLedgerReminder(id: string): Promise<boolean> {
+    return true;
   }
 
   // Reports Module operations - MemStorage implementations
@@ -5017,6 +5107,105 @@ export class DatabaseStorage implements IStorage {
     const ledgers = await db.select().from(bankDepositLedger).where(eq(bankDepositLedger.financialYear, financialYear));
     const nextNumber = String((ledgers || []).length + 1).padStart(4, '0');
     return `BDL-${nextNumber}`;
+  }
+
+  // Account Balance operations
+  async getAccountBalance(accountId: string, financialYear: string): Promise<any> {
+    const accountResult = await db.select().from(accountMaster).where(
+      and(
+        eq(accountMaster.accountId, accountId),
+        eq(accountMaster.financialYear, financialYear)
+      )
+    );
+    
+    const account = accountResult[0];
+    if (!account) {
+      return null;
+    }
+
+    const openingBalance = parseFloat(account.openingBalance?.toString() || '0');
+
+    const customerBills = await db.select().from(customerBilling).where(
+      and(
+        eq(customerBilling.customerId, accountId),
+        eq(customerBilling.financialYear, financialYear)
+      )
+    );
+
+    const khataBills = await db.select().from(khataBilling).where(
+      and(
+        eq(khataBilling.customerId, accountId),
+        eq(khataBilling.financialYear, financialYear)
+      )
+    );
+
+    const payments = await db.select().from(customerPaymentReceipt).where(
+      and(
+        eq(customerPaymentReceipt.customerId, accountId),
+        eq(customerPaymentReceipt.financialYear, financialYear)
+      )
+    );
+
+    const totalBilled = 
+      customerBills.reduce((sum, bill) => sum + parseFloat(bill.netAmount?.toString() || '0'), 0) +
+      khataBills.reduce((sum, bill) => sum + parseFloat(bill.netAmount?.toString() || '0'), 0);
+
+    const totalPaid = payments.reduce((sum, payment) => sum + parseFloat(payment.amountReceived?.toString() || '0'), 0);
+
+    const currentBalance = openingBalance + totalBilled - totalPaid;
+
+    return {
+      accountId: account.accountId,
+      accountName: account.name,
+      openingBalance,
+      totalBilled,
+      totalPaid,
+      currentBalance,
+    };
+  }
+
+  async searchCustomers(searchTerm: string, financialYear: string): Promise<any[]> {
+    const accounts = await db.select().from(accountMaster).where(
+      and(
+        eq(accountMaster.financialYear, financialYear),
+        or(
+          eq(accountMaster.type, 'Buyer'),
+          eq(accountMaster.type, 'Customer')
+        ),
+        or(
+          ilike(accountMaster.name, `%${searchTerm}%`),
+          ilike(accountMaster.accountId, `%${searchTerm}%`)
+        )
+      )
+    );
+    
+    return accounts.map(account => ({
+      id: account.id,
+      accountId: account.accountId,
+      name: account.name,
+      mobile: account.mobile,
+      address: account.address,
+    }));
+  }
+
+  async updateAccountBalanceSnapshot(accountId: string, financialYear: string): Promise<void> {
+  }
+
+  // Ledger Reminder operations
+  async getLedgerReminders(accountId?: string, financialYear?: string, status?: string): Promise<any[]> {
+    return [];
+  }
+
+  async createLedgerReminder(reminder: any): Promise<any> {
+    return reminder;
+  }
+
+  async updateLedgerReminder(id: string, reminder: any): Promise<any> {
+    return { id, ...reminder };
+  }
+
+  async deleteLedgerReminder(id: string): Promise<boolean> {
+    return true;
   }
 
   // Reports Module operations - DatabaseStorage implementations

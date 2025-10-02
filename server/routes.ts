@@ -1631,6 +1631,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Account Balance Routes
+  app.get("/api/ledger/customers/search", async (req, res) => {
+    try {
+      const { q = "", fy = "2025-26" } = req.query;
+      const customers = await storage.searchCustomers(q as string, fy as string);
+      res.json(customers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to search customers" });
+    }
+  });
+
+  app.get("/api/ledger/balance/:accountId", async (req, res) => {
+    try {
+      const { accountId } = req.params;
+      const { fy = "2025-26" } = req.query;
+      const balance = await storage.getAccountBalance(accountId, fy as string);
+      if (!balance) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+      res.json(balance);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch account balance" });
+    }
+  });
+
+  // Ledger Reminder Routes
+  app.get("/api/ledger/reminders", async (req, res) => {
+    try {
+      const { accountId, fy, status } = req.query;
+      const reminders = await storage.getLedgerReminders(
+        accountId as string | undefined,
+        fy as string | undefined,
+        status as string | undefined
+      );
+      res.json(reminders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch reminders" });
+    }
+  });
+
+  app.post("/api/ledger/reminders", async (req, res) => {
+    try {
+      const reminder = await storage.createLedgerReminder(req.body);
+      res.status(201).json(reminder);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to create reminder" });
+    }
+  });
+
+  app.put("/api/ledger/reminders/:id", async (req, res) => {
+    try {
+      const reminder = await storage.updateLedgerReminder(req.params.id, req.body);
+      res.json(reminder);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update reminder" });
+    }
+  });
+
+  app.delete("/api/ledger/reminders/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteLedgerReminder(req.params.id);
+      if (success) {
+        res.json({ message: "Reminder deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Reminder not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete reminder" });
+    }
+  });
+
   // Reports Module Routes
   app.get("/api/reports/:type", async (req, res) => {
     try {
