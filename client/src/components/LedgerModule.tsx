@@ -414,33 +414,6 @@ export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProp
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4" ref={componentRef}>
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="uplag" data-testid="tab-uplag" className="flex items-center gap-2">
-            <ArrowUpCircle className="h-4 w-4" />
-            Uplag (Balance)
-          </TabsTrigger>
-          <TabsTrigger value="khata" data-testid="tab-khata" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Khata
-          </TabsTrigger>
-          <TabsTrigger value="farmer-transport" data-testid="tab-farmer-transport" className="flex items-center gap-2">
-            <Truck className="h-4 w-4" />
-            Farmer/Transport
-          </TabsTrigger>
-          <TabsTrigger value="income" data-testid="tab-income" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Income
-          </TabsTrigger>
-          <TabsTrigger value="expense" data-testid="tab-expense" className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            Expense
-          </TabsTrigger>
-          <TabsTrigger value="bank-deposit" data-testid="tab-bank-deposit" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Bank Deposit
-          </TabsTrigger>
-        </TabsList>
-
         {/* Uplag Ledger Tab */}
         <TabsContent value="uplag" className="space-y-4">
           <UplagLedgerTable
