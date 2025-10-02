@@ -1070,7 +1070,7 @@ function AccountFormFields({ form, places }: any) {
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>T</u>ype *</FormLabel>
+              <FormLabel>Type *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-account-type">
@@ -1096,7 +1096,7 @@ function AccountFormFields({ form, places }: any) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>N</u>ame *</FormLabel>
+              <FormLabel>Name *</FormLabel>
               <FormControl>
                 <Input {...field} data-testid="input-account-name" />
               </FormControl>
@@ -1112,7 +1112,7 @@ function AccountFormFields({ form, places }: any) {
           name="mobile"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>M</u>obile</FormLabel>
+              <FormLabel>Mobile</FormLabel>
               <FormControl>
                 <Input {...field} type="tel" data-testid="input-account-mobile" />
               </FormControl>
@@ -1125,7 +1125,7 @@ function AccountFormFields({ form, places }: any) {
           name="placeId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>P</u>lace</FormLabel>
+              <FormLabel>Place</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-account-place">
@@ -1151,7 +1151,7 @@ function AccountFormFields({ form, places }: any) {
         name="address"
         render={({ field }) => (
           <FormItem>
-            <FormLabel><u>A</u>ddress</FormLabel>
+            <FormLabel>Address</FormLabel>
             <FormControl>
               <Textarea {...field} data-testid="input-account-address" />
             </FormControl>
@@ -1166,7 +1166,7 @@ function AccountFormFields({ form, places }: any) {
           name="openingBalance"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>O</u>pening Balance</FormLabel>
+              <FormLabel>Opening Balance</FormLabel>
               <FormControl>
                 <Input {...field} type="number" data-testid="input-account-balance" />
               </FormControl>
@@ -1179,7 +1179,7 @@ function AccountFormFields({ form, places }: any) {
           name="creditLimit"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>C</u>redit Limit</FormLabel>
+              <FormLabel>Credit Limit</FormLabel>
               <FormControl>
                 <Input {...field} type="number" data-testid="input-account-credit-limit" />
               </FormControl>
@@ -1192,7 +1192,7 @@ function AccountFormFields({ form, places }: any) {
           name="creditTime"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Credit <u>T</u>ime (Days)</FormLabel>
+              <FormLabel>Credit Time (Days)</FormLabel>
               <FormControl>
                 <Input {...field} type="number" data-testid="input-account-credit-time" />
               </FormControl>
@@ -1207,7 +1207,7 @@ function AccountFormFields({ form, places }: any) {
         name="remarks"
         render={({ field }) => (
           <FormItem>
-            <FormLabel><u>R</u>emarks</FormLabel>
+            <FormLabel>Remarks</FormLabel>
             <FormControl>
               <Textarea {...field} data-testid="input-account-remarks" />
             </FormControl>
@@ -1422,7 +1422,7 @@ function ProductFormFields({ form }: any) {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Product <u>N</u>ame *</FormLabel>
+            <FormLabel>Product Name *</FormLabel>
             <FormControl>
               <Input {...field} data-testid="input-product-name" />
             </FormControl>
@@ -1436,7 +1436,7 @@ function ProductFormFields({ form }: any) {
         name="unit"
         render={({ field }) => (
           <FormItem>
-            <FormLabel><u>U</u>nit *</FormLabel>
+            <FormLabel>Unit *</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl>
                 <SelectTrigger data-testid="select-product-unit">
@@ -1490,7 +1490,7 @@ function ExpenseFormFields({ form, products }: any) {
           name="productId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>P</u>roduct *</FormLabel>
+              <FormLabel>Product *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-expense-product">
@@ -1514,7 +1514,7 @@ function ExpenseFormFields({ form, products }: any) {
           name="linkedTo"
           render={({ field }) => (
             <FormItem>
-              <FormLabel><u>L</u>inked To *</FormLabel>
+              <FormLabel>Linked To *</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger data-testid="select-expense-linked-to">
@@ -1560,7 +1560,7 @@ function ExpenseFormFields({ form, products }: any) {
 
           return (
             <FormItem>
-              <FormLabel><u>E</u>xpenses * (Select and Configure)</FormLabel>
+              <FormLabel>Expenses * (Select and Configure)</FormLabel>
               
               {/* Expense Selection Checkboxes */}
               <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg mb-4">
@@ -1665,7 +1665,7 @@ function PlaceFormFields({ form }: any) {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Place <u>N</u>ame *</FormLabel>
+            <FormLabel>Place Name *</FormLabel>
             <FormControl>
               <Input {...field} data-testid="input-place-name" />
             </FormControl>
@@ -1679,7 +1679,7 @@ function PlaceFormFields({ form }: any) {
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel><u>D</u>escription</FormLabel>
+            <FormLabel>Description</FormLabel>
             <FormControl>
               <Textarea {...field} data-testid="input-place-description" />
             </FormControl>

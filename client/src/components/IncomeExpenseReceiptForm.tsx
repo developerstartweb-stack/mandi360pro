@@ -120,7 +120,7 @@ export default function IncomeExpenseReceiptForm({ receipt, currentFY, onSubmit,
                 {isEditing ? 'Edit Income/Expense Receipt' : 'Create New Income/Expense Receipt'}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Record income or expense transactions for FY {currentFY}
+                Record income or expense transactions
               </p>
             </div>
             <div className="flex gap-2">
@@ -290,13 +290,6 @@ export default function IncomeExpenseReceiptForm({ receipt, currentFY, onSubmit,
                   )}
                 />
 
-                {/* Financial Year (Read-only) */}
-                <FormItem>
-                  <FormLabel>Financial Year</FormLabel>
-                  <div className="flex items-center h-10 px-3 py-2 border border-input bg-muted rounded-md">
-                    <span className="text-sm text-muted-foreground">{currentFY}</span>
-                  </div>
-                </FormItem>
               </CardContent>
             </Card>
 

@@ -183,7 +183,7 @@ export default function RojmelForm({ rojmel, currentFY, onSubmit, onCancel }: Ro
                 {isEditing ? 'Edit Rojmel' : 'Create New Rojmel'}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Daily income and expense tracking for FY {currentFY}
+                Daily income and expense tracking
               </p>
             </div>
             <div className="flex gap-2">
@@ -263,13 +263,6 @@ export default function RojmelForm({ rojmel, currentFY, onSubmit, onCancel }: Ro
                   )}
                 />
 
-                {/* Financial Year (Read-only) */}
-                <FormItem>
-                  <FormLabel>Financial Year</FormLabel>
-                  <div className="flex items-center h-10 px-3 py-2 border border-input bg-muted rounded-md">
-                    <span className="text-sm text-muted-foreground">{currentFY}</span>
-                  </div>
-                </FormItem>
               </CardContent>
             </Card>
 

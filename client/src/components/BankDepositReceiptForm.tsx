@@ -166,7 +166,7 @@ export default function BankDepositReceiptForm({ receipt, currentFY, onSubmit, o
                 {isEditing ? 'Edit Bank Deposit Receipt' : 'Create New Bank Deposit Receipt'}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Record bank deposits with cash breakdown for FY {currentFY}
+                Record bank deposits with cash breakdown
               </p>
             </div>
             <div className="flex gap-2">
@@ -264,14 +264,6 @@ export default function BankDepositReceiptForm({ receipt, currentFY, onSubmit, o
                     </FormItem>
                   )}
                 />
-
-                {/* Financial Year (Read-only) */}
-                <FormItem>
-                  <FormLabel>Financial Year</FormLabel>
-                  <div className="flex items-center h-10 px-3 py-2 border border-input bg-muted rounded-md">
-                    <span className="text-sm text-muted-foreground">{currentFY}</span>
-                  </div>
-                </FormItem>
 
                 {/* Auto-calculated Total */}
                 <FormItem>

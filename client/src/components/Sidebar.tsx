@@ -44,10 +44,11 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: Home, color: "text-blue-500" },
+  { id: "dashboard", label: "Dashboard", shortcut: "D", icon: Home, color: "text-blue-500" },
   { 
     id: "master-data", 
-    label: "Master Data", 
+    label: "Master Data",
+    shortcut: "M",
     icon: Database,
     color: "text-green-500",
     hasDropdown: true,
@@ -61,6 +62,7 @@ const menuItems = [
   {
     id: "inventory",
     label: "Inventory",
+    shortcut: "I",
     icon: Package,
     color: "text-orange-500",
     hasDropdown: true,
@@ -73,7 +75,8 @@ const menuItems = [
   },
   { 
     id: "bill-desk", 
-    label: "Bill Desk", 
+    label: "Bill Desk",
+    shortcut: "B",
     icon: Receipt, 
     color: "text-purple-500",
     hasDropdown: true,
@@ -85,7 +88,8 @@ const menuItems = [
   },
   { 
     id: "farmer-invoice", 
-    label: "Farmer Invoice", 
+    label: "Farmer Invoice",
+    shortcut: "F",
     icon: FileText, 
     color: "text-indigo-500",
     hasDropdown: true,
@@ -95,11 +99,12 @@ const menuItems = [
       { id: "manual-invoice", label: "Manual Invoice", icon: FileText }
     ]
   },
-  { id: "accounting", label: "Accounting", icon: Wallet, color: "text-yellow-500" },
-  { id: "accounting-integration", label: "Accounting Integrations", icon: Zap, color: "text-orange-600" },
+  { id: "accounting", label: "Accounting", shortcut: "C", icon: Wallet, color: "text-yellow-500" },
+  { id: "accounting-integration", label: "Accounting Integrations", shortcut: "T", icon: Zap, color: "text-orange-600" },
   { 
     id: "ledger", 
-    label: "Ledger Module", 
+    label: "Ledger Module",
+    shortcut: "L",
     icon: BookOpen, 
     color: "text-teal-500",
     hasDropdown: true,
@@ -114,7 +119,8 @@ const menuItems = [
   },
   { 
     id: "reports", 
-    label: "Reports", 
+    label: "Reports",
+    shortcut: "R",
     icon: BarChart3, 
     color: "text-red-500",
     hasDropdown: true,
@@ -127,10 +133,11 @@ const menuItems = [
       { id: "outstanding-report", label: "Outstanding Report", icon: AlertTriangle }
     ]
   },
-  { id: "analytics", label: "Analytics", icon: TrendingUp, color: "text-pink-500" },
+  { id: "analytics", label: "Analytics", shortcut: "Y", icon: TrendingUp, color: "text-pink-500" },
   { 
     id: "whatsapp", 
-    label: "WhatsApp", 
+    label: "WhatsApp",
+    shortcut: "W",
     icon: MessageSquare, 
     color: "text-green-600",
     hasDropdown: true,
@@ -142,7 +149,8 @@ const menuItems = [
   },
   { 
     id: "settings", 
-    label: "Settings", 
+    label: "Settings",
+    shortcut: "S",
     icon: Settings, 
     color: "text-gray-500",
     hasDropdown: true,
@@ -219,7 +227,19 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
                   <Icon className={cn("h-4 w-4 flex-shrink-0", !isActive && item.color)} />
                   {!isCollapsed && (
                     <>
-                      <span className="flex-1 text-left">{item.label}</span>
+                      <span className="flex-1 text-left">
+                        {'shortcut' in item && item.shortcut ? (
+                          <>
+                            {item.label.split('').map((char, idx) => {
+                              const isShortcutChar = char.toUpperCase() === item.shortcut.toUpperCase() && 
+                                                      item.label.substring(0, idx).toUpperCase().indexOf(item.shortcut.toUpperCase()) === -1;
+                              return isShortcutChar ? <u key={idx}>{char}</u> : char;
+                            })}
+                          </>
+                        ) : (
+                          item.label
+                        )}
+                      </span>
                       {item.hasDropdown && (
                         <div className="transition-transform duration-200">
                           {isDropdownOpen ? (

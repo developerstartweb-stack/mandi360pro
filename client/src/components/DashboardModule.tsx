@@ -140,7 +140,7 @@ export default function DashboardModule({ currentFY, onFYChange }: DashboardModu
         <div>
           <h1 className="text-2xl font-display font-bold">Dashboard Module</h1>
           <p className="text-muted-foreground">
-            Financial Year {currentFY} Overview • Live Data from Mandi360pro
+            Live Data from Mandi360pro
           </p>
         </div>
       </div>

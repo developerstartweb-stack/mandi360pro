@@ -145,7 +145,7 @@ export default function BalanceSheetForm({ balanceSheet, currentFY, onSubmit, on
                 {isEditing ? 'Edit Balance Sheet' : 'Create New Balance Sheet'}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Generate balance sheet for financial reporting in FY {currentFY}
+                Generate balance sheet for financial reporting
               </p>
             </div>
             <div className="flex gap-2">
@@ -269,13 +269,6 @@ export default function BalanceSheetForm({ balanceSheet, currentFY, onSubmit, on
                   )}
                 />
 
-                {/* Financial Year (Read-only) */}
-                <FormItem>
-                  <FormLabel>Financial Year</FormLabel>
-                  <div className="flex items-center h-10 px-3 py-2 border border-input bg-muted rounded-md">
-                    <span className="text-sm text-muted-foreground">{currentFY}</span>
-                  </div>
-                </FormItem>
               </CardContent>
             </Card>
 
