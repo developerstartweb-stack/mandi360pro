@@ -99,7 +99,7 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
   // Helper to get product name from ID
   const getProductName = (productId: string) => {
     const product = products.find(p => p.id === productId || p.productId === productId);
-    return product?.productName || productId;
+    return product?.name || productId;
   };
 
   // Create or update sale mutation
@@ -337,8 +337,8 @@ export default function DhadaBookModule({ currentFY }: DhadaBookModuleProps) {
                               <span className="flex items-center gap-1">
                                 {formatWeight(lot.totalWeight || 0)}
                               </span>
-                              {lot.transportName && (
-                                <span>Transport: {lot.transportName}</span>
+                              {lot.transportAccountId && (
+                                <span>Transport: {getAccountName(lot.transportAccountId)}</span>
                               )}
                               <span>{lot.arrivingDate ? format(new Date(lot.arrivingDate), "MMM dd, yyyy") : "-"}</span>
                             </CardDescription>
