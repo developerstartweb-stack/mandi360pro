@@ -31,7 +31,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
     },
   });
 
-  const existingProfile = profiles[0];
+  const existingProfile = profiles.length > 0 ? profiles[0] : null;
 
   const form = useForm<InsertCompanyProfile>({
     resolver: zodResolver(insertCompanyProfileSchema),
