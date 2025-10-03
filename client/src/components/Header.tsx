@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useGlobalState } from "@/lib/globalState";
 import { useState } from "react";
+import { WhatsAppSetup } from "./WhatsAppSetup";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -67,6 +68,9 @@ export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderPro
             </SelectContent>
           </Select>
         </div>
+
+        {/* WhatsApp Setup */}
+        <WhatsAppSetup />
 
         {/* Reminders & Notifications Bell */}
         <Button
