@@ -10,8 +10,13 @@ interface GlobalState {
     address?: string;
     phone1?: string;
     phone2?: string;
+    whatsappNo?: string;
+    whatsappName?: string;
+    gst?: string;
+    licenseNo?: string;
     email?: string;
     website?: string;
+    remark?: string;
     logoUrl?: string;
   } | null;
   masterData: {
