@@ -44,6 +44,7 @@ import {
   type ModuleSettings
 } from "@shared/schema";
 import CompanySetupForm from "./CompanySetupForm";
+import { PrintingSettingsForm } from "./PrintingSettingsForm";
 
 type SettingsTab = "company" | "expenses" | "printing" | "modules";
 
@@ -258,7 +259,7 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
           
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            {activeTab !== "company" && (
+            {activeTab !== "company" && activeTab !== "printing" && (
               <Button 
                 onClick={handleAdd}
                 size="sm"
@@ -269,7 +270,7 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
                 Add New (Ctrl+N)
               </Button>
             )}
-            {activeTab !== "company" && (
+            {activeTab !== "company" && activeTab !== "printing" && (
               <Button 
                 onClick={handlePrint}
                 variant="outline"
@@ -344,6 +345,8 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
             {/* Content based on selected sub-module */}
             {activeTab === "company" ? (
               <CompanySetupForm currentFY={selectedFY} />
+            ) : activeTab === "printing" ? (
+              <PrintingSettingsForm />
             ) : (
               <SettingsTable
                 type={activeTab}
