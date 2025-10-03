@@ -43,6 +43,7 @@ import {
   type PrintingSettings,
   type ModuleSettings
 } from "@shared/schema";
+import CompanySetupForm from "./CompanySetupForm";
 
 type SettingsTab = "company" | "expenses" | "printing" | "modules";
 
@@ -257,24 +258,28 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
           
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            <Button 
-              onClick={handleAdd}
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white"
-              data-testid="button-add-setting"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add New (Ctrl+N)
-            </Button>
-            <Button 
-              onClick={handlePrint}
-              variant="outline"
-              size="sm"
-              data-testid="button-print-settings"
-            >
-              <Printer className="h-4 w-4 mr-2" />
-              Print (Ctrl+P)
-            </Button>
+            {activeTab !== "company" && (
+              <Button 
+                onClick={handleAdd}
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                data-testid="button-add-setting"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New (Ctrl+N)
+              </Button>
+            )}
+            {activeTab !== "company" && (
+              <Button 
+                onClick={handlePrint}
+                variant="outline"
+                size="sm"
+                data-testid="button-print-settings"
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print (Ctrl+P)
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -337,16 +342,20 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
             </div>
 
             {/* Content based on selected sub-module */}
-            <SettingsTable
-              type={activeTab}
-              financialYear={selectedFY}
-              searchTerm={searchTerm}
-              selectedRowId={selectedRowId}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onSearch={setSearchTerm}
-              onRowSelect={setSelectedRowId}
-            />
+            {activeTab === "company" ? (
+              <CompanySetupForm currentFY={selectedFY} />
+            ) : (
+              <SettingsTable
+                type={activeTab}
+                financialYear={selectedFY}
+                searchTerm={searchTerm}
+                selectedRowId={selectedRowId}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onSearch={setSearchTerm}
+                onRowSelect={setSelectedRowId}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
