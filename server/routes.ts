@@ -1899,6 +1899,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/printing-settings/:id", async (req, res) => {
+    try {
+      const validatedData = updatePrintingSettingsSchema.parse(req.body);
+      const setting = await storage.updatePrintingSetting(req.params.id, validatedData);
+      res.json(setting);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message || "Failed to update printing setting" });
+    }
+  });
+
   app.delete("/api/printing-settings/:id", async (req, res) => {
     try {
       const success = await storage.deletePrintingSetting(req.params.id);
