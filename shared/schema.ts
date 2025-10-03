@@ -1370,7 +1370,61 @@ export const printingSettings = pgTable('printing_settings', {
   financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
   templateId: varchar('template_id', { length: 50 }).notNull(), // auto-generated
   templateName: varchar('template_name', { length: 100 }).notNull(),
-  fieldsToShow: json('fields_to_show').default([]), // multi-select array
+  documentType: varchar('document_type', { length: 50 }).notNull(), // bill, receipt, invoice, other
+  
+  // Paper Size Settings
+  paperSize: varchar('paper_size', { length: 50 }).notNull().default('A4'), // A4, A5, Letter, Custom, Thermal-80mm, Thermal-58mm
+  customWidth: decimal('custom_width', { precision: 10, scale: 2 }), // in mm
+  customHeight: decimal('custom_height', { precision: 10, scale: 2 }), // in mm
+  orientation: varchar('orientation', { length: 20 }).default('portrait'), // portrait, landscape
+  
+  // Margin Settings
+  marginTop: decimal('margin_top', { precision: 10, scale: 2 }).default('10'), // in mm
+  marginBottom: decimal('margin_bottom', { precision: 10, scale: 2 }).default('10'),
+  marginLeft: decimal('margin_left', { precision: 10, scale: 2 }).default('10'),
+  marginRight: decimal('margin_right', { precision: 10, scale: 2 }).default('10'),
+  
+  // Header Settings
+  showHeader: boolean('show_header').default(true),
+  headerTemplate: text('header_template'), // HTML/text template
+  showLogo: boolean('show_logo').default(true),
+  showCompanyName: boolean('show_company_name').default(true),
+  showCompanyAddress: boolean('show_company_address').default(true),
+  showCompanyContact: boolean('show_company_contact').default(true),
+  showGst: boolean('show_gst').default(true),
+  showLicense: boolean('show_license').default(false),
+  headerFontSize: integer('header_font_size').default(12),
+  headerAlignment: varchar('header_alignment', { length: 20 }).default('center'), // left, center, right
+  
+  // Footer Settings
+  showFooter: boolean('show_footer').default(true),
+  footerTemplate: text('footer_template'), // HTML/text template
+  showRemark: boolean('show_remark').default(true),
+  showPageNumber: boolean('show_page_number').default(true),
+  showPrintDate: boolean('show_print_date').default(true),
+  footerFontSize: integer('footer_font_size').default(10),
+  footerAlignment: varchar('footer_alignment', { length: 20 }).default('center'),
+  
+  // Document Fields Selection
+  fieldsToShow: json('fields_to_show').default([]), // Array of field names to show
+  
+  // Table/Content Settings
+  showBorders: boolean('show_borders').default(true),
+  tableFontSize: integer('table_font_size').default(10),
+  showSerialNumber: boolean('show_serial_number').default(true),
+  showProductCode: boolean('show_product_code').default(true),
+  showQuantity: boolean('show_quantity').default(true),
+  showRate: boolean('show_rate').default(true),
+  showAmount: boolean('show_amount').default(true),
+  showTax: boolean('show_tax').default(true),
+  showDiscount: boolean('show_discount').default(false),
+  
+  // Additional Settings
+  copies: integer('copies').default(1),
+  colorPrint: boolean('color_print').default(false),
+  watermarkText: varchar('watermark_text', { length: 100 }),
+  showWatermark: boolean('show_watermark').default(false),
+  
   customFields: json('custom_fields').default({}),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
@@ -1419,8 +1473,14 @@ export const insertPrintingSettingsSchema = createInsertSchema(printingSettings)
   id: true,
   createdAt: true,
   updatedAt: true,
+  templateId: true,
 }).extend({
   templateName: z.string().min(1, "Template name is required"),
+  documentType: z.enum(["bill", "receipt", "invoice", "other"]),
+  paperSize: z.enum(["A4", "A5", "Letter", "Custom", "Thermal-80mm", "Thermal-58mm"]),
+  orientation: z.enum(["portrait", "landscape"]).optional(),
+  headerAlignment: z.enum(["left", "center", "right"]).optional(),
+  footerAlignment: z.enum(["left", "center", "right"]).optional(),
   fieldsToShow: z.array(z.string()).optional(),
 });
 
