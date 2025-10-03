@@ -189,7 +189,7 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
 
   return (
     <aside className={cn(
-      "bg-sidebar border-r border-sidebar-border transition-all duration-300",
+      "bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out h-screen overflow-y-auto overflow-x-hidden",
       isCollapsed ? "w-16" : "w-64"
     )}>
       <div className="p-4">
@@ -216,7 +216,8 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
                 <Button
                   variant={isActive ? "default" : "ghost"}
                   className={cn(
-                    "w-full justify-start gap-3 h-10 transition-all duration-200 hover-elevate",
+                    "w-full justify-start gap-3 h-10 transition-all duration-200 ease-in-out hover-elevate active-elevate-2",
+                    "hover:scale-[1.02] active:scale-[0.98]",
                     isActive && "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm",
                     !isActive && "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     isCollapsed && "px-2"
@@ -262,8 +263,8 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
                 {item.hasDropdown && !isCollapsed && (
                   <div 
                     className={cn(
-                      "overflow-hidden transition-all duration-300 ease-in-out",
-                      isDropdownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                      "overflow-hidden transition-all duration-300 ease-out",
+                      isDropdownOpen ? "max-h-96 opacity-100 mt-1" : "max-h-0 opacity-0"
                     )}
                   >
                     <div className="ml-6 mt-2 space-y-1 pb-2">
@@ -276,14 +277,16 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
                             key={subItem.id}
                             variant={isSubActive ? "default" : "ghost"}
                             className={cn(
-                              "w-full justify-start gap-3 h-9 text-sm transition-all duration-200 hover-elevate",
+                              "w-full justify-start gap-3 h-9 text-sm transition-all duration-200 ease-out hover-elevate active-elevate-2",
+                              "hover:scale-[1.02] active:scale-[0.98]",
                               isSubActive && "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm",
                               !isSubActive && "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                               "transform",
                               isDropdownOpen ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0"
                             )}
                             style={{
-                              transitionDelay: isDropdownOpen ? `${index * 50}ms` : "0ms"
+                              transitionDelay: isDropdownOpen ? `${index * 40}ms` : "0ms",
+                              transitionTimingFunction: "cubic-bezier(0.4, 0, 0.2, 1)"
                             }}
                             onClick={() => onTabChange?.(subItem.id)}
                             data-testid={`nav-${subItem.id}`}
@@ -302,7 +305,7 @@ export default function Sidebar({ activeTab = "dashboard", onTabChange, isCollap
         </nav>
 
         {!isCollapsed && (
-          <div className="mt-8 p-3 bg-card rounded-md border border-card-border hover-elevate transition-all duration-200">
+          <div className="mt-8 p-3 bg-card rounded-md border border-card-border hover-elevate transition-all duration-300 ease-in-out hover:shadow-md">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="h-4 w-4 text-primary" />
               <h4 className="text-sm font-medium text-card-foreground">
