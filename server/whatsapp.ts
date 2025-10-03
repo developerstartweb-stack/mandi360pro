@@ -15,7 +15,20 @@ class WhatsAppService extends EventEmitter {
   }
 
   async initialize() {
-    if (this.isInitializing || this.client) {
+    // Allow re-initialization only if not currently initializing
+    // If client exists but is not connected, destroy it first
+    if (this.isInitializing) {
+      return;
+    }
+
+    if (this.client && !this.isAuthenticated) {
+      console.log('[WhatsApp] Cleaning up stale client before re-initialization');
+      await this.client.destroy();
+      this.client = null;
+    }
+
+    if (this.client && this.isAuthenticated) {
+      console.log('[WhatsApp] Already initialized and authenticated');
       return;
     }
 
@@ -139,6 +152,7 @@ class WhatsAppService extends EventEmitter {
       await this.client.destroy();
       this.client = null;
       this.isAuthenticated = false;
+      this.isInitializing = false;
       this.qrCode = null;
       this.connectedPhone = null;
     }
@@ -147,7 +161,9 @@ class WhatsAppService extends EventEmitter {
   async logout() {
     if (this.client) {
       await this.client.logout();
+      this.client = null; // Reset client to allow re-initialization
       this.isAuthenticated = false;
+      this.isInitializing = false;
       this.qrCode = null;
       this.connectedPhone = null;
     }
