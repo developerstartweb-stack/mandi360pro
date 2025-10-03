@@ -1590,8 +1590,8 @@ export const whatsappTemplates = pgTable("whatsapp_templates", {
 export const whatsappSettings = pgTable("whatsapp_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   settingId: varchar("setting_id", { length: 50 }).notNull().unique(), // Auto-generated like "SET-001"
-  apiProvider: varchar("api_provider", { length: 50 }).notNull().default('twilio'), // Dropdown: twilio/whatsapp_business/other
-  apiKey: text("api_key").notNull(), // Encrypted API key
+  apiProvider: varchar("api_provider", { length: 50 }).notNull().default('whatsapp_web'), // Dropdown: whatsapp_web/twilio/whatsapp_business/other
+  apiKey: text("api_key"), // Optional for WhatsApp Web
   apiSecret: text("api_secret"), // Optional secret for some providers
   phoneNumberId: varchar("phone_number_id", { length: 50 }), // WhatsApp Business phone number ID
   businessName: varchar("business_name", { length: 100 }),
@@ -1607,6 +1607,20 @@ export const whatsappSettings = pgTable("whatsapp_settings", {
 }, (table) => ({
   uxWhatsappSettingsFySettingId: uniqueIndex("ux_whatsapp_settings_fy_settingid").on(table.financialYear, table.settingId),
 }));
+
+// WhatsApp Session Table - For WhatsApp Web authentication
+export const whatsappSession = pgTable("whatsapp_session", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionData: text("session_data"), // Stored session from whatsapp-web.js
+  qrCode: text("qr_code"), // Current QR code for authentication
+  isAuthenticated: boolean("is_authenticated").default(false),
+  connectedPhone: varchar("connected_phone", { length: 50 }), // Phone number of connected WhatsApp
+  lastConnected: timestamp("last_connected"),
+  status: varchar("status", { length: 20 }).default('disconnected'), // disconnected/connecting/connected/qr_ready
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
 
 // WhatsApp Messages Schema Validations
 export const insertWhatsappMessagesSchema = createInsertSchema(whatsappMessages, {
@@ -1649,14 +1663,23 @@ export const insertWhatsappSettingsSchema = createInsertSchema(whatsappSettings)
   createdAt: true,
   updatedAt: true,
 }).extend({
-  apiProvider: z.enum(["twilio", "whatsapp_business", "other"]),
-  apiKey: z.string().min(1, "API key is required"),
+  apiProvider: z.enum(["whatsapp_web", "twilio", "whatsapp_business", "other"]),
+  apiKey: z.string().optional(),
   businessName: z.string().optional(),
 });
 
 export const updateWhatsappSettingsSchema = insertWhatsappSettingsSchema.partial().omit({
   settingId: true,
 });
+
+// WhatsApp Session Schema Validations
+export const insertWhatsappSessionSchema = createInsertSchema(whatsappSession).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateWhatsappSessionSchema = insertWhatsappSessionSchema.partial();
 
 // WhatsApp Types
 export type WhatsappMessages = typeof whatsappMessages.$inferSelect;
@@ -1670,6 +1693,10 @@ export type UpdateWhatsappTemplates = z.infer<typeof updateWhatsappTemplatesSche
 export type WhatsappSettings = typeof whatsappSettings.$inferSelect;
 export type InsertWhatsappSettings = z.infer<typeof insertWhatsappSettingsSchema>;
 export type UpdateWhatsappSettings = z.infer<typeof updateWhatsappSettingsSchema>;
+
+export type WhatsappSession = typeof whatsappSession.$inferSelect;
+export type InsertWhatsappSession = z.infer<typeof insertWhatsappSessionSchema>;
+export type UpdateWhatsappSession = z.infer<typeof updateWhatsappSessionSchema>;
 
 // Sales Transactions Table - For tracking historical sales data to calculate average rates
 export const salesTransactions = pgTable("sales_transactions", {

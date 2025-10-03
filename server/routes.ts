@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { whatsappService } from "./whatsapp";
 import { 
   insertAccountMasterSchema, 
   updateAccountMasterSchema,
@@ -2332,6 +2333,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting accounting mapping:", error);
       res.status(500).json({ error: "Failed to delete accounting mapping" });
+    }
+  });
+
+  // WhatsApp Web Integration Routes
+  app.post("/api/whatsapp/initialize", async (req, res) => {
+    try {
+      await whatsappService.initialize();
+      res.json({ message: "WhatsApp initialization started" });
+    } catch (error: any) {
+      console.error("WhatsApp initialization error:", error);
+      res.status(500).json({ error: error.message || "Failed to initialize WhatsApp" });
+    }
+  });
+
+  app.get("/api/whatsapp/status", async (req, res) => {
+    try {
+      const status = whatsappService.getStatus();
+      res.json(status);
+    } catch (error: any) {
+      console.error("WhatsApp status error:", error);
+      res.status(500).json({ error: error.message || "Failed to get WhatsApp status" });
+    }
+  });
+
+  app.post("/api/whatsapp/send", async (req, res) => {
+    try {
+      const { phoneNumber, message } = req.body;
+      
+      if (!phoneNumber || !message) {
+        return res.status(400).json({ error: "Phone number and message are required" });
+      }
+
+      await whatsappService.sendMessage(phoneNumber, message);
+      
+      // Save message to database
+      try {
+        await storage.createWhatsappMessage({
+          messageId: `MSG-${Date.now()}`,
+          type: 'transactional',
+          recipient: phoneNumber,
+          messageText: message,
+          status: 'sent',
+          sentAt: new Date(),
+          financialYear: '2025-26'
+        });
+      } catch (dbError) {
+        console.error("Failed to save message to database:", dbError);
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Message sent successfully" 
+      });
+    } catch (error: any) {
+      console.error("WhatsApp send message error:", error);
+      res.status(500).json({ error: error.message || "Failed to send message" });
+    }
+  });
+
+  app.post("/api/whatsapp/disconnect", async (req, res) => {
+    try {
+      await whatsappService.disconnect();
+      res.json({ message: "WhatsApp disconnected successfully" });
+    } catch (error: any) {
+      console.error("WhatsApp disconnect error:", error);
+      res.status(500).json({ error: error.message || "Failed to disconnect WhatsApp" });
+    }
+  });
+
+  app.post("/api/whatsapp/logout", async (req, res) => {
+    try {
+      await whatsappService.logout();
+      res.json({ message: "WhatsApp logged out successfully" });
+    } catch (error: any) {
+      console.error("WhatsApp logout error:", error);
+      res.status(500).json({ error: error.message || "Failed to logout from WhatsApp" });
     }
   });
 
