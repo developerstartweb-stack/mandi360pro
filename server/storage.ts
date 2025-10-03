@@ -158,11 +158,15 @@ import {
   type AccountingSyncLogs,
   type InsertAccountingSyncLogs,
   type AccountingMappings,
-  type InsertAccountingMappings
+  type InsertAccountingMappings,
+  notifications,
+  type Notification,
+  type InsertNotification,
+  type UpdateNotification,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, like, ilike, or } from "drizzle-orm";
+import { eq, and, like, ilike, or, desc } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -488,6 +492,13 @@ export interface IStorage {
   getAccountingMappings(integrationId: string, entityType?: string, financialYear?: string): Promise<AccountingMappings[]>;
   createAccountingMapping(mapping: InsertAccountingMappings): Promise<AccountingMappings>;
   deleteAccountingMapping(id: string): Promise<boolean>;
+  
+  // Notifications operations
+  getNotifications(financialYear: string, type?: string, isRead?: boolean, limit?: number): Promise<Notification[]>;
+  getNotification(id: string): Promise<Notification | undefined>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  updateNotification(id: string, notification: UpdateNotification): Promise<Notification | undefined>;
+  deleteNotification(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -5830,6 +5841,54 @@ export class DatabaseStorage implements IStorage {
   async deleteAccountingMapping(id: string): Promise<boolean> {
     const result = await db.delete(accountingMappings)
       .where(eq(accountingMappings.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Notifications operations
+  async getNotifications(financialYear: string, type?: string, isRead?: boolean, limit: number = 50): Promise<Notification[]> {
+    let query = db.select().from(notifications)
+      .where(eq(notifications.financialYear, financialYear));
+    
+    if (type) {
+      query = query.where(eq(notifications.type, type as any));
+    }
+    
+    if (isRead !== undefined) {
+      query = query.where(eq(notifications.isRead, isRead));
+    }
+    
+    const results = await query
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+    
+    return results;
+  }
+
+  async getNotification(id: string): Promise<Notification | undefined> {
+    const result = await db.select().from(notifications)
+      .where(eq(notifications.id, id))
+      .limit(1);
+    return result[0];
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const result = await db.insert(notifications)
+      .values(notification)
+      .returning();
+    return result[0];
+  }
+
+  async updateNotification(id: string, notification: UpdateNotification): Promise<Notification | undefined> {
+    const result = await db.update(notifications)
+      .set({ ...notification, updatedAt: new Date() })
+      .where(eq(notifications.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    const result = await db.delete(notifications)
+      .where(eq(notifications.id, id));
     return result.rowCount > 0;
   }
 }

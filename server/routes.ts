@@ -74,6 +74,8 @@ import {
   updateWhatsappSettingsSchema,
   insertSalesTransactionsSchema,
   updateSalesTransactionsSchema,
+  insertNotificationsSchema,
+  updateNotificationsSchema,
   insertAccountingIntegrationsSchema,
   updateAccountingIntegrationsSchema,
   insertAccountingSyncLogsSchema,
@@ -2409,6 +2411,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("WhatsApp logout error:", error);
       res.status(500).json({ error: error.message || "Failed to logout from WhatsApp" });
+    }
+  });
+
+  // Notifications Routes
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const { fy = "2025-26", type, isRead, limit = 50 } = req.query;
+      const notifications = await storage.getNotifications(
+        fy as string,
+        type as string,
+        isRead === 'true' ? true : isRead === 'false' ? false : undefined,
+        parseInt(limit as string)
+      );
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/notifications", async (req, res) => {
+    try {
+      const validatedData = insertNotificationsSchema.parse(req.body);
+      const notification = await storage.createNotification(validatedData);
+      res.status(201).json(notification);
+    } catch (error: any) {
+      console.error("Error creating notification:", error);
+      res.status(400).json({ error: error.message || "Failed to create notification" });
+    }
+  });
+
+  app.patch("/api/notifications/:id", async (req, res) => {
+    try {
+      const validatedData = updateNotificationsSchema.parse(req.body);
+      const notification = await storage.updateNotification(req.params.id, validatedData);
+      if (!notification) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.json(notification);
+    } catch (error: any) {
+      console.error("Error updating notification:", error);
+      res.status(400).json({ error: error.message || "Failed to update notification" });
+    }
+  });
+
+  app.delete("/api/notifications/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteNotification(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.json({ message: "Notification deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      res.status(500).json({ error: "Failed to delete notification" });
     }
   });
 

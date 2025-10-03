@@ -1698,6 +1698,50 @@ export type WhatsappSession = typeof whatsappSession.$inferSelect;
 export type InsertWhatsappSession = z.infer<typeof insertWhatsappSessionSchema>;
 export type UpdateWhatsappSession = z.infer<typeof updateWhatsappSessionSchema>;
 
+// Notifications Table - For system notifications, alerts, errors, and reminders
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: varchar("type", { length: 20 }).notNull(), // notification, alert, error, reminder
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  category: varchar("category", { length: 50 }), // billing, payment, inventory, system, etc.
+  priority: varchar("priority", { length: 20 }).default('normal'), // low, normal, high, urgent
+  isRead: boolean("is_read").default(false),
+  isArchived: boolean("is_archived").default(false),
+  actionUrl: varchar("action_url", { length: 500 }), // URL to navigate when clicked
+  actionLabel: varchar("action_label", { length: 50 }), // Label for the action button
+  relatedEntityType: varchar("related_entity_type", { length: 50 }), // account, bill, payment, lot, etc.
+  relatedEntityId: varchar("related_entity_id", { length: 50 }), // ID of the related entity
+  metadata: json("metadata").default({}), // Additional data for the notification
+  expiresAt: timestamp("expires_at"), // Auto-delete after this date
+  financialYear: varchar("financial_year", { length: 10 }).notNull().default('2025-26'),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+}, (table) => ({
+  typeIndex: index("idx_notifications_type").on(table.type, table.isRead),
+  createdIndex: index("idx_notifications_created").on(table.createdAt),
+  relatedEntityIndex: index("idx_notifications_entity").on(table.relatedEntityType, table.relatedEntityId),
+}));
+
+// Notifications Schema Validations
+export const insertNotificationsSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  type: z.enum(["notification", "alert", "error", "reminder"]),
+  title: z.string().min(1, "Title is required"),
+  message: z.string().min(1, "Message is required"),
+  priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+});
+
+export const updateNotificationsSchema = insertNotificationsSchema.partial();
+
+// Notifications Types
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationsSchema>;
+export type UpdateNotification = z.infer<typeof updateNotificationsSchema>;
+
 // Sales Transactions Table - For tracking historical sales data to calculate average rates
 export const salesTransactions = pgTable("sales_transactions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

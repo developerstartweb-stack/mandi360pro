@@ -1,4 +1,4 @@
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -7,11 +7,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useGlobalState } from "@/lib/globalState";
-import { useState } from "react";
 import { WhatsAppSetup } from "./WhatsAppSetup";
+import { NotificationsPopover } from "./NotificationsPopover";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -72,19 +71,8 @@ export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderPro
         {/* WhatsApp Setup */}
         <WhatsAppSetup />
 
-        {/* Reminders & Notifications Bell */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-          data-testid="button-reminders-notifications"
-          onClick={() => console.log("Reminders and notifications clicked")}
-        >
-          <Bell className="h-5 w-5" />
-          <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-destructive">
-            5
-          </Badge>
-        </Button>
+        {/* Notifications & Reminders */}
+        <NotificationsPopover />
 
         {/* User Menu */}
         <div className="flex items-center gap-2">
