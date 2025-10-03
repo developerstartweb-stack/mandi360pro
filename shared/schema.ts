@@ -1435,8 +1435,24 @@ export const printingSettings = pgTable('printing_settings', {
 export const moduleSettings = pgTable('module_settings', {
   id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
   financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
-  moduleName: varchar('module_name', { length: 100 }).notNull(),
-  moduleFields: json('module_fields').default({}), // configurable fields
+  moduleName: varchar('module_name', { length: 100 }).notNull(), // e.g., Account Master, Product Master, Lot Entry, etc.
+  displayName: varchar('display_name', { length: 100 }).notNull(), // User-friendly name
+  
+  // Field Configuration - JSON structure:
+  // {
+  //   standardFields: { fieldName: { enabled: boolean, required: boolean, label: string } },
+  //   customFields: [{ name: string, type: string, required: boolean, options: any }]
+  // }
+  fieldConfig: json('field_config').default({
+    standardFields: {},
+    customFields: []
+  }),
+  
+  // Module-level settings
+  enableAutoSave: boolean('enable_auto_save').default(false),
+  enableValidation: boolean('enable_validation').default(true),
+  enableAuditLog: boolean('enable_audit_log').default(true),
+  
   isActive: boolean('is_active').default(true),
   customFields: json('custom_fields').default({}),
   createdAt: timestamp('created_at').defaultNow(),
@@ -1492,6 +1508,21 @@ export const insertModuleSettingsSchema = createInsertSchema(moduleSettings).omi
   updatedAt: true,
 }).extend({
   moduleName: z.string().min(1, "Module name is required"),
+  displayName: z.string().min(1, "Display name is required"),
+  fieldConfig: z.object({
+    standardFields: z.record(z.object({
+      enabled: z.boolean(),
+      required: z.boolean(),
+      label: z.string()
+    })).optional(),
+    customFields: z.array(z.object({
+      name: z.string(),
+      type: z.enum(["text", "number", "date", "boolean", "select", "textarea"]),
+      required: z.boolean(),
+      label: z.string(),
+      options: z.any().optional()
+    })).optional()
+  }).optional(),
 });
 
 export const updateModuleSettingsSchema = insertModuleSettingsSchema.partial();
