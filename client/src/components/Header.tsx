@@ -38,7 +38,8 @@ export default function Header({ onMenuClick, currentFY, onFYChange }: HeaderPro
           size="icon"
           onClick={onMenuClick}
           data-testid="button-menu"
-          className="md:hidden"
+          className="hover-elevate active-elevate-2"
+          title="Toggle Sidebar"
         >
           <Menu className="h-5 w-5" />
         </Button>
