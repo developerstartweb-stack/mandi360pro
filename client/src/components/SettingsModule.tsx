@@ -45,6 +45,7 @@ import {
 } from "@shared/schema";
 import CompanySetupForm from "./CompanySetupForm";
 import { PrintingSettingsForm } from "./PrintingSettingsForm";
+import { ModuleFieldsConfigForm } from "./ModuleFieldsConfigForm";
 
 type SettingsTab = "company" | "expenses" | "printing" | "modules";
 
@@ -259,27 +260,27 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
           
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            {activeTab !== "company" && activeTab !== "printing" && (
-              <Button 
-                onClick={handleAdd}
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
-                data-testid="button-add-setting"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add New (Ctrl+N)
-              </Button>
-            )}
-            {activeTab !== "company" && activeTab !== "printing" && (
-              <Button 
-                onClick={handlePrint}
-                variant="outline"
-                size="sm"
-                data-testid="button-print-settings"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Print (Ctrl+P)
-              </Button>
+            {activeTab === "expenses" && (
+              <>
+                <Button 
+                  onClick={handleAdd}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                  data-testid="button-add-setting"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add New (Ctrl+N)
+                </Button>
+                <Button 
+                  onClick={handlePrint}
+                  variant="outline"
+                  size="sm"
+                  data-testid="button-print-settings"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Print (Ctrl+P)
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -347,6 +348,8 @@ export default function SettingsModule({ defaultTab = "company" }: SettingsModul
               <CompanySetupForm currentFY={selectedFY} />
             ) : activeTab === "printing" ? (
               <PrintingSettingsForm />
+            ) : activeTab === "modules" ? (
+              <ModuleFieldsConfigForm />
             ) : (
               <SettingsTable
                 type={activeTab}
