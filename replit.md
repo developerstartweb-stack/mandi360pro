@@ -1,6 +1,15 @@
 # Overview
 
-Mandi360pro is a comprehensive Indian mandi (agricultural marketplace) management system designed for single-owner/single-business operations. The application provides FY-based organization for managing lots, accounts, products, transactions, and inventory with a focus on Indian agricultural business workflows. Built as a full-stack web application with React frontend and Express backend, it features a clean, professional interface with agricultural theming and supports complex business logic around lot management, account tracking, and financial year organization.
+Mandi360pro is a comprehensive Indian mandi (agricultural marketplace) management system designed for single-owner/single-business operations. The application provides FY-based organization for managing lots, accounts, products, transactions, and inventory with a focus on Indian agricultural business workflows. Built as a full-stack web application with React frontend and Express backend, it features a professional billing software design with simplified workflow, centralized FY selector, and descriptive module headings.
+
+# Recent Changes (October 2025)
+
+## Professional Billing Software Redesign
+- **Centralized FY Management**: Single FY selector in header, removed from all individual modules
+- **ModuleHeader Component**: Consistent double-heading pattern (title + description) across all modules
+- **Simplified Workflow**: Removed prop drilling of currentFY and onFYChange - all modules use global state
+- **Descriptive Headings**: Every module and sub-module has clear title and working description
+- **Professional Layout**: Clean, organized interface matching professional billing software standards
 
 # User Preferences
 
@@ -11,10 +20,15 @@ Preferred communication style: Simple, everyday language.
 ## Frontend Architecture
 - **Framework**: React 18 with TypeScript for type safety and modern development practices
 - **Styling**: Tailwind CSS with custom agricultural color palette (brand green, warm orange accents) and shadcn/ui component library for consistent, accessible UI components
-- **State Management**: TanStack Query for server state management with caching and synchronization
+- **State Management**: 
+  - Global State: useGlobalState context for centralized FY management and company profile
+  - Server State: TanStack Query for API data with caching and synchronization
 - **Routing**: Wouter for lightweight client-side routing
 - **Form Handling**: React Hook Form with Zod validation for robust form validation and error handling
-- **Component Structure**: Modular component architecture with reusable UI components, form components (AccountForm, LotForm), and feature modules (DashboardModule, MasterDataModule)
+- **Component Structure**: 
+  - ModuleHeader: Reusable component for consistent module titles and descriptions
+  - Feature Modules: All modules access FY from global state (no prop drilling)
+  - Form Components: AccountForm, LotForm, billing forms with auto-save functionality
 
 ## Backend Architecture
 - **Framework**: Express.js with TypeScript for API development
@@ -31,10 +45,15 @@ Preferred communication style: Simple, everyday language.
 - **Audit Trail**: Created/updated timestamps on all entities
 
 ## Key Features Architecture
-- **Master Data Management**: Centralized management of accounts, products, places, and expenses with CRUD operations
-- **Lot Management**: Complex lot creation with farmer/agent relationships, quantity tracking, and quality assessments
-- **Financial Tracking**: Opening balance, credit limits, and transaction history per account
-- **Dashboard**: Real-time metrics and analytics with customizable cards and notifications
+- **Dashboard**: Real-time business overview with arrivals, sales, pending stock, and alerts
+- **Master Data Management**: Centralized accounts, products, places, and expenses with descriptive headers
+- **Inventory Module**: Lot entries, godown tracking, and stock management with simplified workflow
+- **Bill Desk**: Customer billing, khata billing, and payment receipts with professional print templates
+- **Farmer Invoice**: Dhada book, farmer invoices, and manual invoice management
+- **Ledger Management**: Complete ledger tracking (uplag, khata, farmer transport, income, expenses)
+- **Reports**: Comprehensive business reports with export and print functionality
+- **Settings**: Company profile, printing settings, and module field configuration
+- **WhatsApp Integration**: Send bills, receipts, and reminders via WhatsApp Web
 - **Theme System**: Light/dark mode support with CSS custom properties and agricultural color theming
 
 # External Dependencies

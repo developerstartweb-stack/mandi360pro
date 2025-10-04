@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,15 +41,13 @@ const reportTypes = [
 
 interface FilterBarProps {
   activeTab: string;
-  currentFY: string;
-  onFYChange: (fy: string) => void;
   searchTerm: string;
   onSearchChange: (term: string) => void;
   filters: Record<string, any>;
   onFilterChange: (key: string, value: any) => void;
 }
 
-function FilterBar({ activeTab, currentFY, onFYChange, searchTerm, onSearchChange, filters, onFilterChange }: FilterBarProps) {
+function FilterBar({ activeTab, searchTerm, onSearchChange, filters, onFilterChange }: FilterBarProps) {
   return (
     <Card className="mb-6">
       <CardHeader className="pb-4">
@@ -61,21 +61,6 @@ function FilterBar({ activeTab, currentFY, onFYChange, searchTerm, onSearchChang
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Financial Year Filter */}
-          <div className="space-y-2">
-            <Label htmlFor="fy-select">Financial Year</Label>
-            <Select value={currentFY} onValueChange={onFYChange}>
-              <SelectTrigger data-testid="select-fy">
-                <SelectValue placeholder="Select FY" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="2025-26">2025-26</SelectItem>
-                <SelectItem value="2024-25">2024-25</SelectItem>
-                <SelectItem value="2023-24">2023-24</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Search Filter */}
           <div className="space-y-2">
             <Label htmlFor="search">Search</Label>
@@ -479,10 +464,11 @@ function ResultsTable({ type, data, isLoading, selectedRowId, onRowSelect, onNav
 }
 
 export default function ReportsModule() {
+  const { state } = useGlobalState();
+  const currentFY = state.currentFY;
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("lot");
-  const [currentFY, setCurrentFY] = useState("2025-26");
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
@@ -608,50 +594,45 @@ export default function ReportsModule() {
 
   return (
     <div className="space-y-6" ref={componentRef}>
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Reports Module</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Comprehensive analytics and reporting across all business operations
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleExportCSV}
-            disabled={reportData.length === 0}
-            data-testid="button-export-csv"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={handleExportJSON}
-            disabled={reportData.length === 0}
-            data-testid="button-export-json"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export JSON
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={handlePrint}
-            disabled={reportData.length === 0}
-            data-testid="button-print-report"
-          >
-            <Printer className="w-4 h-4 mr-2" />
-            Print Report
-          </Button>
-        </div>
-      </div>
+      <ModuleHeader
+        title="Business Reports"
+        description="Comprehensive reports for lots, bills, invoices, income, and expenses"
+        actions={
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExportCSV}
+              disabled={reportData.length === 0}
+              data-testid="button-export-csv"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleExportJSON}
+              disabled={reportData.length === 0}
+              data-testid="button-export-json"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export JSON
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handlePrint}
+              disabled={reportData.length === 0}
+              data-testid="button-print-report"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Print Report
+            </Button>
+          </div>
+        }
+      />
 
       {/* Filter Bar */}
       <FilterBar
         activeTab={activeTab}
-        currentFY={currentFY}
-        onFYChange={setCurrentFY}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         filters={filters}

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,19 +51,19 @@ type WhatsAppTab = "messages" | "templates" | "settings";
 
 interface WhatsAppModuleProps {
   defaultTab?: WhatsAppTab;
-  currentFY?: string;
-  onFYChange?: (fy: string) => void;
   activeSubModule?: string;
 }
 
-export default function WhatsAppModule({ defaultTab = "messages", currentFY, onFYChange, activeSubModule }: WhatsAppModuleProps) {
+export default function WhatsAppModule({ defaultTab = "messages", activeSubModule }: WhatsAppModuleProps) {
+  const { state } = useGlobalState();
+  const currentFY = state.currentFY;
   // If activeSubModule is whatsapp-setup, show the setup page
   if (activeSubModule === "whatsapp-setup") {
     return <WhatsAppSetupPage />;
   }
 
   const [activeTab, setActiveTab] = useState<WhatsAppTab>(defaultTab);
-  const [selectedFY, setSelectedFY] = useState(currentFY || "2025-26");
+  const [selectedFY, setSelectedFY] = useState(currentFY);
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);

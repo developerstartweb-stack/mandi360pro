@@ -9,6 +9,7 @@ import { PaymentReceiptForm } from "@/components/PaymentReceiptForm";
 import { BillPrintTemplate } from "@/components/BillPrintTemplate";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,8 +30,6 @@ import { z } from "zod";
 import { cn } from "@/lib/utils";
 
 interface BillDeskModuleProps {
-  currentFY: string;
-  onFYChange?: (fy: string) => void;
   activeSubModule?: string;
 }
 
@@ -101,7 +100,9 @@ const paymentReceiptFormSchema = z.object({
   customFields: z.any().optional(), // JSON field - can be any value
 });
 
-export default function BillDeskModule({ currentFY, onFYChange, activeSubModule = "customer-billing" }: BillDeskModuleProps) {
+export default function BillDeskModule({ activeSubModule = "customer-billing" }: BillDeskModuleProps) {
+  const { state, updateActiveData } = useGlobalState();
+  const currentFY = state.currentFY;
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -114,7 +115,6 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
   const [printingItem, setPrintingItem] = useState<any>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { state, updateActiveData } = useGlobalState();
 
   // Access master data and inventory data from global state for dropdowns
   const accounts = state.masterData.accounts || [];

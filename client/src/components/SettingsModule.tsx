@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -50,12 +52,12 @@ import { ModuleFieldsConfigForm } from "./ModuleFieldsConfigForm";
 type SettingsTab = "company" | "expenses" | "printing" | "modules";
 
 interface SettingsModuleProps {
-  currentFY: string;
-  onFYChange: (fy: string) => void;
   activeSubModule?: string;
 }
 
-export default function SettingsModule({ currentFY, onFYChange, activeSubModule }: SettingsModuleProps) {
+export default function SettingsModule({ activeSubModule }: SettingsModuleProps) {
+  const { state } = useGlobalState();
+  const currentFY = state.currentFY;
   // Map activeSubModule to internal tab IDs
   const mapSubModuleToTab = (subModule?: string): SettingsTab => {
     switch (subModule) {

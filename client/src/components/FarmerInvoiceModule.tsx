@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Search, Calendar, Receipt, FileText, BookOpen } from "lucide-react";
+import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +18,11 @@ import DhadaBookModule from "./DhadaBookModule";
 
 interface FarmerInvoiceModuleProps {
   activeSubModule: string;
-  currentFY: string;
-  onFYChange: (fy: string) => void;
 }
 
-export default function FarmerInvoiceModule({ activeSubModule, currentFY, onFYChange }: FarmerInvoiceModuleProps) {
+export default function FarmerInvoiceModule({ activeSubModule }: FarmerInvoiceModuleProps) {
+  const { state } = useGlobalState();
+  const currentFY = state.currentFY;
   // Get page title and description based on active sub-module
   const getPageInfo = () => {
     switch (activeSubModule) {

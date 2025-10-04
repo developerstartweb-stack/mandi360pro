@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +24,6 @@ import { cn } from "@/lib/utils";
 import LotForm from "@/components/LotForm";
 
 interface InventoryModuleProps {
-  currentFY: string;
-  onFYChange?: (fy: string) => void;
   activeSubModule?: string;
 }
 
@@ -62,7 +61,9 @@ const weightSlipFormSchema = z.object({
   customFields: z.any().optional(), // JSON field - can be any value
 });
 
-export default function InventoryModule({ currentFY, onFYChange, activeSubModule = "lot-entry" }: InventoryModuleProps) {
+export default function InventoryModule({ activeSubModule = "lot-entry" }: InventoryModuleProps) {
+  const { state, updateActiveData } = useGlobalState();
+  const currentFY = state.currentFY;
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -70,7 +71,6 @@ export default function InventoryModule({ currentFY, onFYChange, activeSubModule
   const [searchTerm, setSearchTerm] = useState("");
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const { toast } = useToast();
-  const { state, updateActiveData } = useGlobalState();
 
   // Mutation for creating inventory items
   const createMutation = useMutation({

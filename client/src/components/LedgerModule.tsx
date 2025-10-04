@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Search, Calendar, Receipt, DollarSign, FileText, TrendingUp, CreditCard, Printer, ArrowUpCircle, Users, Truck, Banknote, ShoppingCart, Building } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
+import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,12 +30,11 @@ import type {
   BankDepositLedger 
 } from "@shared/schema";
 
-interface LedgerModuleProps {
-  currentFY: string;
-  onFYChange: (fy: string) => void;
-}
+interface LedgerModuleProps {}
 
-export default function LedgerModule({ currentFY, onFYChange }: LedgerModuleProps) {
+export default function LedgerModule({}: LedgerModuleProps) {
+  const { state } = useGlobalState();
+  const currentFY = state.currentFY;
   const [activeTab, setActiveTab] = useState("uplag");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);

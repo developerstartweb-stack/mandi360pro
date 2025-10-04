@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
+import { ModuleHeader } from "@/components/ModuleHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,14 +91,13 @@ const placeFormSchema = z.object({
 });
 
 interface MasterDataModuleProps {
-  currentFY: string;
-  onFYChange: (fy: string) => void;
   activeSubModule?: string;
 }
 
-export default function MasterDataModule({ currentFY, onFYChange, activeSubModule = "account-master" }: MasterDataModuleProps) {
-  const { toast } = useToast();
+export default function MasterDataModule({ activeSubModule = "account-master" }: MasterDataModuleProps) {
   const { state, updateMasterData } = useGlobalState();
+  const currentFY = state.currentFY;
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
