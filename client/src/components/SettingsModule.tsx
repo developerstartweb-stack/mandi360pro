@@ -50,11 +50,34 @@ import { ModuleFieldsConfigForm } from "./ModuleFieldsConfigForm";
 type SettingsTab = "company" | "expenses" | "printing" | "modules";
 
 interface SettingsModuleProps {
-  defaultTab?: SettingsTab;
+  currentFY: string;
+  onFYChange: (fy: string) => void;
+  activeSubModule?: string;
 }
 
-export default function SettingsModule({ defaultTab = "company" }: SettingsModuleProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
+export default function SettingsModule({ currentFY, onFYChange, activeSubModule }: SettingsModuleProps) {
+  // Map activeSubModule to internal tab IDs
+  const mapSubModuleToTab = (subModule?: string): SettingsTab => {
+    switch (subModule) {
+      case "company-profile":
+        return "company";
+      case "default-expenses":
+        return "expenses";
+      case "printing-settings":
+        return "printing";
+      case "module-settings":
+        return "modules";
+      default:
+        return "company";
+    }
+  };
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>(mapSubModuleToTab(activeSubModule));
+  
+  // Update activeTab when activeSubModule changes
+  useEffect(() => {
+    setActiveTab(mapSubModuleToTab(activeSubModule));
+  }, [activeSubModule]);
   const [selectedFY, setSelectedFY] = useState("2025-26");
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -399,6 +422,15 @@ function SettingsTable({ type, financialYear, searchTerm, selectedRowId, onEdit,
 
   const { data: items = [], isLoading, error } = useQuery({
     queryKey: [apiPath, { fy: financialYear, search: searchTerm }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append('fy', financialYear);
+      if (searchTerm) params.append('search', searchTerm);
+      const url = `${apiPath}?${params.toString()}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch ${type} settings`);
+      return response.json();
+    },
   });
 
   // Ensure items is properly typed as array

@@ -22,7 +22,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
   const [logoPreview, setLogoPreview] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: profiles = [], isLoading } = useQuery({
+  const { data: profiles, isLoading } = useQuery({
     queryKey: ['/api/company-profiles', currentFY],
     queryFn: async () => {
       const response = await fetch(`/api/company-profiles?fy=${currentFY}`);
@@ -31,7 +31,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
     },
   });
 
-  const existingProfile = profiles.length > 0 ? profiles[0] : null;
+  const existingProfile = profiles && profiles.length > 0 ? profiles[0] : null;
 
   const form = useForm<InsertCompanyProfile>({
     resolver: zodResolver(insertCompanyProfileSchema),
