@@ -338,34 +338,6 @@ export default function SettingsModule({ currentFY, onFYChange, activeSubModule 
           </CardHeader>
 
           <CardContent className="h-full">
-            {/* Sub-Module Navigation */}
-            <div className="mb-6">
-              <div className="flex items-center gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold">Sub-Module</h3>
-                  <p className="text-sm text-muted-foreground">Select a settings category</p>
-                </div>
-                <Select value={activeTab} onValueChange={(value) => setActiveTab(value as SettingsTab)} data-testid="select-settings-submodule">
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tabs.map((tab) => {
-                      const Icon = tab.icon;
-                      return (
-                        <SelectItem key={tab.id} value={tab.id}>
-                          <div className="flex items-center space-x-2">
-                            <Icon className="h-4 w-4" />
-                            <span>{tab.label}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             {/* Content based on selected sub-module */}
             {activeTab === "company" ? (
               <CompanySetupForm currentFY={selectedFY} />
