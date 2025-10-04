@@ -312,32 +312,7 @@ export default function SettingsModule({ currentFY, onFYChange, activeSubModule 
       {/* Main Content */}
       <div className="flex-1 p-6">
         <Card className="h-full">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold">Application Settings</CardTitle>
-              
-              {/* Financial Year Selector */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <label htmlFor="fy-select" className="text-sm font-medium">
-                    Financial Year:
-                  </label>
-                  <Select value={selectedFY} onValueChange={setSelectedFY}>
-                    <SelectTrigger className="w-32" data-testid="select-financial-year">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2025-26">2025-26</SelectItem>
-                      <SelectItem value="2024-25">2024-25</SelectItem>
-                      <SelectItem value="2023-24">2023-24</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="h-full">
+          <CardContent className="h-full p-6">
             {/* Content based on selected sub-module */}
             {activeTab === "company" ? (
               <CompanySetupForm currentFY={selectedFY} />
