@@ -721,27 +721,11 @@ export default function MasterDataModule({ activeSubModule = "account-master" }:
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{getPageInfo().title}</h1>
-          <p className="text-muted-foreground">
-            {getPageInfo().description} for FY {currentFY}
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Select value={currentFY} onValueChange={onFYChange}>
-            <SelectTrigger className="w-[180px]" data-testid="select-financial-year">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2024-25">FY 2024-25</SelectItem>
-              <SelectItem value="2025-26">FY 2025-26</SelectItem>
-              <SelectItem value="2026-27">FY 2026-27</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      {/* Module Header */}
+      <ModuleHeader
+        title={getPageInfo().title}
+        subtitle={getPageInfo().description}
+      />
 
       {/* Action Bar */}
       <Card>
