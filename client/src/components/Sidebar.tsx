@@ -142,6 +142,7 @@ const menuItems = [
     color: "text-green-600",
     hasDropdown: true,
     subItems: [
+      { id: "whatsapp-setup", label: "WhatsApp Setup", icon: Send },
       { id: "messages", label: "Messages", icon: MessageSquare },
       { id: "templates", label: "Templates", icon: FileText },
       { id: "whatsapp-settings", label: "Settings", icon: Settings }

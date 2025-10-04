@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { WhatsAppSetup } from "./WhatsAppSetup";
+import WhatsAppSetupPage from "@/pages/WhatsAppSetupPage";
 import { 
   Plus, 
   Search, 
@@ -48,11 +49,19 @@ type WhatsAppTab = "messages" | "templates" | "settings";
 
 interface WhatsAppModuleProps {
   defaultTab?: WhatsAppTab;
+  currentFY?: string;
+  onFYChange?: (fy: string) => void;
+  activeSubModule?: string;
 }
 
-export default function WhatsAppModule({ defaultTab = "messages" }: WhatsAppModuleProps) {
+export default function WhatsAppModule({ defaultTab = "messages", currentFY, onFYChange, activeSubModule }: WhatsAppModuleProps) {
+  // If activeSubModule is whatsapp-setup, show the setup page
+  if (activeSubModule === "whatsapp-setup") {
+    return <WhatsAppSetupPage />;
+  }
+
   const [activeTab, setActiveTab] = useState<WhatsAppTab>(defaultTab);
-  const [selectedFY, setSelectedFY] = useState("2025-26");
+  const [selectedFY, setSelectedFY] = useState(currentFY || "2025-26");
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);

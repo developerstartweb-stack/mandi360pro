@@ -86,7 +86,7 @@ function MainContent({ activeTab }: { activeTab: string }) {
       return 'reports';
     }
     // WhatsApp sub-modules
-    if (['messages', 'templates', 'whatsapp-settings'].includes(subTab)) {
+    if (['whatsapp-setup', 'messages', 'templates', 'whatsapp-settings'].includes(subTab)) {
       return 'whatsapp';
     }
     // Settings sub-modules
