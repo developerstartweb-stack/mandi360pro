@@ -1337,6 +1337,8 @@ export const companyProfile = pgTable('company_profile', {
   financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
   companyName: varchar('company_name', { length: 200 }).notNull(),
   address: text('address'),
+  contactPersonName: varchar('contact_person_name', { length: 100 }),
+  contactMobile: varchar('contact_mobile', { length: 20 }),
   phone1: varchar('phone1', { length: 20 }),
   phone2: varchar('phone2', { length: 20 }),
   whatsappNo: varchar('whatsapp_no', { length: 20 }),

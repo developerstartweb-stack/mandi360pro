@@ -38,6 +38,8 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
     defaultValues: {
       financialYear: currentFY,
       companyName: "",
+      contactPersonName: "",
+      contactMobile: "",
       phone1: "",
       phone2: "",
       whatsappNo: "",
@@ -60,6 +62,8 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
       form.reset({
         financialYear: existingProfile.financialYear,
         companyName: existingProfile.companyName,
+        contactPersonName: existingProfile.contactPersonName || "",
+        contactMobile: existingProfile.contactMobile || "",
         phone1: existingProfile.phone1 || "",
         phone2: existingProfile.phone2 || "",
         whatsappNo: existingProfile.whatsappNo || "",
@@ -80,6 +84,8 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
       form.reset({
         financialYear: currentFY,
         companyName: "",
+        contactPersonName: "",
+        contactMobile: "",
         phone1: "",
         phone2: "",
         whatsappNo: "",
@@ -262,10 +268,38 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
 
               <FormField
                 control={form.control}
+                name="contactPersonName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Person Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} value={field.value || ""} data-testid="input-contact-person-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="contactMobile"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Person Mobile</FormLabel>
+                    <FormControl>
+                      <Input {...field} value={field.value || ""} type="tel" data-testid="input-contact-mobile" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="phone1"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mobile No.</FormLabel>
+                    <FormLabel>Phone No. 1</FormLabel>
                     <FormControl>
                       <Input {...field} type="tel" data-testid="input-phone1" />
                     </FormControl>
@@ -279,7 +313,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
                 name="phone2"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Additional Mobile No.</FormLabel>
+                    <FormLabel>Phone No. 2</FormLabel>
                     <FormControl>
                       <Input {...field} type="tel" data-testid="input-phone2" />
                     </FormControl>
