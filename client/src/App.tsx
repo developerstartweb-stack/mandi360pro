@@ -100,7 +100,7 @@ function MainContent({ activeTab }: { activeTab: string }) {
 
   switch (currentModule) {
     case "dashboard":
-      return <DashboardModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <DashboardModule />;
     
     case "lots":
       return (
@@ -130,34 +130,34 @@ function MainContent({ activeTab }: { activeTab: string }) {
       );
     
     case "master-data":
-      return <MasterDataModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <MasterDataModule activeSubModule={activeTab} />;
     
     case "inventory":
-      return <InventoryModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <InventoryModule activeSubModule={activeTab} />;
     
     case "bill-desk":
-      return <BillDeskModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <BillDeskModule activeSubModule={activeTab} />;
     
     case "farmer-invoice":
-      return <FarmerInvoiceModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <FarmerInvoiceModule activeSubModule={activeTab} />;
     
     case "accounting":
-      return <AccountingModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <AccountingModule />;
 
     case "accounting-integration":
       return <AccountingIntegrationModule />;
     
     case "ledger":
-      return <LedgerModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <LedgerModule activeSubModule={activeTab} />;
     
     case "reports":
-      return <ReportsModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <ReportsModule activeSubModule={activeTab} />;
     
     case "settings":
-      return <SettingsModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <SettingsModule activeSubModule={activeTab} />;
     
     case "whatsapp":
-      return <WhatsAppModule currentFY={state.currentFY} onFYChange={setCurrentFY} activeSubModule={activeTab} />;
+      return <WhatsAppModule activeSubModule={activeTab} />;
 
     case "accounts":
       return (
@@ -227,7 +227,7 @@ function MainContent({ activeTab }: { activeTab: string }) {
     
     
     default:
-      return <DashboardModule currentFY={state.currentFY} onFYChange={setCurrentFY} />;
+      return <DashboardModule />;
   }
 }
 

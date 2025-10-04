@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ModuleHeader } from "@/components/ModuleHeader";
+import { useGlobalState } from "@/lib/globalState";
 import { 
   TrendingUp,
   Package,
@@ -41,10 +43,7 @@ interface DashboardData {
   updatedAt: string;
 }
 
-interface DashboardModuleProps {
-  currentFY: string;
-  onFYChange: (fy: string) => void;
-}
+interface DashboardModuleProps {}
 
 // Default dashboard data generator
 const getDefaultDashboardData = (fy: string = "2025-26"): DashboardData => {
@@ -87,7 +86,9 @@ const getDefaultDashboardData = (fy: string = "2025-26"): DashboardData => {
   };
 };
 
-export default function DashboardModule({ currentFY, onFYChange }: DashboardModuleProps) {
+export default function DashboardModule({}: DashboardModuleProps) {
+  const { state } = useGlobalState();
+  const currentFY = state.currentFY;
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
 
   // Load dashboard data on mount and FY change
@@ -134,19 +135,15 @@ export default function DashboardModule({ currentFY, onFYChange }: DashboardModu
   );
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Dashboard Module</h1>
-          <p className="text-muted-foreground">
-            Live Data from Mandi360pro
-          </p>
-        </div>
-      </div>
+    <div className="flex flex-col h-full">
+      <ModuleHeader
+        title="Dashboard"
+        description="Real-time overview of today's business activities, pending balances, and important alerts"
+      />
 
-      {/* Dashboard Cards Grid - 2x4 Layout with 300px cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[1400px] mx-auto">
+      <div className="flex-1 overflow-auto p-6">
+        {/* Dashboard Cards Grid - 2x4 Layout with 300px cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[1400px] mx-auto">
         
         {/* Today's Arrivals Card */}
         <Card
@@ -346,6 +343,7 @@ export default function DashboardModule({ currentFY, onFYChange }: DashboardModu
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
