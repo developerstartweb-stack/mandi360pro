@@ -53,8 +53,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
     },
   });
 
-  const formRef = useRef<HTMLFormElement>(null);
-  useEnterKeyNavigation(formRef);
+  useEnterKeyNavigation(true);
 
   useEffect(() => {
     if (existingProfile) {
@@ -185,7 +184,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <FormField

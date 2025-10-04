@@ -36,11 +36,11 @@ function MainContent({ activeTab }: { activeTab: string }) {
     return (
       <div className="p-6">
         <LotForm 
-          onSubmit={(data) => {
-            console.log('Lot created:', data);
+          onSubmit={() => {
             setShowLotForm(false);
           }}
           onCancel={() => setShowLotForm(false)}
+          currentFY={state.currentFY}
         />
       </div>
     );
@@ -50,8 +50,7 @@ function MainContent({ activeTab }: { activeTab: string }) {
     return (
       <div className="p-6">
         <AccountForm 
-          onSubmit={(data) => {
-            console.log('Account created:', data);
+          onSubmit={() => {
             setShowAccountForm(false);
           }}
           onCancel={() => setShowAccountForm(false)}
