@@ -57,11 +57,6 @@ interface WhatsAppModuleProps {
 export default function WhatsAppModule({ defaultTab = "messages", activeSubModule }: WhatsAppModuleProps) {
   const { state } = useGlobalState();
   const currentFY = state.currentFY;
-  // If activeSubModule is whatsapp-setup, show the setup page
-  if (activeSubModule === "whatsapp-setup") {
-    return <WhatsAppSetupPage />;
-  }
-
   const [activeTab, setActiveTab] = useState<WhatsAppTab>(defaultTab);
   const [selectedFY, setSelectedFY] = useState(currentFY);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +71,11 @@ export default function WhatsAppModule({ defaultTab = "messages", activeSubModul
   }, [activeTab]);
   
   const { toast } = useToast();
+
+  // If activeSubModule is whatsapp-setup, show the setup page
+  if (activeSubModule === "whatsapp-setup") {
+    return <WhatsAppSetupPage />;
+  }
   const queryClient = useQueryClient();
 
   // Tab configuration

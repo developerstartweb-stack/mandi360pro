@@ -724,7 +724,7 @@ export default function MasterDataModule({ activeSubModule = "account-master" }:
       {/* Module Header */}
       <ModuleHeader
         title={getPageInfo().title}
-        subtitle={getPageInfo().description}
+        description={getPageInfo().description}
       />
 
       {/* Action Bar */}
