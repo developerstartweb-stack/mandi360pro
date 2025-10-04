@@ -108,7 +108,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertCompanyProfile) => {
-      return await apiRequest('/api/company-profiles', 'POST', data);
+      return await apiRequest('POST', '/api/company-profiles', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/company-profiles'] });
@@ -128,7 +128,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertCompanyProfile) => {
-      return await apiRequest(`/api/company-profiles/${existingProfile?.id}`, 'PUT', data);
+      return await apiRequest('PUT', `/api/company-profiles/${existingProfile?.id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/company-profiles'] });
