@@ -14,6 +14,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { WhatsAppSetup } from "./WhatsAppSetup";
 import { 
   Plus, 
   Search, 
@@ -648,6 +649,7 @@ export default function WhatsAppModule({ defaultTab = "messages" }: WhatsAppModu
           <h1 className="text-3xl font-bold">WhatsApp Module</h1>
           <p className="text-muted-foreground">Manage WhatsApp messages, templates, and API settings</p>
         </div>
+        <WhatsAppSetup />
       </div>
 
       <Card>
