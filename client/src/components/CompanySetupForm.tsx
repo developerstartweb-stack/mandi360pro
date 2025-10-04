@@ -38,6 +38,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
     defaultValues: {
       financialYear: currentFY,
       companyName: "",
+      tagline: "",
       contactPersonName: "",
       contactMobile: "",
       phone1: "",
@@ -62,6 +63,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
       form.reset({
         financialYear: existingProfile.financialYear,
         companyName: existingProfile.companyName,
+        tagline: existingProfile.tagline || "",
         contactPersonName: existingProfile.contactPersonName || "",
         contactMobile: existingProfile.contactMobile || "",
         phone1: existingProfile.phone1 || "",
@@ -84,6 +86,7 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
       form.reset({
         financialYear: currentFY,
         companyName: "",
+        tagline: "",
         contactPersonName: "",
         contactMobile: "",
         phone1: "",
@@ -260,6 +263,20 @@ export default function CompanySetupForm({ currentFY }: CompanySetupFormProps) {
                     <FormLabel>Company Name *</FormLabel>
                     <FormControl>
                       <Input {...field} data-testid="input-company-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tagline"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tagline</FormLabel>
+                    <FormControl>
+                      <Input {...field} value={field.value || ""} placeholder="Your company tagline or slogan" data-testid="input-tagline" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

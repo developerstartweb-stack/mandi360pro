@@ -1336,6 +1336,7 @@ export const companyProfile = pgTable('company_profile', {
   id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
   financialYear: varchar('financial_year', { length: 20 }).notNull().default('2025-26'),
   companyName: varchar('company_name', { length: 200 }).notNull(),
+  tagline: varchar('tagline', { length: 300 }),
   address: text('address'),
   contactPersonName: varchar('contact_person_name', { length: 100 }),
   contactMobile: varchar('contact_mobile', { length: 20 }),
