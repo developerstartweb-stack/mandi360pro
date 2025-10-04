@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useReactToPrint } from "react-to-print";
 import ViewDetailsModal from "@/components/ViewDetailsModal";
 import EnhancedCustomerBillingForm from "@/components/EnhancedCustomerBillingForm";
 import EnhancedKhataBillingForm from "@/components/EnhancedKhataBillingForm";
 import { PaymentReceiptForm } from "@/components/PaymentReceiptForm";
+import { BillPrintTemplate } from "@/components/BillPrintTemplate";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useGlobalState } from "@/lib/globalState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -108,6 +110,9 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingItem, setViewingItem] = useState<any>(null);
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [printingItem, setPrintingItem] = useState<any>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { state, updateActiveData } = useGlobalState();
 
@@ -560,13 +565,30 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
     setShowDeleteDialog(true);
   };
 
+  // Get company profile for printing
+  const { data: companyProfiles = [] } = useQuery({
+    queryKey: ['/api/company-profiles', currentFY],
+  });
+  const companyProfile = companyProfiles[0];
+
   // Handle print
   const handlePrint = (item: any) => {
-    toast({
-      title: "Print Item",
-      description: `Printing ${item.billNo || item.receiptNo || 'item'}...`,
-    });
+    setPrintingItem(item);
+    setShowPrintDialog(true);
   };
+
+  // Print function using react-to-print
+  const handleActualPrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `${printingItem?.billNo || 'Bill'}_${new Date().toLocaleDateString()}`,
+    onAfterPrint: () => {
+      toast({
+        title: "Print Successful",
+        description: "Bill has been sent to printer",
+      });
+      setShowPrintDialog(false);
+    },
+  });
 
   const confirmDelete = () => {
     if (itemToDelete) {
@@ -1290,6 +1312,37 @@ export default function BillDeskModule({ currentFY, onFYChange, activeSubModule 
           activeSubModule === "customer-billing" || activeSubModule === "khata-billing" ? "billing" : "receipt"
         }
       />
+
+      {/* Print Dialog */}
+      <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Print Bill</DialogTitle>
+            <DialogDescription>
+              Preview and print {printingItem?.billType === 'khata' ? 'khata' : 'customer'} bill
+            </DialogDescription>
+          </DialogHeader>
+          
+          {printingItem && (
+            <BillPrintTemplate
+              ref={printRef}
+              billData={printingItem}
+              companyProfile={companyProfile}
+              billType={printingItem.billType === 'khata' ? 'khata' : 'customer'}
+            />
+          )}
+
+          <DialogFooter className="print:hidden">
+            <Button variant="outline" onClick={() => setShowPrintDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleActualPrint} className="gap-2">
+              <Printer className="h-4 w-4" />
+              Print Bill
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -142,16 +142,16 @@ export const BillPrintTemplate = forwardRef<HTMLDivElement, BillPrintTemplatePro
                   </span>
                 </div>
               )}
-              {billData.transportName && (
+              {billData.paymentMode && (
                 <div className="mb-2">
-                  <span className="font-bold">Transport / वाहन:</span>
-                  <span className="ml-2">{billData.transportName}</span>
+                  <span className="font-bold">Payment Mode / भुगतान:</span>
+                  <span className="ml-2 uppercase">{billData.paymentMode}</span>
                 </div>
               )}
-              {billData.vehicleNo && (
+              {billData.previousBalance && Number(billData.previousBalance) !== 0 && (
                 <div className="mb-2">
-                  <span className="font-bold">Vehicle No / गाड़ी नं:</span>
-                  <span className="ml-2">{billData.vehicleNo}</span>
+                  <span className="font-bold">Previous Balance / पुराना बैलेंस:</span>
+                  <span className="ml-2">₹{Number(billData.previousBalance || 0).toFixed(2)}</span>
                 </div>
               )}
               {isKhataBill && (billData as KhataBilling).creditLimit && (
@@ -209,18 +209,38 @@ export const BillPrintTemplate = forwardRef<HTMLDivElement, BillPrintTemplatePro
             {/* Left Side - Expenses Breakdown */}
             <div className="border-r-2 border-black p-4">
               <h3 className="font-bold mb-2 text-sm uppercase">Expenses / खर्चे:</h3>
-              {billData.expenses && (billData.expenses as any[]).length > 0 ? (
-                <div className="space-y-1 text-sm">
-                  {(billData.expenses as any[]).map((expense: any, idx: number) => (
-                    <div key={idx} className="flex justify-between">
-                      <span>{expense.name}:</span>
-                      <span>₹{Number(expense.amount || 0).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500">No expenses</div>
-              )}
+              <div className="space-y-1 text-sm">
+                {Number(billData.commission || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Commission / कमीशन:</span>
+                    <span>₹{Number(billData.commission || 0).toFixed(2)}</span>
+                  </div>
+                )}
+                {Number(billData.marketFee || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Market Fee / मार्केट फीस:</span>
+                    <span>₹{Number(billData.marketFee || 0).toFixed(2)}</span>
+                  </div>
+                )}
+                {Number(billData.hamali || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Hamali / हमाली:</span>
+                    <span>₹{Number(billData.hamali || 0).toFixed(2)}</span>
+                  </div>
+                )}
+                {Number(billData.discountWeight || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Discount Weight / छूट वजन:</span>
+                    <span>{Number(billData.discountWeight || 0).toFixed(2)} Kg</span>
+                  </div>
+                )}
+                {Number(billData.discountAmount || 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>Discount Amount / छूट राशि:</span>
+                    <span>₹{Number(billData.discountAmount || 0).toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right Side - Totals */}
@@ -228,15 +248,11 @@ export const BillPrintTemplate = forwardRef<HTMLDivElement, BillPrintTemplatePro
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between pb-1">
                   <span className="font-semibold">Subtotal / उप-योग:</span>
-                  <span>₹{Number(billData.totalAmount || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between pb-1">
-                  <span className="font-semibold">Total Expenses / कुल खर्चे:</span>
-                  <span>₹{Number(billData.totalExpenses || 0).toFixed(2)}</span>
+                  <span>₹{Number(billData.subtotal || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-t-2 border-black">
-                  <span className="font-bold text-base">Grand Total / कुल राशि:</span>
-                  <span className="font-bold text-base">₹{Number(billData.grandTotal || 0).toFixed(2)}</span>
+                  <span className="font-bold text-base">Total Amount / कुल राशि:</span>
+                  <span className="font-bold text-base">₹{Number(billData.totalAmount || 0).toFixed(2)}</span>
                 </div>
                 {billData.paidAmount && Number(billData.paidAmount) > 0 && (
                   <>
@@ -246,7 +262,7 @@ export const BillPrintTemplate = forwardRef<HTMLDivElement, BillPrintTemplatePro
                     </div>
                     <div className="flex justify-between py-2 border-t border-black">
                       <span className="font-bold">Balance / शेष:</span>
-                      <span className="font-bold">₹{(Number(billData.grandTotal || 0) - Number(billData.paidAmount || 0)).toFixed(2)}</span>
+                      <span className="font-bold">₹{Number(billData.balanceAmount || 0).toFixed(2)}</span>
                     </div>
                   </>
                 )}
